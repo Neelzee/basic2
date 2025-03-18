@@ -1,6 +1,7 @@
 lexer grammar Basic2Tokens;
 
-STR_LIT : '"' ~["] '"' ;
+WHITESPACE : [ \r\n\t] -> skip;
+STR_LIT : '"' (~["])* '"' ;
 NUM_LIT : '-'? [0-9] [0-9]* ;
 FLOAT_LIT : '-'? [0-9]* '.'? [0-9]* 'f' ;
 BOOL_LIT : 'TRUE' | 'FALSE' ;
@@ -10,37 +11,7 @@ ARRAY_STRT : '[';
 ARRAY_END : ']';
 BODY_STRT : '{' ;
 BODY_END : '}' ;
-BIN_OP
-  : '+'
-  | '-'
-  | '/'
-  | '*'
-  | '%'
-  | '^'
-  | '&&'
-  | '||'
-  | '+='
-  | '-='
-  | '/='
-  | '*='
-  | '%='
-  | '^='
-  | '&='
-  | '|='
-  | '=='
-  | '!='
-  | '<='
-  | '<'
-  | '>='
-  | '>'
-  ;
-UNI_OP
-  : '!'
-  | '++'
-  | '--'
-  ;
 fragment CHARS : [a-zA-Z];
-IDENTIFIER : (CHARS | '-' | '_')+ (CHARS | '-' | '_' | [0-9])*;
 SEP : ',';
 PRINT_KW : 'PRINT';
 INPUT_KW : 'INPUT';
@@ -55,3 +26,4 @@ PRIM_TYPES
   | 'STR'
   | 'BOOL'
   ;
+IDENTIFIER : (CHARS | '-' | '_')+ (CHARS | '-' | '_' | [0-9])*;

@@ -18,11 +18,11 @@ stmt
 print_stmt : PRINT_KW TUPLE_STRT expr TUPLE_END END_KW;
 input_stmt : var_decl_stmt? INPUT_KW TUPLE_STRT expr TUPLE_END END_KW;
 
-var_decl_stmt : LET_KW IDENTIFIER typing END_KW;
+var_decl_stmt : LET_KW IDENTIFIER  typing END_KW;
 var_decl_ass_stmt : LET_KW IDENTIFIER typing? ASS_KW expr END_KW;
 var_re_ass_stmt : IDENTIFIER ASS_KW expr END_KW;
 
-typing : IDENTIFIER ':' type;
+typing : ':' type;
 body_stmt : BODY_STRT stmt* BODY_END;
 fn_decl_stmt
   : FUNCTION_DECL IDENTIFIER TUPLE_STRT type? (SEP type)* SEP? TUPLE_END ':' type END_KW
@@ -38,15 +38,48 @@ type
   | TUPLE_STRT type SEP type TUPLE_END
   ;
 
+
+bin_op
+  : '+'  # add
+  | '-'  # sub
+  | '/'  # div
+  | '*'  # mul
+  | '%'  # mod
+  | '^'  # pow
+  | '&&' # and
+  | '||' # or
+  | '+=' # mutAdd
+  | '-=' # mutSub
+  | '/=' # mutDiv
+  | '*=' # mutMul
+  | '%=' # mutMod
+  | '^=' # mutPow
+  | '&=' # mutAnd
+  | '|=' # mutOr
+  | '==' # eq
+  | '!=' # neq
+  | '<=' # gteq
+  | '<'  # gt
+  | '>=' # lteq
+  | '>'  # lt
+  ;
+
+uni_op
+  : '!'  # neg
+  | '-'  # sig
+  | '++' # inc
+  | '--' # dec
+  ;
+
 expr
-  : IDENTIFIER                                 # ident
-  | NUM_LIT                                    # num
+  : NUM_LIT                                    # num
   | FLOAT_LIT                                  # float
   | STR_LIT                                    # str
   | BOOL_LIT                                   # bool
   | TUPLE_STRT expr SEP expr TUPLE_END         # tuple
   | ARRAY_STRT expr (SEP expr)* SEP? ARRAY_END # array
-  | expr BIN_OP expr                           # binop
-  | UNI_OP expr                                # opuni
-  | expr UNI_OP                                # uniop
+  | expr bin_op expr                           # binop
+  | uni_op expr                                # opuni
+  | expr uni_op                                # uniop
+  | IDENTIFIER                                 # ident
   ;
