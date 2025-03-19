@@ -19,6 +19,10 @@ FUNCTION_DECL : 'DECL' ;
 FUNCTION_IMPL : 'IMPL' ;
 END_KW : ';';
 LET_KW : 'LET';
+IF_KW : 'IF';
+THEN_KW : 'THEN';
+ELSE_KW : 'ELSE';
+END_IF_KW : 'FI';
 ASS_KW : '=';
 PRIM_TYPES
   : 'INT'

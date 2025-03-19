@@ -13,6 +13,8 @@ stmt
   | body_stmt         # body
   | fn_decl_stmt      # fn_decl
   | fn_impl_stmt      # fn_impl
+  | if_else_stmt      # if_else
+  | if_stmt           # if
   ;
 
 print_stmt : PRINT_KW TUPLE_STRT expr TUPLE_END END_KW;
@@ -32,12 +34,14 @@ fn_impl_stmt
   ;
 fn_param : IDENTIFIER (ASS_KW expr)?;
 
+if_else_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt ELSE_KW stmt END_IF_KW;
+if_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt END_IF_KW;
+
 type
   : PRIM_TYPES
   | ARRAY_STRT type ARRAY_END
   | TUPLE_STRT type SEP type TUPLE_END
   ;
-
 
 bin_op
   : '+'  # add
@@ -72,14 +76,15 @@ uni_op
   ;
 
 expr
-  : NUM_LIT                                    # num
-  | FLOAT_LIT                                  # float
-  | STR_LIT                                    # str
-  | BOOL_LIT                                   # bool
-  | TUPLE_STRT expr SEP expr TUPLE_END         # tuple
-  | ARRAY_STRT expr (SEP expr)* SEP? ARRAY_END # array
-  | expr bin_op expr                           # binop
-  | uni_op expr                                # opuni
-  | expr uni_op                                # uniop
-  | IDENTIFIER                                 # ident
+  : NUM_LIT                                                  # num
+  | FLOAT_LIT                                                # float
+  | STR_LIT                                                  # str
+  | BOOL_LIT                                                 # bool
+  | TUPLE_STRT expr SEP expr TUPLE_END                       # tuple
+  | ARRAY_STRT expr (SEP expr)* SEP? ARRAY_END               # array
+  | expr bin_op expr                                         # binop
+  | uni_op expr                                              # opuni
+  | expr uni_op                                              # uniop
+  | IDENTIFIER TUPLE_STRT (expr (SEP expr)* SEP?)? TUPLE_END # fnCall
+  | IDENTIFIER                                               # ident
   ;
