@@ -6,9 +6,12 @@ import org.antlr.v4.kotlinruntime.CommonTokenStream
 
 fun main() {
     val input = """
-        LET foo = 10f;
+        LET foo: FLOAT = 10f;
         foo = foo * 10;
         PRINT("Hello, World!");
+        DECL main() : INT;
+        IMPL main() PRINT("HEYO!");
+        LET _ = main();
         """.trimIndent()
     val lexer = Basic2Lexer(CharStreams.fromString(input))
     val tokens = CommonTokenStream(lexer)
@@ -16,5 +19,9 @@ fun main() {
 
     val tree = parser.program()
 
-    B2InterpreterVisitor().visit(tree)
+    val visitor = B2InterpreterVisitor()
+
+    visitor.visit(tree)
+
+    visitor.printSymbolTable()
 }

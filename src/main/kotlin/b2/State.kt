@@ -3,12 +3,13 @@ package b2
 import kotlin.math.pow
 
 sealed class Value {
+    data object VUnit : Value()
     data class VNull(val type: Type) : Value()
     data class VInt(val value: Int) : Value()
     data class VFloat(val value: Float) : Value()
     data class VString(val value: String) : Value()
     data class VBoolean(val value: Boolean) : Value()
-    data class VTuple(val value: Pair<Value, Value>, val type: Type.Tuple) : Value()
+    data class Tuple(val value: Pair<Value, Value>, val type: Type.Tuple) : Value()
     data class VList(val value: List<Value>, val type: Type) : Value()
 
     fun type(): Type = when (this) {
@@ -17,8 +18,9 @@ sealed class Value {
         is VFloat -> Type.TFloat
         is VString -> Type.TStr
         is VBoolean -> Type.TBool
-        is VTuple -> this.type
+        is Tuple -> this.type
         is VList -> this.type
+        is VUnit -> Type.TUnit
     }
 
     operator fun plus(b: Value): Value {
@@ -37,7 +39,7 @@ sealed class Value {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
                 val pair = Pair(ll + rl, lr + rr)
-                VTuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
+                Tuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
             }
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
@@ -48,7 +50,7 @@ sealed class Value {
         is VFloat -> this.value
         is VString -> this.value
         is VBoolean -> this.value
-        is VTuple -> this.value
+        is Tuple -> this.value
         is VList -> this.value
         else -> throw RuntimeException("Could not get value from $this")
     }
@@ -66,7 +68,7 @@ sealed class Value {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
                 val pair = Pair(ll - rl, lr - rr)
-                VTuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
+                Tuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
             }
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
@@ -88,7 +90,7 @@ sealed class Value {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
                 val pair = Pair(ll / rl, lr / rr)
-                VTuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
+                Tuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
             }
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
@@ -111,7 +113,7 @@ sealed class Value {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
                 val pair = Pair(ll * rl, lr * rr)
-                VTuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
+                Tuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
             }
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
@@ -129,7 +131,7 @@ sealed class Value {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
                 val pair = Pair(ll % rl, lr % rr)
-                VTuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
+                Tuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
             }
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
@@ -147,7 +149,7 @@ sealed class Value {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
                 val pair = Pair(ll.pow(rl), rr.pow(lr))
-                VTuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
+                Tuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
             }
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
@@ -162,7 +164,7 @@ sealed class Value {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
                 val pair = Pair(ll.and(rl), lr.and(rr))
-                VTuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
+                Tuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
             }
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
@@ -177,7 +179,7 @@ sealed class Value {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
                 val pair = Pair(ll.or(rl), lr.or(rr))
-                VTuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
+                Tuple(pair, Type.Tuple(Type.infer(pair.first), Type.infer(pair.second)))
             }
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
@@ -201,7 +203,7 @@ sealed class Value {
         is VBoolean -> VBoolean(!this.value)
         is VList -> VList(this.value.reversed(), this.type)
         is VString -> VString(this.value.reversed())
-        is VTuple -> VTuple(Pair(this.value.second, this.value.first), Type.Tuple(this.type.snd, this.type.snd))
+        is Tuple -> Tuple(Pair(this.value.second, this.value.first), Type.Tuple(this.type.snd, this.type.snd))
         else -> throw RuntimeException("Illegal operation, cannot negate $this")
     }
 
@@ -231,7 +233,7 @@ sealed class Value {
             is Boolean -> VBoolean(v)
             is String -> VString(v)
             is Pair<*, *> ->
-                VTuple(Pair(from(v.first), from(v.second)), Type.Tuple(Type.infer(v.first), Type.infer(v.second)))
+                Tuple(Pair(from(v.first), from(v.second)), Type.Tuple(Type.infer(v.first), Type.infer(v.second)))
             is List<*> -> VList(v.map { from(it!!) }.toList(), Type.infer(v))
             else -> throw RuntimeException("Unknown type: $v")
         }
@@ -241,23 +243,28 @@ sealed class Value {
             v is VFloat && t is Type.TInt -> VInt(v.value.toInt())
             v is VString && t is Type.TInt -> VInt(v.value.toInt())
             v is VString && t is Type.TFloat -> VFloat(v.value.toFloat())
-            else -> throw RuntimeException("Invalid type casting")
+            else -> if (v.type() == t) {
+                v
+            } else {
+                throw RuntimeException("Invalid type casting")
+            }
         }
     }
 }
 
 sealed class Symbol {
     data class Var(val value: Value) : Symbol()
-    data class Param(val id: String, val type: Type)
-    data class Arg(val id: String, val type: Value?)
+    data class Param(val type: Type)
+    data class Arg(val id: String, val value: Value?)
     data class FnDecl(
         val params: List<Param>,
         val resultType: Type
     ) : Symbol()
-    data class FnImpl(val args: List<Arg>) : Symbol()
+    data class FnImpl(val args: List<Arg>, val body: (args: List<Value?>) -> Value) : Symbol()
 }
 
 sealed class Type {
+    data object TUnit : Type()
     data object TInt : Type()
     data object TFloat : Type()
     data object TStr : Type()
