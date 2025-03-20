@@ -1,5 +1,9 @@
 package b2
 
+import b2.symbols.Symbol
+import b2.symbols.Type
+import b2.symbols.Value
+
 data class SymbolTable(
     private val variables: MutableMap<String, Symbol.Var> = mutableMapOf(),
     private val fnImpls: MutableMap<String, Symbol.FnImpl> = mutableMapOf(),

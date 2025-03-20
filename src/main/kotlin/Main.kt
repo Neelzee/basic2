@@ -1,4 +1,5 @@
 import b2.B2Visitor
+import b2.interpreter.B2Interpreter
 import no.nilsmf.antlr.Basic2Lexer
 import no.nilsmf.antlr.Basic2Parser
 import org.antlr.v4.kotlinruntime.CharStreams
@@ -67,7 +68,16 @@ LET foo: STR = INPUT("> ");
 PRINT(foo);
 """.trimIndent()
 
-fun main() {
+const val TESTING = true
+
+fun main() = if (TESTING) {
+   testing()
+} else {
+    inter()
+}
+
+
+fun testing() {
     val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/IsPrime")))
     val tokens = CommonTokenStream(lexer)
     val parser = Basic2Parser(tokens)
@@ -79,4 +89,9 @@ fun main() {
     visitor.visit(tree)
 
     visitor.printSymbolTable()
+}
+
+fun inter() {
+    val it = B2Interpreter()
+    it.interpret()
 }

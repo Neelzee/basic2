@@ -70,26 +70,28 @@ for_stmt
 for_range : FOR_KW TUPLE_STRT IDENTIFIER 'IN' iterable TUPLE_END THEN_KW stmt END_LOOP_KW;
 
 comp
-  : '==' # eq
-  | '!=' # neq
-  | '<=' # gteq
-  | '<'  # gt
-  | '>=' # lteq
-  | '>'  # lt
+  : '=='
+  | '!='
+  | '<='
+  | '<'
+  | '>='
+  | '>'
   ;
 
 incr
-  : '+=' # mutAdd
-  | '-=' # mutSub
-  | '/=' # mutDiv
-  | '*=' # mutMul
-  | '%=' # mutMod
-  | '^=' # mutPow
+  : '+='
+  | '-='
+  | '/='
+  | '*='
+  | '%='
+  | '^='
+  | '&='
+  | '|='
   ;
 
 incr_uni
-  : '++' # inc
-  | '--' # dec
+  : '++'
+  | '--'
   ;
 
 type
@@ -104,24 +106,16 @@ iterable
   ;
 
 bin_op
-  : '+'  # add
-  | '-'  # sub
-  | '/'  # div
-  | '*'  # mul
-  | '%'  # mod
-  | '^'  # pow
-  | '&&' # and
-  | '||' # or
-  | '&=' # mutAnd
-  | '|=' # mutOr
-  | incr # incr_bin
-  | comp # comp_bin
-  ;
-
-uni_op
-  : '!'      # neg
-  | '-'      # sig
-  | incr_uni # uni
+  : '+'
+  | '-'
+  | '/'
+  | '*'
+  | '%'
+  | '^'
+  | '&&'
+  | '||'
+  | incr
+  | comp
   ;
 
 expr
@@ -134,8 +128,6 @@ expr
   | (ARRAY_STRT expr (SEP expr)* SEP? ARRAY_END | ARRAY_STRT ARRAY_END) # array
   | expr 'AS' type                                                      # cast
   | expr bin_op expr                                                    # binop
-  | uni_op expr                                                         # opuni
-  | expr uni_op                                                         # uniop
   | expr '?' expr ':' expr                                              # ternary
   | expr ARRAY_STRT expr ARRAY_END                                      # arrInd
   | TRIM_KW TUPLE_STRT expr TUPLE_END                                   # trim
