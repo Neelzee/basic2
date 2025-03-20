@@ -29,6 +29,9 @@ BREAK_KW : 'BREAK';
 END_LOOP_KW : 'END';
 FOR_KW : 'FOR';
 ASS_KW : '=';
+LEN_KW : 'LEN';
+APPEND_KW : 'ADD';
+TRIM_KW : 'TRIM';
 PRIM_TYPES
   : 'INT'
   | 'FLOAT'
