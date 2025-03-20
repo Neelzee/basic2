@@ -38,3 +38,12 @@ tasks.named("compileKotlin") {
     dependsOn(tasks.named("generateKotlinGrammarSource"))
 }
 
+tasks.named("compileTestKotlin") {
+    dependsOn(tasks.named("generateKotlinGrammarSource"), tasks.named("generateTestGrammarSource"))
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xwhen-guards")
+    }
+}
