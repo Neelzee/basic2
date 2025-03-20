@@ -225,6 +225,21 @@ sealed class Value {
         else -> throw RuntimeException("Illegal operation, cannot sign $this")
     }
 
+    fun toBool(): Boolean = when (this) {
+        is VBoolean -> this.value
+        is Tuple -> this.value.first.toBool() && this.value.second.toBool()
+        is VFloat -> this.value.isFinite() && this.value == 1f
+        is VInt -> this.value == 1
+        is VList -> this.value.isNotEmpty()
+        is VString -> this.value.lowercase() == "true"
+        else -> throw RuntimeException("Illegal operation, cannot convert $this to Bool")
+    }
+
+    fun toIterable(): Iterable<*> = when (this) {
+        is VList -> this.value.toList()
+        else -> throw RuntimeException("Illegal operation, cannot iterate $this")
+    }
+
 
     companion object {
         fun from(v: Any?): Value = when (v) {

@@ -9,8 +9,8 @@ TUPLE_STRT : '(';
 TUPLE_END : ')';
 ARRAY_STRT : '[';
 ARRAY_END : ']';
-BODY_STRT : '{' ;
-BODY_END : '}' ;
+BLOCK_STRT : '{' ;
+BLOCK_END : '}' ;
 fragment CHARS : [a-zA-Z];
 SEP : ',';
 PRINT_KW : 'PRINT';
@@ -23,6 +23,11 @@ IF_KW : 'IF';
 THEN_KW : 'THEN';
 ELSE_KW : 'ELSE';
 END_IF_KW : 'FI';
+WHILE_KW : 'WHILE';
+RET_KW : 'RETURN';
+BREAK_KW : 'BREAK';
+END_LOOP_KW : 'END';
+FOR_KW : 'FOR';
 ASS_KW : '=';
 PRIM_TYPES
   : 'INT'

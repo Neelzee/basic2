@@ -5,24 +5,31 @@ data class SymbolTable(
     private val fnImpls: MutableMap<String, Symbol.FnImpl> = mutableMapOf(),
     private val fnDecls: MutableMap<String, Symbol.FnDecl> = mutableMapOf(),
     private var next: SymbolTable? = null,
-    private var prev: SymbolTable? = null,
 ) {
 
-    fun enterScope(): SymbolTable = next?.let {
-        it.enterScope()
-        it.prev = this
-        return it
-    } ?: this.copy(next = null, prev = this)
+    companion object {
+        fun SymbolTable(table: SymbolTable): SymbolTable = SymbolTable(
+            variables = mutableMapOf(),
+            fnImpls = mutableMapOf(),
+            fnDecls = mutableMapOf(),
+            next = table
+        )
+    }
 
-    fun exitScope(): SymbolTable = prev?.let {
-        it.copy(next = this, prev = it.prev)
-    } ?: this
+    fun enterScope(): SymbolTable = SymbolTable(
+        variables = mutableMapOf(),
+        fnImpls = mutableMapOf(),
+        fnDecls = mutableMapOf(),
+        next = this
+    )
+
+    fun exitScope(): SymbolTable = next ?: this
 
     fun declVar(id: String, type: Type) {
         variables[id] = Symbol.Var(Value.VNull(type))
     }
 
-    fun declAssVar(id: String, value: Value, type: Type?) {
+    fun declAssVar(id: String, value: Value, type: Type? = null) {
         val t = type ?: value.type()
         val v = if (type == null) { value } else { Value.withType(value, t) }
         variables[id] = Symbol.Var(v)
@@ -43,6 +50,10 @@ data class SymbolTable(
         else -> next?.getVar(id) ?: throw RuntimeException("Could not find $id in scope")
     }
 
+    fun remVar(id: String) {
+        variables.remove(id)
+    }
+
     fun getVarNullable(id: String): Symbol.Var? = when (variables[id]) {
         is Symbol.Var -> variables[id] as Symbol.Var
         else -> next?.getVarNullable(id)
@@ -58,32 +69,31 @@ data class SymbolTable(
 
     fun getDecl(id: String): Symbol.FnDecl = when {
         fnDecls[id] != null -> fnDecls[id] as Symbol.FnDecl
-        else -> prev?.getDecl(id) ?: throw RuntimeException("Could not find $id in scope")
+        else -> next?.getDecl(id) ?: throw RuntimeException("Could not find $id in scope")
     }
 
     fun getDeclNullable(id: String): Symbol.FnDecl? = when {
         fnDecls[id] != null -> fnDecls[id] as Symbol.FnDecl
-        else -> prev?.getDecl(id)
+        else -> next?.getDecl(id)
     }
 
     fun getImpl(id: String): Symbol.FnImpl  = when {
         fnImpls[id] != null -> fnImpls[id] as Symbol.FnImpl
-        else -> prev?.getImplNullable(id) ?: throw RuntimeException("Could not find $id in scope")
+        else -> next?.getImplNullable(id) ?: throw RuntimeException("Could not find $id in scope")
     }
 
     fun getImplNullable(id: String): Symbol.FnImpl? = when {
         fnImpls[id] != null -> fnImpls[id] as Symbol.FnImpl
-        else -> prev?.getImplNullable(id)
+        else -> next?.getImplNullable(id)
     }
 
     fun getParams(id: String): List<Symbol.Param> = fnDecls[id]?.params
         ?: throw RuntimeException("Could not find $id in declarations")
 
     fun print() {
-        if (prev == null) println("Variables:")
         next?.printVariables()
         printVariables()
-        println("Function Declerations")
+        println("Function Declarations:")
         next?.printFnDecls()
         printFnDecls()
         println("Function Implementations: ")
