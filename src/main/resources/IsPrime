@@ -1,0 +1,25 @@
+PRINT("Input a number to check for if its a prime:");
+LET rawInp: STR = INPUT("> ");
+LET n: INT = TRIM(rawInp);
+
+LET prime: [BOOL] = [];
+FOR (i = 0; i <= (n + 1); i++;) THEN
+ADD(TRUE, prime);
+END
+LET p = 2;
+WHILE ((p * p) <= n) {
+  IF (prime[p]) {
+    LET i = p * p;
+    WHILE (i <= (n + 1)) {
+      prime[i] = FALSE;
+      i = i + p;
+    }
+    p = p + 1;
+  }
+}
+
+FOR (i = 2; i <= (n + 1); i++;) THEN
+IF (prime[i]) THEN
+PRINT(i);
+FI
+END

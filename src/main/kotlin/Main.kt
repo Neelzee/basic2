@@ -3,6 +3,7 @@ import no.nilsmf.antlr.Basic2Lexer
 import no.nilsmf.antlr.Basic2Parser
 import org.antlr.v4.kotlinruntime.CharStreams
 import org.antlr.v4.kotlinruntime.CommonTokenStream
+import java.nio.file.Paths
 
 val while_test = """
     LET count = 0;
@@ -61,9 +62,13 @@ LET result = fac(30);
 PRINT(result);
 """.trimIndent()
 
+val input_test = """
+LET foo: STR = INPUT("> ");
+PRINT(foo);
+""".trimIndent()
+
 fun main() {
-    val input = factory_test
-    val lexer = Basic2Lexer(CharStreams.fromString(input))
+    val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/IsPrime")))
     val tokens = CommonTokenStream(lexer)
     val parser = Basic2Parser(tokens)
 

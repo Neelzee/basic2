@@ -1,0 +1,27 @@
+DECL fizzbuzz(INT) : STR;
+IMPL fizzbuzz(n)
+{
+  LET result: STR = "";
+  IF (n % 3 == 0) THEN
+    result = result + "Fizz";
+  FI
+  IF (n % 5 == 0) THEN
+    result = result + "Buzz";
+  FI
+  RETURN result;
+}
+
+PRINT("=" * 10);
+PRINT("Welcome to FIZZBUZZ");
+PRINT("=" * 10);
+WHILE (TRUE) THEN
+{
+PRINT("Input a number, or Q to quit");
+LET query: STR = INPUT("> ");
+IF (query == "Q") THEN
+BREAK;
+FI
+LET fb = fizzbuzz(query AS INT);
+PRINT(fb);
+}
+END
