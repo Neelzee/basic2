@@ -10,7 +10,7 @@ sealed class Value {
     data class VString(val value: String) : Value()
     data class VBoolean(val value: Boolean) : Value()
     data class Tuple(val value: Pair<Value, Value>, val type: Type.Tuple) : Value()
-    data class VList(val value: List<Value>, val type: Type) : Value()
+    data class VList(val value: MutableList<Value>, val type: Type.TList) : Value()
 
     fun type(): Type = when (this) {
         is VNull -> this.type
@@ -32,9 +32,9 @@ sealed class Value {
             (left is Int && right is Float) -> VFloat(left + right)
             (left is Float && right is Float) -> VFloat(left + right)
             (left is String && right is String) -> VString(left + right)
-            (left is List<*> && right is List<*>) -> (left + right)
+            (left is MutableList<*> && right is MutableList<*>) -> (left + right)
                 .map { from(it) }
-                .let { VList(it, Type.infer(it)) }
+                .let { VList(it.toMutableList(), Type.infer(it) as Type.TList) }
             (left is Pair<*, *> && right is Pair<*, *>) -> {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
@@ -52,7 +52,7 @@ sealed class Value {
         is VBoolean -> this.value
         is Tuple -> this.value
         is VList -> this.value
-        else -> throw RuntimeException("Could not get value from $this")
+        else -> throw RuntimeException("Could not get returnValue from $this")
     }
 
     operator fun minus(b: Value): Value {
@@ -83,9 +83,9 @@ sealed class Value {
             (left is Int && right is Float) -> VFloat(left / right)
             (left is Float && right is Float) -> VFloat(left / right)
             (left is String && right is String) -> VString(left + right)
-            (left is List<*> && right is List<*>) -> left.filter { !right.contains(it) }
+            (left is MutableList<*> && right is MutableList<*>) -> left.filter { !right.contains(it) }
                 .map { from(it) }
-                .let { VList(it, Type.infer(it)) }
+                .let { VList(it.toMutableList(), Type.infer(it) as Type.TList) }
             (left is Pair<*, *> && right is Pair<*, *>) -> {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
@@ -106,9 +106,9 @@ sealed class Value {
             (left is Float && right is Float) -> VFloat(left * right)
             (left is String && right is Int) -> VString(left.repeat(right))
             (left is Int && right is String) -> VString(right.repeat(left))
-            (left is List<*> && right is List<*>) -> left.zip(right)
+            (left is MutableList<*> && right is MutableList<*>) -> left.zip(right)
                 .map { from(it) }
-                .let { VList(it, Type.infer(it)) }
+                .let { VList(it.toMutableList(), Type.infer(it) as Type.TList) }
             (left is Pair<*, *> && right is Pair<*, *>) -> {
                 val (ll, lr) = left.let { Pair(from(it.first), from(it.second) ) }
                 val (rl, rr) = right.let { Pair(from(it.first), from(it.second) ) }
@@ -194,14 +194,14 @@ sealed class Value {
             (left is Int && right is Float) -> left.compareTo(right)
             (left is Float && right is Float) -> left.compareTo(right)
             (left is String && right is String) -> left.length.compareTo(right.length)
-            (left is List<*> && right is List<*>) -> left.size.compareTo(right.size)
+            (left is MutableList<*> && right is MutableList<*>) -> left.size.compareTo(right.size)
             else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
         }
     }
 
     fun not(): Value = when (this) {
         is VBoolean -> VBoolean(!this.value)
-        is VList -> VList(this.value.reversed(), this.type)
+        is VList -> VList(this.value.reversed().toMutableList(), this.type)
         is VString -> VString(this.value.reversed())
         is Tuple -> Tuple(Pair(this.value.second, this.value.first), Type.Tuple(this.type.snd, this.type.snd))
         else -> throw RuntimeException("Illegal operation, cannot negate $this")
@@ -240,6 +240,44 @@ sealed class Value {
         else -> throw RuntimeException("Illegal operation, cannot iterate $this")
     }
 
+    operator fun get(ind: VInt): Value = when (this) {
+        is VList if (ind.value >= this.value.size || ind.value < 0) ->
+            throw RuntimeException("OutOfBoundsException: ${ind.value} on $this")
+        is VList -> this.value[ind.value]
+        is Tuple if (ind.value == 0) -> this.value.first
+        is Tuple if (ind.value == 1) -> this.value.second
+        is Tuple ->
+            throw RuntimeException("OutOfBoundsException: ${ind.value} on $this")
+        else -> throw RuntimeException("Illegal operation, cannot index $this")
+    }
+
+    operator fun set(ind: VInt, newValue: Value): Value = when (this) {
+        is VList if (ind.value >= this.value.size || ind.value < 0) ->
+            throw RuntimeException("OutOfBoundsException: ${ind.value} on $this")
+        is VList if (newValue.type() != this.type.t) ->
+            throw RuntimeException(
+                "Illegal operation, element $newValue is of type ${newValue.type()}" +
+                        ", while the array is of type: ${this.type}"
+            )
+        is VList -> this.value[ind.value]
+        else -> throw RuntimeException("Illegal operation, cannot index $this")
+    }
+
+    fun size(): Int = when (this) {
+        is VList -> this.value.size
+        is VString -> this.value.length
+        else -> throw RuntimeException("Illegal operation, cannot take length of $this")
+    }
+
+    fun add(value: Value) = when (this) {
+        is VList if (this.type == Type.TList(value.type())) -> this.value.add(value)
+        is VList ->
+            throw RuntimeException(
+                "Illegal operation, element $value is of type ${value.type()}, while the array is of type: ${this.type}"
+            )
+        else -> throw RuntimeException("Illegal operation cannot append element to $this")
+    }
+
 
     companion object {
         fun from(v: Any?): Value = when (v) {
@@ -249,7 +287,8 @@ sealed class Value {
             is String -> VString(v)
             is Pair<*, *> ->
                 Tuple(Pair(from(v.first), from(v.second)), Type.Tuple(Type.infer(v.first), Type.infer(v.second)))
-            is List<*> -> VList(v.map { from(it!!) }.toList(), Type.infer(v))
+            is MutableList<*> -> VList(v.map { from(it!!) }.toMutableList(), Type.infer(v) as Type.TList)
+            is Value -> v
             else -> throw RuntimeException("Unknown type: $v")
         }
 
@@ -258,10 +297,11 @@ sealed class Value {
             v is VFloat && t is Type.TInt -> VInt(v.value.toInt())
             v is VString && t is Type.TInt -> VInt(v.value.toInt())
             v is VString && t is Type.TFloat -> VFloat(v.value.toFloat())
+            v is VList && t is Type.TList -> v.copy(type = t)
             else -> if (v.type() == t) {
                 v
             } else {
-                throw RuntimeException("Invalid type casting")
+                throw RuntimeException("Invalid type casting: ${v.type()} to $t")
             }
         }
     }
@@ -293,8 +333,9 @@ sealed class Type {
             is Float -> TFloat
             is Boolean -> TBool
             is String -> TStr
-            is List<*> -> TList(infer(v.first()))
+            is MutableList<*> -> TList(infer(v.first()))
             is Pair<*, *> -> Tuple(infer(v.first), infer(v.second))
+            is Value -> v.type()
             else -> throw RuntimeException("Unknown type inference: $v")
         }
 
@@ -302,7 +343,7 @@ sealed class Type {
             "INT" -> TInt
             "FLOAT" -> TFloat
             "BOOL" -> TBool
-            "STRING" -> TStr
+            "STR" -> TStr
             else -> when {
                 s.contains('[') ->
                     TList(from(s.replace("[", "").replace("]", "")))

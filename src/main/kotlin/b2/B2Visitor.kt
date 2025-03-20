@@ -4,15 +4,16 @@ import no.nilsmf.antlr.Basic2BaseVisitor
 import no.nilsmf.antlr.Basic2Parser
 import org.antlr.v4.kotlinruntime.tree.TerminalNode
 import kotlin.math.max
+import kotlin.math.min
 
 sealed class B2Exception : Throwable() {
-    data class ReturnException(val value: Value) : B2Exception()
+    data class ReturnException(val returnValue: Value) : B2Exception()
     data object BreakException : B2Exception() {
         private fun readResolve(): Any = BreakException
     }
 
     fun getValue() : Value = when (this) {
-        is ReturnException -> value
+        is ReturnException -> returnValue
         is BreakException -> Value.VUnit
     }
 }
@@ -67,8 +68,8 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
 
     override fun visitArray(ctx: Basic2Parser.ArrayContext): Value.VList
         = ctx.expr()
-            .map { super.visit(it) as Value }
-            .let { Value.VList(it, Type.TList(it[0].type())) }
+            .map { exprCtx(it) }
+            .let { Value.VList(it.toMutableList(), Type.TList(Type.TUnit)) }
 
     override fun visitVar_decl(ctx: Basic2Parser.Var_declContext): Value.VUnit {
         val (id, type) = ctx.var_decl_stmt().let {
@@ -79,6 +80,17 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         return Value.VUnit
     }
 
+    override fun visitArrReAss(ctx: Basic2Parser.ArrReAssContext): Value.VUnit {
+        val atx = ctx.arr_re_ass_stmt()
+        val arrVar = symbolTable.getVar(atx.IDENTIFIER().text)
+        val ind = exprCtx(atx.expr(0)!!) as Value.VInt
+        val newValue = exprCtx(atx.expr(1)!!)
+        arrVar.value[ind] = newValue
+        return Value.VUnit
+    }
+
+    override fun visitGroup(ctx: Basic2Parser.GroupContext): Value = exprCtx(ctx.expr())
+
     private fun exprCtx(ctx: Basic2Parser.ExprContext): Value = when (ctx) {
         is Basic2Parser.NumContext -> visitNum(ctx)
         is Basic2Parser.FloatContext -> visitFloat(ctx)
@@ -87,7 +99,12 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         is Basic2Parser.FnCallContext -> visitFnCall(ctx)
         is Basic2Parser.BinopContext -> visitBinop(ctx)
         is Basic2Parser.IdentContext -> visitIdent(ctx)
-        else -> TODO()
+        is Basic2Parser.StrContext -> visitStr(ctx)
+        is Basic2Parser.TrimContext -> visitTrim(ctx)
+        is Basic2Parser.ArrayContext -> visitArray(ctx)
+        is Basic2Parser.ArrIndContext -> visitArrInd(ctx)
+        is Basic2Parser.GroupContext -> visitGroup(ctx)
+        else -> TODO(ctx.text)
     }
 
     private fun stmtCtx(ctx: Basic2Parser.StmtContext): Value = when (ctx) {
@@ -95,8 +112,20 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         is Basic2Parser.RetContext -> visitRet(ctx)
         is Basic2Parser.BlockContext -> visitBlock(ctx)
         is Basic2Parser.IfContext -> visitIf(ctx)
+        is Basic2Parser.PrintContext -> visitPrint(ctx)
+        is Basic2Parser.InputContext -> visitInput(ctx)
+        is Basic2Parser.Var_assContext -> visitVar_ass(ctx)
+        is Basic2Parser.Var_re_assContext -> visitVar_re_ass(ctx)
+        is Basic2Parser.BreakContext -> visitBreak(ctx)
+        is Basic2Parser.AppendContext -> visitAppend(ctx)
+        is Basic2Parser.For_rContext -> visitFor_r(ctx)
+        is Basic2Parser.ForContext -> visitFor(ctx)
+        is Basic2Parser.If_blockContext -> visitIf_block(ctx)
+        is Basic2Parser.While_blockContext -> visitWhile_block(ctx)
+        is Basic2Parser.ArrReAssContext -> visitArrReAss(ctx)
         else -> TODO(ctx.text)
     }
+
 
     override fun visitVar_ass(ctx: Basic2Parser.Var_assContext): Value.VUnit {
         val dclCtx = ctx.var_decl_ass_stmt()
@@ -126,11 +155,11 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
 
     override fun visitInput(ctx: Basic2Parser.InputContext): Value.VUnit {
         val iCtx = ctx.input_stmt()
-        print(exprCtx(iCtx.expr()))
+        iCtx.expr()?.let { print(exprCtx(it).value()) }
         val value = readlnOrNull() ?: ""
-        iCtx.var_decl_stmt()?.let {
-            val id = it.IDENTIFIER().text
-            val type = it.typing().type().text.let { t -> Type.from(t) }
+        iCtx.IDENTIFIER()?.let {
+            val id = it.text
+            val type = iCtx.typing()!!.type().text.let { t -> Type.from(t) }
             symbolTable.declAssVar(id, Value.VString(value), type)
         }
         return Value.VUnit
@@ -143,13 +172,16 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         is Basic2Parser.DivContext -> visitDiv(ctx)
         is Basic2Parser.Comp_binContext -> comp(ctx.comp())
         is Basic2Parser.MulContext -> visitMul(ctx)
+        is Basic2Parser.ModContext -> visitMod(ctx)
         else -> TODO("Bin-op: ${ctx.text}")
     }
 
     private fun comp(ctx: Basic2Parser.CompContext): (Value, Value) -> Value = when (ctx) {
         is Basic2Parser.EqContext -> visitEq(ctx)
         is Basic2Parser.LteqContext -> visitLteq(ctx)
-        else -> TODO("comp")
+        is Basic2Parser.GteqContext -> visitGteq(ctx)
+        is Basic2Parser.GtContext -> visitGt(ctx)
+        else -> TODO("comp: ${ctx.text}")
     }
 
     private fun incrBin(ctx: Basic2Parser.IncrContext): (Value, Value) -> Value = when (ctx) {
@@ -305,10 +337,10 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
 
     override fun visitFnCall(ctx: Basic2Parser.FnCallContext): Value {
         val fn = ctx.IDENTIFIER().text
-        val args = ctx.expr().map { super.visit(it) as Value }
+        val args = ctx.expr().map { exprCtx(it) }
         val fnBody = symbolTable.getImpl(fn)
         return try {
-            fnBody.body(args)
+            fnBody.body(args.toMutableList())
         } catch (e: B2Exception) {
             e.getValue()
         }
@@ -340,10 +372,10 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         val fnBody: (List<Value?>) -> Value = { args ->
             symbolTable = symbolTable.enterScope()
             if (args.isNotEmpty()) {
-                for (i in 0..<max(args.size, pairs.size)) {
+                for (i in 0..<min(args.size, pairs.size)) {
                     val value = args[i]
                     val (typeInfo, optArg) = pairs[i]
-                    val v = value ?: optArg.value ?: throw RuntimeException("$id has no value")
+                    val v = value ?: optArg.value ?: throw RuntimeException("$id has no returnValue")
                     symbolTable.declAssVar(optArg.id, v, typeInfo.type)
                 }
             }
@@ -360,6 +392,11 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         return Value.VUnit
     }
 
+    override fun visitTrim(ctx: Basic2Parser.TrimContext): Value.VString = when (val s = exprCtx(ctx.expr())) {
+        is Value.VString -> Value.VString(s.value.trim())
+        else -> throw RuntimeException("Cannot trim $s")
+    }
+
     override fun visitIf_else(ctx: Basic2Parser.If_elseContext): Value {
         val ifCtx = ctx.if_else_stmt()
         val pred = exprCtx(ifCtx.expr()).toBool()
@@ -373,9 +410,51 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         symbolTable.enterScope()
         block()
     } catch (e: B2Exception) {
-        e.getValue()
-    } finally {
         symbolTable.enterScope()
+        throw e
+    }
+
+    private fun inLoop(block: () -> Value): Value = try {
+        block()
+    } catch (e: B2Exception) {
+        e.getValue()
+    }
+
+    override fun visitArrInd(ctx: Basic2Parser.ArrIndContext): Value {
+        val arr = when (val arr = exprCtx(ctx.expr(0)!!)) {
+            is Value.VList -> arr
+            is Value.Tuple -> arr
+            else -> throw RuntimeException("Cannot index on non-array or non-tuple: $arr")
+        }
+
+        val ind = when (val ind = exprCtx(ctx.expr(1)!!)) {
+            is Value.VInt -> ind
+            else -> throw RuntimeException("Cannot index with non-integer: $ind")
+        }
+
+        return arr[ind]
+    }
+
+    override fun visitLen(ctx: Basic2Parser.LenContext): Value.VUnit {
+        val ltx = ctx.len_stmt()
+        val value = exprCtx(ltx.expr()).size()
+        ltx.IDENTIFIER()?.let {
+            val id = it.text
+            val type = ltx.typing()!!.type().text.let { t -> Type.from(t) }
+            symbolTable.declAssVar(id, Value.VInt(value), type)
+        }
+        return Value.VUnit
+    }
+
+    override fun visitAppend(ctx: Basic2Parser.AppendContext): Value.VUnit {
+        val atx = ctx.append_stmt()
+
+        val id = atx.IDENTIFIER().text
+        val arr = symbolTable.getVar(id)
+        val el = exprCtx(atx.expr())
+        arr.value.add(el)
+
+        return Value.VUnit
     }
 
     override fun visitIf(ctx: Basic2Parser.IfContext): Value {
@@ -415,29 +494,47 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         Value.VUnit
     }
 
-    override fun visitWhile(ctx: Basic2Parser.WhileContext): Value = withScope {
-        val wtx = ctx.while_stmt()
-        var pred = exprCtx(wtx.expr()).toBool()
-        while (pred) {
-            stmtCtx(wtx.stmt())
-            pred = exprCtx(wtx.expr()).toBool()
+    override fun visitWhile(ctx: Basic2Parser.WhileContext): Value = inLoop {
+        withScope {
+            val wtx = ctx.while_stmt()
+            var pred = exprCtx(wtx.expr()).toBool()
+            while (pred) {
+                stmtCtx(wtx.stmt())
+                pred = exprCtx(wtx.expr()).toBool()
+            }
+            Value.VUnit
         }
-        Value.VUnit
     }
 
-    override fun visitFor_r(ctx: Basic2Parser.For_rContext): Value = withScope {
-        val ftx = ctx.for_range()
-        val i = ftx.IDENTIFIER().text
-        val iter = (super.visit(ftx.iterable()) as Value).toIterable().toList()
-        symbolTable.declVar(i, Type.infer(iter[0]))
-        var value: Value = Value.VUnit
-        for (j in iter) {
-            symbolTable.reAssVar(i, Value.from(j))
-            val (brk, v) = stmtBody(ftx.stmt())
-            value = v
-            if (brk) break
+    override fun visitWhile_block(ctx: Basic2Parser.While_blockContext): Value = inLoop {
+        withScope {
+            val wtx = ctx.while_stmt_block()
+            var pred = exprCtx(wtx.expr()).toBool()
+            var value: Value = Value.VUnit
+            while (pred) {
+                value = stmtLst(wtx.block_stmt().stmt())
+                pred = exprCtx(wtx.expr()).toBool()
+            }
+            value
         }
-        value
+    }
+
+    override fun visitFor_r(ctx: Basic2Parser.For_rContext): Value = inLoop {
+        withScope {
+            val ftx = ctx.for_range()
+            val i = ftx.IDENTIFIER().text
+            val iter = (super.visit(ftx.iterable()) as Value).toIterable().toList()
+            if (iter.isEmpty()) return@withScope Value.VUnit
+            symbolTable.declVar(i, Type.infer(iter[0]))
+            var value: Value = Value.VUnit
+            for (j in iter) {
+                symbolTable.reAssVar(i, Value.from(j))
+                val (brk, v) = stmtBody(ftx.stmt())
+                value = v
+                if (brk) break
+            }
+            value
+        }
     }
 
     private fun stmtBody(ctx: Basic2Parser.StmtContext): Pair<Boolean, Value> {
@@ -454,44 +551,46 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
         return Pair(brk, value)
     }
 
-    override fun visitFor(ctx: Basic2Parser.ForContext): Value = withScope {
-        val ftx = ctx.for_stmt()
-        val i = ftx.IDENTIFIER(0)!!.text
-        val iStart = numLit(ftx.NUM_LIT())
-        symbolTable.declAssVar(i, iStart)
-        val p = ftx.IDENTIFIER(1)!!.text
-        val j = ftx.IDENTIFIER(2)!!.text
-        @Suppress("UNCHECKED_CAST")
-        val pred: (Value, Value) -> Value = super.visit(ftx.comp()) as (Value, Value) -> Value
-        val comp: () -> Value = { super.visit(ftx.expr(0)!!) as Value }
-        val inp: () -> Value = { symbolTable.getVar(p).value }
-        val inc: (String, Value) -> Unit = ftx.incr()?.let {
-            { id: String, v: Value ->
-                val expr = super.visit(ftx.expr(1)!!) as Value
-                val new = when (it.text) {
-                    "+=" -> v + expr
-                    else -> TODO("Unimplemented incr")
+    override fun visitFor(ctx: Basic2Parser.ForContext): Value = inLoop {
+        withScope {
+            val ftx = ctx.for_stmt()
+            val i = ftx.IDENTIFIER(0)!!.text
+            val iStart = exprCtx(ftx.expr(0)!!)
+            symbolTable.declAssVar(i, iStart)
+            val p = ftx.IDENTIFIER(1)!!.text
+            val j = ftx.IDENTIFIER(2)!!.text
+            @Suppress("UNCHECKED_CAST")
+            val pred: (Value, Value) -> Value = super.visit(ftx.comp()) as (Value, Value) -> Value
+            val comp: () -> Value = { super.visit(ftx.expr(1)!!) as Value }
+            val inp: () -> Value = { symbolTable.getVar(p).value }
+            val inc: (String, Value) -> Unit = ftx.incr()?.let {
+                { id: String, v: Value ->
+                    val expr = super.visit(ftx.expr(2)!!) as Value
+                    val new = when (it.text) {
+                        "+=" -> v + expr
+                        else -> TODO("Unimplemented incr")
+                    }
+                    symbolTable.reAssVar(id, new)
                 }
-                symbolTable.reAssVar(id, new)
-            }
-        } ?: ftx.incr_uni()!!.let {
-            { id: String, v: Value ->
-                val new = when (it.text) {
-                    "++" -> v.inc()
-                    else -> TODO("Unimplemented incr")
+            } ?: ftx.incr_uni()!!.let {
+                { id: String, v: Value ->
+                    val new = when (it.text) {
+                        "++" -> v.inc()
+                        else -> TODO("Unimplemented incr")
+                    }
+                    symbolTable.reAssVar(id, new)
                 }
-                symbolTable.reAssVar(id, new)
             }
-        }
-        var value: Value = Value.VUnit
-        while (pred(inp(), comp()).toBool()) {
-            val (brk, v) = stmtBody(ftx.stmt())
-            value = v
-            if (brk) break
-            inc(j, symbolTable.getVar(j).value)
-        }
+            var value: Value = Value.VUnit
+            while (pred(inp(), comp()).toBool()) {
+                val (brk, v) = stmtBody(ftx.stmt())
+                value = v
+                if (brk) break
+                inc(j, symbolTable.getVar(j).value)
+            }
 
-        value
+            value
+        }
     }
 
     override fun visitReturn_stmt(ctx: Basic2Parser.Return_stmtContext)
@@ -499,14 +598,20 @@ class B2Visitor : Basic2BaseVisitor<Any?>() {
 
     override fun visitRet(ctx: Basic2Parser.RetContext) = visitReturn_stmt(ctx.return_stmt())
 
-    override fun visitIterable(ctx: Basic2Parser.IterableContext): Value.VList {
-        // TODO: Expr
-        val start = (super.visit(ctx.NUM_LIT(0)!!) as Value.VInt).value
-        val end = (super.visit(ctx.NUM_LIT(1)!!) as Value.VInt).value
-        return Value.VList((start..end).map { Value.VInt(it) }.toList(), Type.TList(Type.TInt))
+    override fun visitIterable(ctx: Basic2Parser.IterableContext): Value.VList
+            = when (val lst = ctx.expr()?.let { exprCtx(it) }) {
+        is Value.VList -> lst
+        else -> {
+            val start = (super.visit(ctx.NUM_LIT(0)!!) as Value.VInt).value
+            val end = (super.visit(ctx.NUM_LIT(1)!!) as Value.VInt).value
+            Value.VList((start..end).map { Value.VInt(it) }.toMutableList(), Type.TList(Type.TInt))
+        }
     }
 
     override fun visitBreak_stmt(ctx: Basic2Parser.Break_stmtContext) = throw B2Exception.BreakException
 
     override fun visitBreak(ctx: Basic2Parser.BreakContext) = visitBreak_stmt(ctx.break_stmt())
+
+    override fun visitCast(ctx: Basic2Parser.CastContext): Value
+        = Value.withType(exprCtx(ctx.expr()), visitType(ctx.type()))
 }
