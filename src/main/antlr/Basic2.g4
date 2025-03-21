@@ -114,8 +114,6 @@ bin_op
   | '^'
   | '&&'
   | '||'
-  | incr
-  | comp
   ;
 
 expr
@@ -128,6 +126,10 @@ expr
   | (ARRAY_STRT expr (SEP expr)* SEP? ARRAY_END | ARRAY_STRT ARRAY_END) # array
   | expr 'AS' type                                                      # cast
   | expr bin_op expr                                                    # binop
+  | IDENTIFIER incr expr                                                # binopIncr
+  | expr comp expr                                                      # binopComp
+  | expr incr_uni                                                       # preIncr
+  | incr_uni expr                                                       # postIncr
   | expr '?' expr ':' expr                                              # ternary
   | expr ARRAY_STRT expr ARRAY_END                                      # arrInd
   | TRIM_KW TUPLE_STRT expr TUPLE_END                                   # trim
