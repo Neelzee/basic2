@@ -54,6 +54,10 @@ sealed class B2Exception : Throwable() {
         ) : TypeException(pos)
         data class MissingModuleException(val id: String, val pos: Position? = null) : TypeException(pos)
     }
+    data object ContinueException : B2Exception() {
+        private fun readResolve(): Any = ContinueException
+    }
+
     data class ReturnException(val returnValue: Symbol.Var.Value) : B2Exception()
     data object BreakException : B2Exception() {
         private fun readResolve(): Any = BreakException

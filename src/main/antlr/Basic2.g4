@@ -40,6 +40,7 @@ stmt
 
 return_stmt : RET_KW expr? END_STMT_KW;
 break_stmt : BREAK_KW END_STMT_KW;
+continue_stmt : CONTINUE_KW END_STMT_KW;
 print_stmt : PRINT_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;
 input_stmt : (LET_KW IDENTIFIER typing ASS_KW)? INPUT_KW TUPLE_STRT expr? TUPLE_END END_STMT_KW;
 len_stmt : (LET_KW IDENTIFIER typing ASS_KW)? LEN_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;

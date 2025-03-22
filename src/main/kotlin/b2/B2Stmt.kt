@@ -152,8 +152,13 @@ open class B2Stmt : B2Eval() {
         var pred = exprCtx(ctx.expr()).toBool()
         var output: Symbol.Var.Value = Symbol.Var.Value.VUnit
         while (pred) {
-            output = stmtCtx(ctx.stmt())
-            pred = exprCtx(ctx.expr()).toBool()
+            try {
+                output = stmtCtx(ctx.stmt())
+            } catch (_: B2Exception.ContinueException) {
+                continue
+            } finally {
+                pred = exprCtx(ctx.expr()).toBool()
+            }
         }
         output
     }
@@ -164,8 +169,13 @@ open class B2Stmt : B2Eval() {
         var pred = exprCtx(ctx.expr()).toBool()
         var output: Symbol.Var.Value = Symbol.Var.Value.VUnit
         while (pred) {
-            output = stmtLst(ctx.block_stmt().stmt())
-            pred = exprCtx(ctx.expr()).toBool()
+            try {
+                output = stmtLst(ctx.block_stmt().stmt())
+            } catch (_: B2Exception.ContinueException) {
+                continue
+            } finally {
+                pred = exprCtx(ctx.expr()).toBool()
+            }
         }
         output
     }
@@ -179,7 +189,11 @@ open class B2Stmt : B2Eval() {
         getSymbolTable().declVar(id, iter.type.t)
         for (v in iter.toIterable()) {
             getSymbolTable().reAssVar(id, Symbol.Var.Value.from(v))
-            value = stmtCtx(ctx.stmt())
+            try {
+                value = stmtCtx(ctx.stmt())
+            } catch (_: B2Exception.ContinueException) {
+                continue
+            }
         }
         value
     }
@@ -218,8 +232,13 @@ open class B2Stmt : B2Eval() {
             }!!
         }
         while (compOp()) {
-            value = stmtCtx(ctx.stmt())
-            incrOp()
+            try {
+                value = stmtCtx(ctx.stmt())
+            } catch (_: B2Exception.ContinueException) {
+                continue
+            } finally {
+                incrOp()
+            }
         }
         value
     }
