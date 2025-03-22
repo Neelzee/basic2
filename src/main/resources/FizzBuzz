@@ -1,6 +1,6 @@
+BEGIN PROC FizzBuzz
 DECL fizzbuzz(INT) : STR;
-IMPL fizzbuzz(n)
-{
+IMPL fizzbuzz(n) DO
   LET result: STR = "";
   IF (n % 3 == 0) THEN
     result = result + "Fizz";
@@ -9,19 +9,19 @@ IMPL fizzbuzz(n)
     result = result + "Buzz";
   FI
   RETURN result;
-}
+END
 
 PRINT("=" * 10);
 PRINT("Welcome to FIZZBUZZ");
 PRINT("=" * 10);
-WHILE (TRUE) THEN
-{
-PRINT("Input a number, or Q to quit");
-LET query: STR = INPUT("> ");
-IF (query == "Q") THEN
-BREAK;
-FI
-LET fb = fizzbuzz(query AS INT);
-PRINT(fb);
-}
+WHILE (TRUE) THEN DO
+  PRINT("Input a number, or Q to quit");
+  LET query: STR = INPUT("> ");
+  IF (query == "Q") THEN
+    BREAK;
+  FI
+  LET fb = fizzbuzz(query AS INT);
+  PRINT(fb);
 END
+END
+PROC FizzBuzz END
