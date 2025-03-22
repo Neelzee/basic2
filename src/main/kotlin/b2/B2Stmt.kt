@@ -4,7 +4,41 @@ import b2.symbols.Symbol
 import no.nilsmf.antlr.Basic2Parser
 
 open class B2Stmt : B2Eval() {
-    private fun stmtCtx(ctx: Basic2Parser.StmtContext): Symbol.Var.Value = when (ctx) {
+
+    companion object {
+
+        fun visitFnDeclStmt(ctx: Basic2Parser.Fn_decl_stmtContext, symbolTable: SymbolTable): Symbol.Var.Value.VUnit {
+            val id = ctx.IDENTIFIER().text
+            var types = ctx.type().map { visitType(it) }
+            val (typeParams, returnType) = if (types.isEmpty()) {
+                Pair(emptyList(), Symbol.Var.Type.TUnit)
+            } else {
+                Pair(types.subList(0, types.size - 1), types[types.size - 1])
+            }
+            symbolTable.addFnDecl(id, typeParams, returnType)
+            return Symbol.Var.Value.VUnit
+        }
+
+        fun uniIncr(kind: String): (Symbol.Var.Value) -> Symbol.Var.Value = when (kind) {
+            "++" -> { a -> a + Symbol.Var.Value.VInt(1) }
+            "--" -> { a -> a - Symbol.Var.Value.VInt(1) }
+            else -> TODO("Missing op: $kind")
+        }
+
+        fun binIncr(kind: String): (Symbol.Var.Value, Symbol.Var.Value) -> Symbol.Var.Value = when (kind) {
+            "+=" -> { a, b -> a + b }
+            "-=" -> { a, b -> a - b }
+            "%=" -> { a, b -> a % b }
+            "*=" -> { a, b -> a * b }
+            "/=" -> { a, b -> a / b }
+            "&=" -> { a, b -> a.and(b) }
+            "|=" -> { a, b -> a.or(b) }
+            "^=" -> { a, b -> a.pow(b) }
+            else -> TODO("Missing op: $kind")
+        }
+    }
+
+    open fun stmtCtx(ctx: Basic2Parser.StmtContext): Symbol.Var.Value = when (ctx) {
         is Basic2Parser.Var_declContext -> visitVar_decl(ctx)
         is Basic2Parser.Var_re_assContext -> visitVar_re_ass_stmt(ctx.var_re_ass_stmt())
         is Basic2Parser.Var_assContext -> visitVar_ass(ctx)
@@ -14,8 +48,13 @@ open class B2Stmt : B2Eval() {
         is Basic2Parser.ArrReAssContext -> visitArr_re_ass_stmt(ctx.arr_re_ass_stmt())
         is Basic2Parser.IfContext -> visitIf(ctx)
         is Basic2Parser.PrintContext -> visitPrint(ctx)
+        is Basic2Parser.BlockContext -> visitBlock(ctx)
+        is Basic2Parser.InputContext -> visitInput(ctx)
+        is Basic2Parser.RetContext -> visitRet(ctx)
+        is Basic2Parser.BreakContext -> visitBreak(ctx)
+        is Basic2Parser.BinopIncrContext -> visitBinopIncr(ctx)
         else -> TODO(ctx.text)
-    }
+    } as Symbol.Var.Value
 
     // ============================= IF-STATEMENTS =============================
 
@@ -27,7 +66,7 @@ open class B2Stmt : B2Eval() {
         } else {
             Symbol.Var.Value.VUnit
         }
-    }
+    } as Symbol.Var.Value
 
     override fun visitIf(c: Basic2Parser.IfContext): Symbol.Var.Value = runScope {
         val ctx = c.if_stmt()
@@ -37,7 +76,7 @@ open class B2Stmt : B2Eval() {
         } else {
             Symbol.Var.Value.VUnit
         }
-    }
+    } as Symbol.Var.Value
 
     override fun visitIf_else_block(ctx: Basic2Parser.If_else_blockContext) =
         visitIf_else_stmt_block(ctx.if_else_stmt_block())
@@ -185,11 +224,11 @@ open class B2Stmt : B2Eval() {
 
     override fun visitInput(ctx: Basic2Parser.InputContext) = visitInput_stmt(ctx.input_stmt())
 
-    override fun visitInput_stmt(ctx: Basic2Parser.Input_stmtContext): Symbol {
+    override fun visitInput_stmt(ctx: Basic2Parser.Input_stmtContext): Symbol.Var.Value {
         val prompt = ctx.expr()?.let { exprCtx(it) }?.value()
         print(prompt)
         val result = readlnOrNull()
-        val value = Symbol.Var.Value.VString(result ?: "")
+        val value: Symbol.Var.Value = Symbol.Var.Value.VString(result ?: "")
         val type = ctx.typing()?.let { visitTyping(it) }
 
         ctx.IDENTIFIER()?.text?.let { getSymbolTable().declAssVar(it, value, type) }
@@ -241,6 +280,7 @@ open class B2Stmt : B2Eval() {
 
     override fun visitVar_decl_stmt(ctx: Basic2Parser.Var_decl_stmtContext): Symbol.Var.Value.VUnit {
         val id = ctx.IDENTIFIER().text
+        if (id == "_") return Symbol.Var.Value.VUnit
         val type = visitTyping(ctx.typing())
         getSymbolTable().declVar(id, type)
         return Symbol.Var.Value.VUnit
@@ -250,6 +290,7 @@ open class B2Stmt : B2Eval() {
 
     override fun visitVar_decl_ass_stmt(ctx: Basic2Parser.Var_decl_ass_stmtContext): Symbol.Var.Value.VUnit {
         val id = ctx.IDENTIFIER().text
+        if (id == "_") return Symbol.Var.Value.VUnit
         val type = ctx.typing()?.let { visitTyping(it) }
         val value = exprCtx(ctx.expr())
         getSymbolTable().declAssVar(id, value, type)
@@ -260,6 +301,7 @@ open class B2Stmt : B2Eval() {
 
     override fun visitVar_re_ass_stmt(ctx: Basic2Parser.Var_re_ass_stmtContext): Symbol.Var.Value.VUnit {
         val id = ctx.IDENTIFIER().text
+        if (id == "_") return Symbol.Var.Value.VUnit
         val newValue = exprCtx(ctx.expr())
         getSymbolTable().reAssVar(id, newValue)
         return Symbol.Var.Value.VUnit
@@ -275,20 +317,13 @@ open class B2Stmt : B2Eval() {
         var value: Symbol.Var.Value = Symbol.Var.Value.VUnit
         stmt.forEach { value = stmtCtx(it) }
         value
-    }
+    } as Symbol.Var.Value
 
     // ========================== FUNCTION-STATEMENTS ==========================
 
     override fun visitFn_decl(ctx: Basic2Parser.Fn_declContext) = visitFn_decl_stmt(ctx.fn_decl_stmt())
 
-    override fun visitFn_decl_stmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.Var.Value.VUnit {
-        val id = ctx.IDENTIFIER().text
-        var typeParams = ctx.type().map { visitType(it) }
-        val returnType = typeParams[typeParams.size - 1]
-        typeParams = typeParams.subList(0, typeParams.size - 1)
-        getSymbolTable().addFnDecl(id, typeParams, returnType)
-        return Symbol.Var.Value.VUnit
-    }
+    override fun visitFn_decl_stmt(ctx: Basic2Parser.Fn_decl_stmtContext) = visitFnDeclStmt(ctx, getSymbolTable())
 
     override fun visitFn_impl(ctx: Basic2Parser.Fn_implContext) = visitFn_impl_stmt(ctx.fn_impl_stmt())
 
@@ -303,7 +338,7 @@ open class B2Stmt : B2Eval() {
                 result = stmtCtx(ctx.stmt())
                 argsParams.forEach { getSymbolTable().remVar(it.id) }
                 result
-            }
+            } as Symbol.Var.Value
         }
         getSymbolTable().addFnImpl(id, argsParams, body)
         return Symbol.Var.Value.VUnit
@@ -315,4 +350,23 @@ open class B2Stmt : B2Eval() {
     // ========================== TYPING-STATEMENTS ==========================
 
     override fun visitTyping(ctx: Basic2Parser.TypingContext): Symbol.Var.Type = visitType(ctx.type())
+
+    // ========================== INCREMENT-STATEMENTS =========================
+
+    override fun visitPreIncr(ctx: Basic2Parser.PreIncrContext): Symbol {
+        return TODO()
+    }
+
+    override fun visitPostIncr(ctx: Basic2Parser.PostIncrContext): Symbol {
+        return TODO()
+    }
+
+    override fun visitBinopIncr(ctx: Basic2Parser.BinopIncrContext): Symbol.Var.Value.VUnit {
+        val id = ctx.IDENTIFIER().text
+        var v = getSymbolTable().getVar(id)
+        val i = exprCtx(ctx.expr())
+        val newValue = binIncr(ctx.incr().text)(v, i)
+        getSymbolTable().reAssVar(id, newValue)
+        return Symbol.Var.Value.VUnit
+    }
 }

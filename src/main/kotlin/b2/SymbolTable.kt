@@ -6,17 +6,13 @@ data class SymbolTable(
     private val variables: MutableMap<String, Symbol.Var> = mutableMapOf(),
     private val fnImpls: MutableMap<String, Symbol.FnImpl> = mutableMapOf(),
     private val fnDecls: MutableMap<String, Symbol.FnDecl> = mutableMapOf(),
+    private val modules: MutableList<String> = mutableListOf(),
     private var next: SymbolTable? = null,
+    private val scopes: MutableList<SymbolTable> = mutableListOf(),
 ) {
 
-    companion object {
-        fun SymbolTable(table: SymbolTable): SymbolTable = SymbolTable(
-            variables = mutableMapOf(),
-            fnImpls = mutableMapOf(),
-            fnDecls = mutableMapOf(),
-            next = table
-        )
-    }
+    fun getScopes() = scopes
+    fun getNext() = next
 
     fun enterScope(): SymbolTable = SymbolTable(
         variables = mutableMapOf(),
@@ -25,7 +21,23 @@ data class SymbolTable(
         next = this
     )
 
-    fun exitScope(): SymbolTable = next ?: this
+    fun exitScope(debug: Boolean = false): SymbolTable = if (debug) {
+        next?.let {
+            next!!.scopes.add(this)
+            next
+        } ?: this
+    } else {
+        next ?: this
+    }
+
+    fun declModule(module: String) {
+        modules.add(module)
+    }
+
+    fun hasModule(module: String): Boolean = when (modules.contains(module)) {
+        true -> true
+        false -> next?.hasModule(module) == true
+    }
 
     fun declVar(id: String, type: Symbol.Var.Type) {
         variables[id] = Symbol.Var.Value.VNull(type)
@@ -36,12 +48,16 @@ data class SymbolTable(
     }
 
     fun reAssVar(id: String, value: Symbol.Var.Value) {
-        when (val old = getVarNullable(id)) {
+        when (val old = variables[id]) {
             is Symbol.Var.Value -> {
                 if (old.type() != value.type()) throw RuntimeException("Cannot reassign with different types")
                 variables[id] = value
             }
-            else -> throw RuntimeException("Cannot reassign non-existing variable")
+            else -> if (next == null) {
+                throw RuntimeException("Cannot reassign non-existing variable")
+            } else {
+                next!!.reAssVar(id, value)
+            }
         }
     }
 
@@ -103,18 +119,30 @@ data class SymbolTable(
     }
 
     private fun printVariables() {
-        next?.printVariables()
         variables.forEach { (k, v) -> println("$k: ${v.format()}") }
+        next?.let {
+            println("Inner: ")
+            it.printVariables()
+            println("END")
+        }
     }
 
     private fun printFnImpls() {
-        next?.printFnImpls()
         fnImpls.forEach { (k, v) -> println("$k: $v") }
+        next?.let {
+            println("Inner: ")
+            it.printFnImpls()
+            println("END")
+        }
     }
 
     private fun printFnDecls() {
-        next?.printFnDecls()
         fnDecls.forEach { (k, v) -> println("$k: $v") }
+        next?.let {
+            println("Inner: ")
+            it.printFnDecls()
+            println("END")
+        }
     }
 
 }

@@ -55,7 +55,7 @@ class B2Interpreter {
             cont = when {
                 inp.startsWith(":") -> parse(inp)
                 else -> {
-                    println(interpreter.visit(Basic2Parser(CommonTokenStream(Basic2Lexer(CharStreams.fromString(inp)))).program()))
+                    //println(interpreter.visit(Basic2Parser(CommonTokenStream(Basic2Lexer(CharStreams.fromString(inp)))).program()))
                     true
                 }
             }

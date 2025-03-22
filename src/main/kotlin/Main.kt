@@ -1,3 +1,4 @@
+import b2.B2TypeChecker
 import b2.B2Visitor
 import b2.interpreter.B2Interpreter
 import no.nilsmf.antlr.Basic2Lexer
@@ -78,17 +79,8 @@ fun main() = if (TESTING) {
 
 
 fun testing() {
-    val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/IsPrime")))
-    val tokens = CommonTokenStream(lexer)
-    val parser = Basic2Parser(tokens)
-
-    val tree = parser.program()
-
-    val visitor = B2Visitor()
-
-    visitor.visit(tree)
-
-    visitor.printSymbolTable()
+    val visitor = B2Visitor(path = Paths.get("src/main/resources/Scope"))
+    visitor.`type-check`()
 }
 
 fun inter() {

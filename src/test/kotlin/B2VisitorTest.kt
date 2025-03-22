@@ -38,4 +38,38 @@ class B2VisitorTest {
 
         visitor.visit(tree)
     }
+
+
+    @Test
+    fun `Scope Test`() {
+        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/Scope")))
+        val tokens = CommonTokenStream(lexer)
+        val parser = Basic2Parser(tokens)
+
+        val tree = parser.program()
+
+        val visitor = B2Visitor()
+
+        visitor.visit(tree)
+        assert(visitor.getSymbolTable().getVar("global").value() as String == "global-inner")
+        assert(
+            visitor.getSymbolTable().getVar("inner").value() as String
+                    == "inner"
+        )
+    }
+
+    @Test
+    fun `Reassign Variable Test`() {
+        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/ReassignVariable")))
+        val tokens = CommonTokenStream(lexer)
+        val parser = Basic2Parser(tokens)
+
+        val tree = parser.program()
+
+        val visitor = B2Visitor()
+
+        visitor.visit(tree)
+
+        assert(visitor.getSymbolTable().getVar("hello").value() as String == "Hello, World!")
+    }
 }

@@ -1,9 +1,17 @@
 package b2.symbols
 
+import b2.B2Exception
+
 import kotlin.math.pow
 
 sealed class Symbol {
     sealed class Var : Symbol() {
+
+        open fun value(): Any = when (this) {
+            is Variable -> this.value.value()
+            is Value -> this.value()
+            else -> throw RuntimeException("Cant get value from type")
+        }
 
         open fun format(): String = when (this) {
             is Type.TBool -> "BOOL"
@@ -26,6 +34,66 @@ sealed class Symbol {
             data object TBool : Type()
             data class Tuple(val fst: Type, val snd: Type) : Type()
             data class TList(val t: Type) : Type()
+
+            operator fun plus(right: Type): Type {
+                val left = this
+                return when {
+                    (right == this) -> this
+                    (left is TFloat && right is TInt) -> TFloat
+                    (left is TInt && right is TFloat) -> TFloat
+                    else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
+                }
+            }
+
+            operator fun minus(right: Type): Type {
+                val left = this
+                return when {
+                    (right == this) -> this
+                    (left is TFloat && right is TInt) -> TFloat
+                    (left is TInt && right is TFloat) -> TFloat
+                    else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
+                }
+            }
+
+            operator fun times(right: Type): Type {
+                val left = this
+                return when {
+                    (right == this) -> if (this is TList || this is Tuple || this is TStr) {
+                        throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
+                    } else {
+                        this
+                    }
+                    (right == this) -> this
+                    (left is TFloat && right is TInt) -> TFloat
+                    (left is TInt && right is TFloat) -> TFloat
+                    (left is TStr && right is TInt) -> TStr
+                    (left is TInt && right is TStr) -> TStr
+                    else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
+                }
+            }
+
+            operator fun rem(right: Type): Type {
+                val left = this
+                return when {
+                    (right == this) -> if (this is TList || this is Tuple || this is TStr) {
+                        throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
+                    } else {
+                        this
+                    }
+                    (right == this) -> this
+                    else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
+                }
+            }
+
+            fun default(): Value = when (this) {
+                is TBool -> Value.VBoolean(true)
+                is TFloat -> Value.VFloat(0f)
+                is TInt -> Value.VInt(0)
+                is TList -> Value.VList(mutableListOf<Value>(), this)
+                is TStr -> Value.VString("")
+                is TUnit -> Value.VUnit
+                is Tuple -> Value.Tuple(Pair(this.fst.default(), this.snd.default()), this)
+            }
 
             companion object {
                 fun infer(v: Any?): Type = when (v) {
@@ -100,7 +168,7 @@ sealed class Symbol {
                 }
             }
 
-            fun value() : Any = when (this) {
+            override fun value() : Any = when (this) {
                 is VInt -> this.value
                 is VFloat -> this.value
                 is VString -> this.value
@@ -343,7 +411,6 @@ sealed class Symbol {
                     )
                 else -> throw RuntimeException("Illegal operation cannot append element to $this")
             }
-
 
             companion object {
                 fun from(v: Any?): Value = when (v) {

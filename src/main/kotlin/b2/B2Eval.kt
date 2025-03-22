@@ -6,72 +6,29 @@ import no.nilsmf.antlr.Basic2Parser
 import org.antlr.v4.kotlinruntime.tree.TerminalNode
 import kotlin.text.trim
 
-open class B2Eval(private var symbolTable: SymbolTable = SymbolTable()) : Basic2BaseVisitor<Symbol>() {
+open class B2Eval : B2() {
+    companion object {
+        fun getCompOp(kind: String): (Symbol.Var.Value, Symbol.Var.Value) -> Boolean = when (kind) {
+            "==" -> { a, b -> a == b }
+            "!=" -> { a, b -> a != b }
+            ">" -> { a, b -> a > b }
+            "<=" -> { a, b -> a <= b }
+            else -> TODO("Missing op: $kind")
+        }
 
-    fun getSymbolTable() = symbolTable
-
-    fun printSymbolTable() = symbolTable.print()
-
-    /**
-     * Runs the given statements in another scope, if a return or break happens,
-     * the scope is exited, and the exception is thrown further up
-     *
-     * Used for if-statements, block-statements, etc.
-     */
-    fun runScope(f: () -> Symbol.Var.Value): Symbol.Var.Value = try {
-        symbolTable = symbolTable.enterScope()
-        f()
-    } catch (e: B2Exception.ReturnException) {
-        symbolTable = symbolTable.exitScope()
-        throw e
-    } catch (e: B2Exception.BreakException) {
-        symbolTable = symbolTable.exitScope()
-        throw e
+        fun visitType(ctx: Basic2Parser.TypeContext): Symbol.Var.Type {
+            return ctx.PRIM_TYPES()?.let { Symbol.Var.Type.from(it.text) } ?: if (ctx.ARRAY_STRT() != null) {
+                Symbol.Var.Type.TList(visitType(ctx.type(0)!!))
+            } else {
+                Symbol.Var.Type.Tuple(visitType(ctx.type(0)!!), visitType(ctx.type(1)!!))
+            }
+        }
     }
-
-    /**
-     * Runs the given statements in another scope, if a return or break happens,
-     * the scope is exited, and the exception is thrown further up, if it is a return.
-     * If not, the break stops at here.
-     *
-     * Used for for-statements, while-statements, etc.
-     */
-    fun runLoop(f: () -> Symbol.Var.Value): Symbol.Var.Value = try {
-        symbolTable = symbolTable.enterScope()
-        f()
-    } catch (e: B2Exception.ReturnException) {
-        symbolTable = symbolTable.exitScope()
-        throw e
-    } catch (_: B2Exception.BreakException) {
-        symbolTable = symbolTable.exitScope()
-        Symbol.Var.Value.VUnit
-    }
-
-    /**
-     * Runs the given statements in another scope, if a return or break happens,
-     * the scope is exited, and the exception is thrown further up, if it is a break.
-     * If not, the return stops at here.
-     *
-     * Used for function calls
-     */
-    fun runFnCall(f: () -> Symbol.Var.Value): Symbol.Var.Value = try {
-        symbolTable = symbolTable.enterScope()
-        f()
-    } catch (e: B2Exception.ReturnException) {
-        symbolTable = symbolTable.exitScope()
-        e.getSymbol()
-    } catch (e: B2Exception.BreakException) {
-        symbolTable = symbolTable.exitScope()
-        throw e
-    }
-
 
     override fun visitGroup(ctx: Basic2Parser.GroupContext): Symbol.Var.Value = exprCtx(ctx.expr())
 
-    override fun defaultResult(): Symbol.Var = Symbol.Var.Value.VUnit
-
     override fun visitIdent(ctx: Basic2Parser.IdentContext): Symbol.Var
-            = symbolTable.getVar(ctx.IDENTIFIER().text)
+            = getSymbolTable().getVar(ctx.IDENTIFIER().text)
 
     override fun visitFloat(ctx: Basic2Parser.FloatContext): Symbol.Var.Value.VFloat {
         val rawTxt = ctx.FLOAT_LIT().text
@@ -146,6 +103,7 @@ open class B2Eval(private var symbolTable: SymbolTable = SymbolTable()) : Basic2
             "+" -> left + right
             "-" -> left - right
             "*" -> left * right
+            "%" -> left % right
             else -> TODO("Missing operator: ${ctx.bin_op().text}")
         }
     }
@@ -178,42 +136,8 @@ open class B2Eval(private var symbolTable: SymbolTable = SymbolTable()) : Basic2
         is Basic2Parser.ArrIndContext -> visitArrInd(ctx)
         is Basic2Parser.GroupContext -> visitGroup(ctx)
         is Basic2Parser.BinopCompContext -> visitBinopComp(ctx)
+        is Basic2Parser.CastContext -> visitCast(ctx)
         else -> TODO("Not implemented for: ${ctx.text}")
-    }
-
-    override fun visitPreIncr(ctx: Basic2Parser.PreIncrContext): Symbol {
-        return super.visitPreIncr(ctx)
-    }
-
-    override fun visitPostIncr(ctx: Basic2Parser.PostIncrContext): Symbol {
-        return super.visitPostIncr(ctx)
-    }
-
-    fun uniIncr(kind: String): (Symbol.Var.Value) -> Symbol.Var.Value = when (kind) {
-        "++" -> { a -> a + Symbol.Var.Value.VInt(1) }
-        "--" -> { a -> a - Symbol.Var.Value.VInt(1) }
-        else -> TODO("Missing op: $kind")
-    }
-
-    override fun visitBinopIncr(ctx: Basic2Parser.BinopIncrContext): Symbol {
-        val id = ctx.IDENTIFIER().text
-        var v = symbolTable.getVar(id)
-        val i = exprCtx(ctx.expr())
-        val newValue = binIncr(ctx.incr().text)(v, i)
-        symbolTable.reAssVar(id, newValue)
-        return Symbol.Var.Value.VUnit
-    }
-
-    fun binIncr(kind: String): (Symbol.Var.Value, Symbol.Var.Value) -> Symbol.Var.Value = when (kind) {
-        "+=" -> { a, b -> a + b }
-        "-=" -> { a, b -> a - b }
-        "%=" -> { a, b -> a % b }
-        "*=" -> { a, b -> a * b }
-        "/=" -> { a, b -> a / b }
-        "&=" -> { a, b -> a.and(b) }
-        "|=" -> { a, b -> a.or(b) }
-        "^=" -> { a, b -> a.pow(b) }
-        else -> TODO("Missing op: $kind")
     }
 
     override fun visitBinopComp(ctx: Basic2Parser.BinopCompContext): Symbol.Var.Value.VBoolean {
@@ -225,22 +149,8 @@ open class B2Eval(private var symbolTable: SymbolTable = SymbolTable()) : Basic2
         }
     }
 
-    fun getCompOp(kind: String): (Symbol.Var.Value, Symbol.Var.Value) -> Boolean = when (kind) {
-        "==" -> { a, b -> a == b }
-        "!=" -> { a, b -> a != b }
-        ">" -> { a, b -> a > b }
-        "<=" -> { a, b -> a <= b }
-        else -> TODO("Missing op: $kind")
-    }
+    override fun visitType(ctx: Basic2Parser.TypeContext) = B2Eval.visitType(ctx)
 
-    override fun visitType(ctx: Basic2Parser.TypeContext): Symbol.Var.Type {
-        return ctx.PRIM_TYPES()?.let { Symbol.Var.Type.from(it.text) } ?: if (ctx.ARRAY_STRT() != null) {
-            Symbol.Var.Type.TList(visitType(ctx.type(0)!!))
-        } else {
-            Symbol.Var.Type.Tuple(visitType(ctx.type(0)!!), visitType(ctx.type(1)!!))
-        }
-    }
-
-    override fun visitCast(ctx: Basic2Parser.CastContext): Symbol.Var
+    override fun visitCast(ctx: Basic2Parser.CastContext): Symbol.Var.Value
         = Symbol.Var.Value.withType(exprCtx(ctx.expr()), visitType(ctx.type()))
 }
