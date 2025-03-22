@@ -32,4 +32,5 @@ class B2Visitor(
     }
 
     fun print() = visitor.printSymbolTable()
+    fun getSymbolTableEval() = visitor.getSymbolTable()
 }

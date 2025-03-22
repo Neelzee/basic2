@@ -41,7 +41,7 @@ break_stmt : BREAK_KW END_STMT_KW;
 print_stmt : PRINT_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;
 input_stmt : (LET_KW IDENTIFIER typing ASS_KW)? INPUT_KW TUPLE_STRT expr? TUPLE_END END_STMT_KW;
 len_stmt : (LET_KW IDENTIFIER typing ASS_KW)? LEN_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;
-append_stmt : APPEND_KW TUPLE_STRT expr SEP IDENTIFIER TUPLE_END END_KW;
+append_stmt : APPEND_KW TUPLE_STRT expr SEP IDENTIFIER TUPLE_END END_STMT_KW;
 arr_re_ass_stmt : IDENTIFIER ARRAY_STRT expr ARRAY_END ASS_KW expr END_STMT_KW;
 import_stmt
   : IMPORT_KW IDENTIFIER renaming? END_STMT_KW # useAll
@@ -126,7 +126,7 @@ type
   ;
 
 iterable
-  : 'FROM' NUM_LIT 'TO' NUM_LIT
+  : FROM_KW expr TO_KW expr
   | expr
   ;
 

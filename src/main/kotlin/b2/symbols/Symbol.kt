@@ -1,6 +1,7 @@
 package b2.symbols
 
 import b2.B2Exception
+import b2.symbols.Symbol.Var.Value.VList
 
 import kotlin.math.pow
 
@@ -87,6 +88,12 @@ sealed class Symbol {
                     (right == this) -> this
                     else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
                 }
+            }
+
+            fun add(value: Type) = when (this) {
+                is TList if (this == TList(value)) -> Unit
+                is TList if (this.t == TUnit) -> Unit
+                else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(value, this))
             }
 
             fun default(): Value = when (this) {
@@ -408,7 +415,8 @@ sealed class Symbol {
             }
 
             fun add(value: Value) = when (this) {
-                is VList if (this.type == Type.TList(value.type())) -> this.value.add(value)
+                is VList if (this.type.t == value.type()) -> this.value.add(value)
+                is VList if (this.type.t == Type.TUnit) -> this.value.add(value)
                 is VList ->
                     throw RuntimeException(
                         "Illegal operation, element $value is of type ${value.type()}, while the array is of type: ${this.type}"

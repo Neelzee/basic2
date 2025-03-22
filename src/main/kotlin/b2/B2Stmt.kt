@@ -2,6 +2,7 @@ package b2
 
 import b2.symbols.Symbol
 import no.nilsmf.antlr.Basic2Parser
+import kotlin.streams.toList
 
 open class B2Stmt : B2Eval() {
 
@@ -189,17 +190,24 @@ open class B2Stmt : B2Eval() {
         value
     }
 
-    override fun visitIterable(ctx: Basic2Parser.IterableContext): Symbol.Var.Value.VList = ctx.expr()?.let {
-        when (val v = exprCtx(it)) {
+    override fun visitIterable(ctx: Basic2Parser.IterableContext): Symbol.Var.Value.VList = if (ctx.FROM_KW() != null) {
+        Symbol.Var.Value.VList(
+            (exprCtx(ctx.expr(0)!!).value() as Int..exprCtx(ctx.expr(1)!!).value() as Int)
+                .map { Symbol.Var.Value.VInt(it) }
+                .toMutableList(),
+            Symbol.Var.Type.TList(Symbol.Var.Type.TInt)
+        )
+    } else {
+        when (val v = exprCtx(ctx.expr(0)!!)) {
             is Symbol.Var.Value.VList -> v
+            is Symbol.Var.Value.VString -> Symbol.Var.Value.VList(
+                v.value.chars().toList().map { Symbol.Var.Value.VString(it.toChar().toString()) }.toMutableList(),
+                Symbol.Var.Type.TList(Symbol.Var.Type.TStr)
+            )
             else -> throw RuntimeException("I")
         }
-    } ?: Symbol.Var.Value.VList(
-        (ctx.NUM_LIT(0)!!.text.toInt()..ctx.NUM_LIT(1)!!.text.toInt())
-            .map { Symbol.Var.Value.VInt(it) }
-            .toMutableList(),
-        Symbol.Var.Type.TList(Symbol.Var.Type.TInt)
-    )
+    }
+
 
     // ============================ BREAK-STATEMENTS ===========================
 

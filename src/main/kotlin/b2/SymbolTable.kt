@@ -53,8 +53,10 @@ data class SymbolTable(
     fun reAssVar(id: String, value: Symbol.Var.Value) {
         when (val old = variables[id]) {
             is Symbol.Var.Value -> {
-                if (old.type() != value.type()) throw RuntimeException("Cannot reassign with different types")
-                variables[id] = value
+                if (old.type() == value.type() || old.type() == Symbol.Var.Type.TUnit)
+                    variables[id] = value
+                else
+                    throw RuntimeException("Cannot reassign with different types: ${old.type()} and ${value.type()}")
             }
             else -> if (next == null) {
                 throw RuntimeException("Cannot reassign non-existing variable")

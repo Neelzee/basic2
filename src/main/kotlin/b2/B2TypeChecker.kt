@@ -290,12 +290,15 @@ open class B2TypeChecker() : B2() {
         r
     }
 
-    override fun visitIterable(ctx: Basic2Parser.IterableContext): Symbol.Var.Type.TList = ctx.expr()?.let {
-        when (val v = exprTypeCtx(it)) {
+    override fun visitIterable(ctx: Basic2Parser.IterableContext): Symbol.Var.Type.TList = if (ctx.expr().size == 1) {
+        when (val v = exprTypeCtx(ctx.expr(0)!!)) {
             is Symbol.Var.Type.TList -> v
+            is Symbol.Var.Type.TStr -> Symbol.Var.Type.TList(Symbol.Var.Type.TStr)
             else -> throw B2Exception.TypeException.NotIterableException(v, ctx.position)
         }
-    } ?: Symbol.Var.Type.TList(Symbol.Var.Type.TInt)
+    } else {
+        Symbol.Var.Type.TList(Symbol.Var.Type.TInt)
+    }
 
     // ============================ BREAK-STATEMENTS ===========================
 

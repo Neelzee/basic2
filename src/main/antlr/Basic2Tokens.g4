@@ -10,6 +10,8 @@ TUPLE_END : ')';
 ARRAY_STRT : '[';
 ARRAY_END : ']';
 BLOCK_STRT : 'DO' ;
+FROM_KW : 'FROM';
+TO_KW : 'TO';
 fragment CHARS : [a-zA-Z];
 SEP : ',';
 IMPORT_KW : 'USE';

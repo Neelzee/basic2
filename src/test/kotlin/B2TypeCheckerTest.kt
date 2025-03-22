@@ -141,7 +141,6 @@ class B2TypeCheckerTest {
         }
     }
 
-
     @Test
     fun `Invalid Array Reassignment Test`() {
         val lexer = Basic2Lexer(CharStreams.fromString(

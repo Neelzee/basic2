@@ -1,4 +1,7 @@
+import b2.B2Exception
+import b2.B2TypeChecker
 import b2.B2Visitor
+import b2.symbols.Symbol
 import no.nilsmf.antlr.Basic2Lexer
 import no.nilsmf.antlr.Basic2Parser
 import org.antlr.v4.kotlinruntime.CharStreams
@@ -6,19 +9,13 @@ import org.antlr.v4.kotlinruntime.CommonTokenStream
 import java.io.ByteArrayInputStream
 import java.nio.file.Paths
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class B2VisitorTest {
     @Test
     fun `Hello World Test`() {
-        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/HelloWorld")))
-        val tokens = CommonTokenStream(lexer)
-        val parser = Basic2Parser(tokens)
-
-        val tree = parser.program()
-
-        val visitor = B2Visitor()
-
-        visitor.visit(tree)
+        val visitor = B2Visitor(path = Paths.get("src/main/resources/HelloWorld"))
+        visitor.eval()
     }
 
     @Test
@@ -27,49 +24,68 @@ class B2VisitorTest {
         val input = "1\n2\n10\n100\n3123\nQ"
 
         System.setIn(ByteArrayInputStream(input.toByteArray()))
-
-        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/FizzBuzz")))
-        val tokens = CommonTokenStream(lexer)
-        val parser = Basic2Parser(tokens)
-
-        val tree = parser.program()
-
-        val visitor = B2Visitor()
-
-        visitor.visit(tree)
+        B2Visitor(path = Paths.get("src/main/resources/FizzBuzz")).eval()
     }
 
 
     @Test
     fun `Scope Test`() {
-        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/Scope")))
-        val tokens = CommonTokenStream(lexer)
-        val parser = Basic2Parser(tokens)
+        val visitor = B2Visitor(path = Paths.get("src/main/resources/Scope"))
 
-        val tree = parser.program()
+        visitor.eval()
 
-        val visitor = B2Visitor()
-
-        visitor.visit(tree)
-        assert(visitor.getSymbolTable().getVar("global").value() as String == "global-inner")
+        assert(visitor.getSymbolTableEval().getVar("global").value() as String == "global-inner")
         assert(
-            visitor.getSymbolTable().getVar("inner").value() as String
+            visitor.getSymbolTableEval().getVar("inner").value() as String
                     == "inner"
         )
     }
 
     @Test
     fun `Reassign Variable Test`() {
-        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/ReassignVariable")))
-        val tokens = CommonTokenStream(lexer)
-        val parser = Basic2Parser(tokens)
+        val visitor = B2Visitor(path = Paths.get("src/main/resources/ReassignVariable"))
 
-        val tree = parser.program()
+        visitor.eval()
 
-        val visitor = B2Visitor()
+        assert(visitor.getSymbolTableEval().getVar("hello").value() as String == "Hello, World!")
+    }
 
-        visitor.visit(tree)
 
-        assert(visitor.getSymbolTable().getVar("hello").value() as String == "Hello, World!")
+    @Test
+    fun `Iterable Test`() {
+        val visitor = B2Visitor(
+            """
+            BEGIN PROC iterable
+            LET intIterable = (0, 10);
+            LET outputInt = [];
+            FOR (i IN FROM intIterable[0] TO intIterable[1]) THEN ADD(i, outputInt); END
+            
+            LET arrIterable = ["foo", "bar", "foobar"];
+            LET outputArr = [];
+            FOR (j IN arrIterable) THEN ADD(j, outputArr); END
+            
+            LET strIterable = "ABC";
+            LET outputStr = [];
+            FOR (k IN strIterable) THEN ADD(k, outputStr); END
+            PROC iterable END
+            """.trimIndent()
+        )
+
+        visitor.eval()
+
+        assertEquals(
+            visitor.getSymbolTableEval().getVar("outputInt").value() as List<*>,
+            (0..10).map { Symbol.Var.Value.VInt(it) }.toList()
+        )
+
+        assertEquals(
+            visitor.getSymbolTableEval().getVar("outputArr").value() as List<*>,
+            listOf("foo", "bar", "foobar").map { Symbol.Var.Value.VString(it) }
+        )
+
+        assertEquals(
+            visitor.getSymbolTableEval().getVar("outputStr").value() as List<*>,
+            listOf("A", "B", "C").map { Symbol.Var.Value.VString(it) }
+        )
     }
 }
