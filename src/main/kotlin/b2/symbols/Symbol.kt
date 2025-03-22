@@ -23,9 +23,13 @@ sealed class Symbol {
             is Type.Tuple -> "(${this.fst}, ${this.snd})"
             is Value -> this.format()
             is Variable -> "${this.id} = ${this.value}"
+            is ImportItem -> TODO()
         }
-
-        data class Variable(val id: String, val value: Value) : Var()
+        data class ImportItem(val id: String, val type: Symbol, val newName: String? = null) : Var()
+        data class Variable(
+            val id: String = "",
+            val value: Value = Value.VUnit
+        ) : Var()
         sealed class Type : Var() {
             data object TUnit : Type()
             data object TInt : Type()
@@ -443,8 +447,11 @@ sealed class Symbol {
     data class Param(val type: Var.Type) : Symbol()
     data class Arg(val id: String, var value: Var.Value?) : Symbol()
     data class FnDecl(
-        val params: List<Param>,
-        val resultType: Var.Type
+        val params: List<Param> = emptyList(),
+        val resultType: Var.Type = Var.Type.TUnit
     ) : Symbol()
-    data class FnImpl(val args: List<Arg>, val body: (args: List<Var.Value?>) -> Var.Value) : Symbol()
+    data class FnImpl(
+        val args: List<Arg> = emptyList(),
+        val body: (args: List<Var.Value?>) -> Var.Value = { Var.Value.VUnit }
+    ) : Symbol()
 }

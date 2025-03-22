@@ -6,6 +6,7 @@ import org.antlr.v4.kotlinruntime.ast.Position
 sealed class B2Exception : Throwable() {
     data class MissingModuleException(val moduleName: String, val position: Position?) : B2Exception()
     sealed class TypeException(val position: Position? = null) : B2Exception() {
+        data class InvalidModuleException(val moduleName1: String, val moduleName2: String) : TypeException()
         data class NumberFormatException(val rawText: String, val pos: Position? = null) : TypeException(pos)
         data class NotBoolException(val rawText: String, val pos: Position? = null) : TypeException(pos)
         data object InvalidOpException : TypeException(null) {
@@ -46,6 +47,12 @@ sealed class B2Exception : Throwable() {
             val type: Symbol.Var.Type,
             val pos: Position? = null
         ) : TypeException(pos)
+        data class ImportException(
+            val id: String,
+            val e: TypeException,
+            val pos: Position? = null
+        ) : TypeException(pos)
+        data class MissingModuleException(val id: String, val pos: Position? = null) : TypeException(pos)
     }
     data class ReturnException(val returnValue: Symbol.Var.Value) : B2Exception()
     data object BreakException : B2Exception() {

@@ -1,10 +1,5 @@
-import b2.B2TypeChecker
 import b2.B2Visitor
 import b2.interpreter.B2Interpreter
-import no.nilsmf.antlr.Basic2Lexer
-import no.nilsmf.antlr.Basic2Parser
-import org.antlr.v4.kotlinruntime.CharStreams
-import org.antlr.v4.kotlinruntime.CommonTokenStream
 import java.nio.file.Paths
 
 val while_test = """
@@ -79,8 +74,9 @@ fun main() = if (TESTING) {
 
 
 fun testing() {
-    val visitor = B2Visitor(path = Paths.get("src/main/resources/Scope"))
-    visitor.`type-check`()
+    val visitor = B2Visitor(path = Paths.get("src/main/resources/Imports"))
+    visitor.typeCheck()
+    visitor.eval()
 }
 
 fun inter() {

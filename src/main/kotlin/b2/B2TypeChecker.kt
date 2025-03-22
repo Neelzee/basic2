@@ -7,6 +7,15 @@ open class B2TypeChecker() : B2() {
 
     override fun defaultResult() = Symbol.Var.Type.TUnit
 
+    // PROGRAM =================================================================
+    override fun visitProgram(ctx: Basic2Parser.ProgramContext): Symbol.Var.Type.TUnit {
+        val moduleName1 = ctx.IDENTIFIER(0)!!.text
+        val moduleName2 = ctx.IDENTIFIER(1)!!.text
+        if (moduleName1 != moduleName2)
+            throw B2Exception.TypeException.InvalidModuleException(moduleName1, moduleName2)
+        return Symbol.Var.Type.TUnit
+    }
+
     // EXPRESSIONS =============================================================
 
     fun exprTypeCtx(ctx: Basic2Parser.ExprContext): Symbol.Var.Type = when (ctx) {
@@ -334,7 +343,8 @@ open class B2TypeChecker() : B2() {
     override fun visitFn_impl_stmt(ctx: Basic2Parser.Fn_impl_stmtContext): Symbol.Var.Type.TUnit {
         val id = ctx.IDENTIFIER().text
         var argsParams = ctx.fn_param().map { visitFn_param(it) }
-        val decl = getSymbolTable().getDecl(id)
+        val decl = getSymbolTable().getDeclNullable(id)
+            ?: throw B2Exception.TypeException.MissingModuleException(id, ctx.position)
         if (decl.params.size != argsParams.size)
             throw B2Exception.TypeException.NonMatchingParamException(id, ctx.position)
         decl.params.zip(argsParams).forEach {

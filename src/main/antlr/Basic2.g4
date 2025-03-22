@@ -55,10 +55,10 @@ import_stmt
 renaming : AS_KW IDENTIFIER;
 
 import_items
-  : FUNCTION_DECL IDENTIFIER
-  | FUNCTION_IMPL IDENTIFIER
-  | FUNCTION_KW IDENTIFIER
-  | IDENTIFIER
+  : FUNCTION_DECL IDENTIFIER # fnDecl
+  | FUNCTION_IMPL IDENTIFIER # fnImpl
+  | FUNCTION_KW IDENTIFIER   # fnDeclImpl
+  | IDENTIFIER               # var
   ;
 
 var_decl_stmt : LET_KW IDENTIFIER typing END_STMT_KW;

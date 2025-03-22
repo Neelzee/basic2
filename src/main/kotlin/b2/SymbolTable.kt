@@ -11,8 +11,11 @@ data class SymbolTable(
     private val scopes: MutableList<SymbolTable> = mutableListOf(),
 ) {
 
-    fun getScopes() = scopes
-    fun getNext() = next
+    fun iterVariable() = variables.asIterable()
+
+    fun iterFnDecl() = fnDecls.asIterable()
+
+    fun iterFnImpl() = fnImpls.asIterable()
 
     fun enterScope(): SymbolTable = SymbolTable(
         variables = mutableMapOf(),

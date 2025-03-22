@@ -280,8 +280,8 @@ open class B2Stmt : B2Eval() {
 
     override fun visitVar_decl_stmt(ctx: Basic2Parser.Var_decl_stmtContext): Symbol.Var.Value.VUnit {
         val id = ctx.IDENTIFIER().text
-        if (id == "_") return Symbol.Var.Value.VUnit
         val type = visitTyping(ctx.typing())
+        if (id == "_") return Symbol.Var.Value.VUnit
         getSymbolTable().declVar(id, type)
         return Symbol.Var.Value.VUnit
     }
@@ -290,9 +290,9 @@ open class B2Stmt : B2Eval() {
 
     override fun visitVar_decl_ass_stmt(ctx: Basic2Parser.Var_decl_ass_stmtContext): Symbol.Var.Value.VUnit {
         val id = ctx.IDENTIFIER().text
-        if (id == "_") return Symbol.Var.Value.VUnit
         val type = ctx.typing()?.let { visitTyping(it) }
         val value = exprCtx(ctx.expr())
+        if (id == "_") return Symbol.Var.Value.VUnit
         getSymbolTable().declAssVar(id, value, type)
         return Symbol.Var.Value.VUnit
     }
@@ -301,8 +301,8 @@ open class B2Stmt : B2Eval() {
 
     override fun visitVar_re_ass_stmt(ctx: Basic2Parser.Var_re_ass_stmtContext): Symbol.Var.Value.VUnit {
         val id = ctx.IDENTIFIER().text
-        if (id == "_") return Symbol.Var.Value.VUnit
         val newValue = exprCtx(ctx.expr())
+        if (id == "_") return Symbol.Var.Value.VUnit
         getSymbolTable().reAssVar(id, newValue)
         return Symbol.Var.Value.VUnit
     }
