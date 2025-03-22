@@ -14,7 +14,7 @@ END
 PRINT("=" * 10);
 PRINT("Welcome to FIZZBUZZ");
 PRINT("=" * 10);
-WHILE (TRUE) THEN DO
+WHILE (TRUE) DO
   PRINT("Input a number, or Q to quit");
   LET query: STR = INPUT("> ");
   IF (query == "Q") THEN
@@ -22,6 +22,5 @@ WHILE (TRUE) THEN DO
   FI
   LET fb = fizzbuzz(query AS INT);
   PRINT(fb);
-END
 END
 PROC FizzBuzz END

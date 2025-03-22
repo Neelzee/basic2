@@ -1,2 +1,66 @@
 BEGIN PROC InventorySystem
+
+DECL isAdd(STR) : BOOL;
+IMPL isAdd(s) DO
+  LET x = s[0] == "A";
+  LET y = s[1] == "D";
+  LET z = s[2] == "D";
+  RETURN x && y && z;
+END
+
+DECL isRem(STR) : BOOL;
+IMPL isRem(s) DO
+  LET x = s[0] == "R";
+  LET y = s[1] == "E";
+  LET z = s[2] == "M";
+  RETURN x && y && z;
+END
+
+DECL getItem(STR) : STR;
+IMPL getItem(s) DO
+  LET itemName = "";
+  LET len = LEN(s);
+  FOR (i IN FROM 2 TO (len - 1)) THEN
+    itemName += s[i];
+  END
+  RETURN itemName;
+END
+
+DECL find(STR) : INT
+DECL find(name) DO
+  IF (LEN(inv) == 0) THEN
+    RETURN -1;
+  FI
+  LET i = 0;
+  FOR (el IN inv) THEN
+  IF (el[0] == name) THEN
+    RETURN i;
+    i++;
+  FI
+  END
+  RETURN item;
+END
+
+LET inv: [(STR, INT)] = [];
+
+WHILE (TRUE) DO
+  LET query = INPUT("> ");
+  query = TRIM(query);
+  IF (isREM(query) || isAdd(query)) THEN
+    LET name = getItem(query);
+    LET itemInd = find(name);
+    IF (itemInd == -1) DO
+      PRINT("Added new item: " + name);
+      ADD((name, 1), inv);
+    ELSE
+      LET old = inv[itemInd];
+      LET count: STR = old[1];
+      PRINT("Added item: " + name + ", up to: " + count);
+      LET new = (name, old[1] + 1);
+      inv[itemInd] = new;
+    END
+  ELIF (query == "Q" || query == "q") THEN
+    BREAK;
+  FI
+END
 PROC InventorySystem END
