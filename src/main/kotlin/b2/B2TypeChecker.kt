@@ -145,15 +145,16 @@ open class B2TypeChecker() : B2() {
 
     override fun visitArr_re_ass_stmt(ctx: Basic2Parser.Arr_re_ass_stmtContext): Symbol.Var.Type.TUnit {
         val id = ctx.IDENTIFIER().text
-        val arr = getSymbolTable().getVar(id)
-        if (arr.type() !is Symbol.Var.Type.TList)
-            throw B2Exception.TypeException.InvalidIndexingException(id, arr.type(), ctx.position)
+        val arr = getSymbolTable().getVar(id).type()
+        if (!(arr is Symbol.Var.Type.TList || arr is Symbol.Var.Type.TStr))
+            throw B2Exception.TypeException.InvalidIndexingException(id, arr, ctx.position)
         val ind = exprTypeCtx(ctx.expr(0)!!)
         if (ind !is Symbol.Var.Type.TInt)
             throw B2Exception.TypeException.InvalidIndexingTypeException(id, ind, ctx.position)
         val element = exprTypeCtx(ctx.expr(1)!!)
-        if (Symbol.Var.Type.TList(element) != arr.type())
-            throw B2Exception.TypeException.InvalidIndexingElementException(id, arr.type(), element, ctx.position)
+        if ((arr is Symbol.Var.Type.TList && arr.t != element)
+            || (arr is Symbol.Var.Type.TStr && element !is Symbol.Var.Type.TStr))
+            throw B2Exception.TypeException.InvalidIndexingElementException(id, arr, element, ctx.position)
         return Symbol.Var.Type.TUnit
     }
 

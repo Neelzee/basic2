@@ -272,6 +272,10 @@ open class B2Stmt : B2Eval() {
 
     override fun visitBreak_stmt(ctx: Basic2Parser.Break_stmtContext) = throw B2Exception.BreakException
 
+    override fun visitContinue(ctx: Basic2Parser.ContinueContext) = visitContinue_stmt(ctx.continue_stmt())
+
+    override fun visitContinue_stmt(ctx: Basic2Parser.Continue_stmtContext) = throw B2Exception.ContinueException
+
     // =========================== BUILTINS-STATEMENTS =========================
 
     override fun visitPrint(ctx: Basic2Parser.PrintContext) = visitPrint_stmt(ctx.print_stmt())
@@ -280,29 +284,6 @@ open class B2Stmt : B2Eval() {
         val value = exprCtx(ctx.expr())
         println(value.value())
         return Symbol.Var.Value.VUnit
-    }
-
-    override fun visitInput(ctx: Basic2Parser.InputContext) = visitInput_stmt(ctx.input_stmt())
-
-    override fun visitInput_stmt(ctx: Basic2Parser.Input_stmtContext): Symbol.Var.Value {
-        val prompt = ctx.expr()?.let { exprCtx(it) }?.value()
-        print(prompt)
-        val result = readlnOrNull()
-        val value: Symbol.Var.Value = Symbol.Var.Value.VString(result ?: "")
-        val type = ctx.typing()?.let { visitTyping(it) }
-
-        ctx.IDENTIFIER()?.text?.let { getSymbolTable().declAssVar(it, value, type) }
-        return value
-    }
-
-    override fun visitLen(ctx: Basic2Parser.LenContext) = visitLen_stmt(ctx.len_stmt())
-
-    override fun visitLen_stmt(ctx: Basic2Parser.Len_stmtContext): Symbol.Var.Value {
-        val value = exprCtx(ctx.expr())
-        return ctx.IDENTIFIER()?.text?.let {
-            getSymbolTable().declAssVar(it, Symbol.Var.Value.VInt(value.size()))
-            Symbol.Var.Value.VUnit
-        } ?: value
     }
 
     override fun visitAppend(ctx: Basic2Parser.AppendContext) = visitAppend_stmt(ctx.append_stmt())

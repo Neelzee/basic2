@@ -21,9 +21,8 @@ stmt
   | for_stmt                         # for
   | return_stmt                      # ret
   | break_stmt                       # break
+  | continue_stmt                    # continue
   | print_stmt                       # print
-  | input_stmt                       # input
-  | len_stmt                         # len
   | append_stmt                      # append
   | arr_re_ass_stmt                  # arrReAss
   | var_decl_stmt                    # var_decl
@@ -42,8 +41,6 @@ return_stmt : RET_KW expr? END_STMT_KW;
 break_stmt : BREAK_KW END_STMT_KW;
 continue_stmt : CONTINUE_KW END_STMT_KW;
 print_stmt : PRINT_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;
-input_stmt : (LET_KW IDENTIFIER typing ASS_KW)? INPUT_KW TUPLE_STRT expr? TUPLE_END END_STMT_KW;
-len_stmt : (LET_KW IDENTIFIER typing ASS_KW)? LEN_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;
 append_stmt : APPEND_KW TUPLE_STRT expr SEP IDENTIFIER TUPLE_END END_STMT_KW;
 arr_re_ass_stmt : IDENTIFIER ARRAY_STRT expr ARRAY_END ASS_KW expr END_STMT_KW;
 import_stmt
@@ -162,6 +159,11 @@ expr
   | expr '?' expr ':' expr                                              # ternary
   | expr ARRAY_STRT expr ARRAY_END                                      # arrInd
   | TRIM_KW TUPLE_STRT expr TUPLE_END                                   # trim
+  | inputExpr                                                           # input
+  | lenExpr                                                             # len
   | IDENTIFIER TUPLE_STRT (expr (SEP expr)* SEP?)? TUPLE_END            # fnCall
   | IDENTIFIER                                                          # ident
   ;
+
+inputExpr : INPUT_KW TUPLE_STRT expr? TUPLE_END END_STMT_KW;
+lenExpr : LEN_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;

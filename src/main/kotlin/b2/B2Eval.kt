@@ -74,6 +74,7 @@ open class B2Eval : B2() {
         val arr = when (val arr = exprCtx(ctx.expr(0)!!)) {
             is Symbol.Var.Value.VList -> arr
             is Symbol.Var.Value.Tuple -> arr
+            is Symbol.Var.Value.VString -> arr
             else -> throw RuntimeException("Cannot index on non-array or non-tuple: $arr")
         }
 
@@ -153,4 +154,19 @@ open class B2Eval : B2() {
 
     override fun visitCast(ctx: Basic2Parser.CastContext): Symbol.Var.Value
         = Symbol.Var.Value.withType(exprCtx(ctx.expr()), visitType(ctx.type()))
+
+    // =========================== BUILTINS-STATEMENTS =========================
+
+    override fun visitLen(ctx: Basic2Parser.LenContext) = visitLenExpr(ctx.lenExpr())
+
+    override fun visitLenExpr(ctx: Basic2Parser.LenExprContext): Symbol.Var.Value.VInt = exprCtx(ctx.expr()).size()
+
+    override fun visitInput(ctx: Basic2Parser.InputContext) = visitInputExpr(ctx.inputExpr())
+
+    override fun visitInputExpr(ctx: Basic2Parser.InputExprContext): Symbol.Var.Value {
+        val prompt = ctx.expr()?.let { exprCtx(it).value() }?.toString() ?: ""
+        print(prompt)
+        return Symbol.Var.Value.VString(readlnOrNull() ?: "")
+    }
+
 }

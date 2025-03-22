@@ -141,7 +141,7 @@ sealed class Symbol {
             data class VNull(val type: Type) : Value()
             data class VInt(val value: Int) : Value()
             data class VFloat(val value: Float) : Value()
-            data class VString(val value: String) : Value()
+            data class VString(var value: String) : Value()
             data class VBoolean(val value: Boolean) : Value()
             data class Tuple(val value: Pair<Value, Value>, val type: Type.Tuple) : Value()
             data class VList(val value: MutableList<Value>, val type: Type.TList) : Value()
@@ -405,12 +405,32 @@ sealed class Symbol {
                                 ", while the array is of type: ${this.type}"
                     )
                 is VList -> this.value[ind.value]
+                is VString if (ind.value >= this.value.length || ind.value < 0) ->
+                    throw RuntimeException("OutOfBoundsException: ${ind.value} on $this")
+                is VString if (newVar.type() !is Type.TStr) ->
+                    throw RuntimeException(
+                        "Illegal operation, element $newVar is of type ${newVar.type()}, which is not STR"
+                    )
+                is VString -> {
+                    var i = 0;
+                    var newStr = "";
+                    for (c in this.value) {
+                        newStr += if (ind.value == i) {
+                            newVar.value() as String
+                        } else {
+                            c
+                        }
+                        i++
+                    }
+                    this.value = newStr
+                    this
+                }
                 else -> throw RuntimeException("Illegal operation, cannot index $this")
             }
 
-            fun size(): Int = when (this) {
-                is VList -> this.value.size
-                is VString -> this.value.length
+            fun size(): VInt = when (this) {
+                is VList -> VInt(this.value.size)
+                is VString -> VInt(this.value.length)
                 else -> throw RuntimeException("Illegal operation, cannot take length of $this")
             }
 
