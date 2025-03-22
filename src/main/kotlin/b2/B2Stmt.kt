@@ -59,6 +59,40 @@ open class B2Stmt : B2Eval() {
 
     // ============================= IF-STATEMENTS =============================
 
+    override fun visitIf_elif(c: Basic2Parser.If_elifContext): Symbol.Var.Value = runScope {
+        val ctx = c.if_elif_stmt()
+
+        val elseStmt = ctx.stmt().last()
+
+        val stmt = ctx.expr().zip(ctx.stmt().subList(0, ctx.expr().size - 1)).firstOrNull { (pred, _) ->
+            exprCtx(pred).toBool()
+        }?.second
+
+        val pred = exprCtx(ctx.expr(0)!!).toBool()
+        if (pred) {
+            stmt?.let { stmtCtx(it) } ?: Symbol.Var.Value.VUnit
+        } else {
+            stmtCtx(elseStmt)
+        }
+    } as Symbol.Var.Value
+
+    override fun visitIf_elif_block(c: Basic2Parser.If_elif_blockContext): Symbol.Var.Value = runScope {
+        val ctx = c.if_elif_stmt_block()
+
+        val elseStmt = ctx.block_stmt().last()
+
+        val stmt = ctx.expr().zip(ctx.block_stmt().subList(0, ctx.expr().size - 1)).firstOrNull { (pred, _) ->
+            exprCtx(pred).toBool()
+        }?.second
+
+        val pred = exprCtx(ctx.expr(0)!!).toBool()
+        if (pred) {
+            stmt?.let { visitBlock_stmt(it) } ?: Symbol.Var.Value.VUnit
+        } else {
+            visitBlock_stmt(elseStmt)
+        }
+    } as Symbol.Var.Value
+
     override fun visitIf_block(c: Basic2Parser.If_blockContext): Symbol.Var.Value = runScope {
         val ctx = c.if_stmt_block()
         val pred = exprCtx(ctx.expr()).toBool()
@@ -207,7 +241,6 @@ open class B2Stmt : B2Eval() {
             else -> throw RuntimeException("I")
         }
     }
-
 
     // ============================ BREAK-STATEMENTS ===========================
 

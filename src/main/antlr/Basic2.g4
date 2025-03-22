@@ -9,7 +9,9 @@ program
   ;
 
 stmt
-  : if_stmt_block                    # if_block
+  : if_elif_stmt_block               # if_elif_block
+  | if_elif_stmt                     # if_elif
+  | if_stmt_block                    # if_block
   | if_stmt                          # if
   | if_else_stmt_block               # if_else_block
   | if_else_stmt                     # if_else
@@ -75,8 +77,12 @@ fn_impl_stmt
   ;
 fn_param : IDENTIFIER (ASS_KW expr)?;
 
+if_elif_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt (ELIF_KW expr THEN_KW stmt)+ ELSE_KW stmt END_IF_KW;
+if_elif_stmt_block : IF_KW TUPLE_STRT expr TUPLE_END block_stmt (ELIF_KW expr THEN_KW block_stmt)+ ELSE_KW block_stmt;
+
 if_else_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt ELSE_KW stmt END_IF_KW;
 if_else_stmt_block : IF_KW TUPLE_STRT expr TUPLE_END block_stmt ELSE_KW block_stmt;
+
 if_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt END_IF_KW;
 if_stmt_block : IF_KW TUPLE_STRT expr TUPLE_END block_stmt;
 

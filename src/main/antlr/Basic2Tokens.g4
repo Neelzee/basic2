@@ -26,6 +26,7 @@ LET_KW : 'LET';
 IF_KW : 'IF';
 THEN_KW : 'THEN';
 ELSE_KW : 'ELSE';
+ELIF_KW : 'ELIF';
 END_IF_KW : 'FI';
 WHILE_KW : 'WHILE';
 RET_KW : 'RETURN';
