@@ -50,7 +50,6 @@ open class B2Stmt : B2Eval() {
         is Basic2Parser.IfContext -> visitIf(ctx)
         is Basic2Parser.PrintContext -> visitPrint(ctx)
         is Basic2Parser.BlockContext -> visitBlock(ctx)
-        is Basic2Parser.InputContext -> visitInput(ctx)
         is Basic2Parser.RetContext -> visitRet(ctx)
         is Basic2Parser.BreakContext -> visitBreak(ctx)
         is Basic2Parser.BinopIncrContext -> visitBinopIncr(ctx)
@@ -79,17 +78,26 @@ open class B2Stmt : B2Eval() {
     override fun visitIf_elif_block(c: Basic2Parser.If_elif_blockContext): Symbol.Var.Value = runScope {
         val ctx = c.if_elif_stmt_block()
 
-        val elseStmt = ctx.block_stmt().last()
+        val thenStmt = { stmtLst(ctx.thenBlock) }
 
-        val stmt = ctx.expr().zip(ctx.block_stmt().subList(0, ctx.expr().size - 1)).firstOrNull { (pred, _) ->
-            exprCtx(pred).toBool()
-        }?.second
+        val elseStmt = { stmtLst(ctx.elseBlock) }
 
-        val pred = exprCtx(ctx.expr(0)!!).toBool()
+        val stmts: List<Pair<Boolean, () -> Symbol.Var.Value>> = ctx.elifBlocks.map {
+            when (it) {
+                is Basic2Parser.ElifBlockBranchContext -> {
+                    Pair(
+                        exprCtx(it.expr()).toBool()
+                    ) { stmtLst(it.stmt()) }
+                }
+                else -> TODO()
+            }
+        }
+
+        val pred = exprCtx(ctx.expr()).toBool()
         if (pred) {
-            stmt?.let { visitBlock_stmt(it) } ?: Symbol.Var.Value.VUnit
+            thenStmt()
         } else {
-            visitBlock_stmt(elseStmt)
+            stmts.firstOrNull { it.first }?.second?. let { it() } ?: elseStmt()
         }
     } as Symbol.Var.Value
 

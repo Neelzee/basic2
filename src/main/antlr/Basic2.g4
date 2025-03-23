@@ -9,12 +9,12 @@ program
   ;
 
 stmt
-  : if_elif_stmt_block               # if_elif_block
-  | if_elif_stmt                     # if_elif
-  | if_stmt_block                    # if_block
+  : if_stmt_block                    # if_block
   | if_stmt                          # if
   | if_else_stmt_block               # if_else_block
   | if_else_stmt                     # if_else
+  | if_elif_stmt_block               # if_elif_block
+  | if_elif_stmt                     # if_elif
   | while_stmt                       # while
   | while_stmt_block                 # while_block
   | for_range                        # for_r
@@ -75,8 +75,29 @@ fn_impl_stmt
   ;
 fn_param : IDENTIFIER (ASS_KW expr)?;
 
-if_elif_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt (ELIF_KW expr THEN_KW stmt)+ ELSE_KW stmt END_IF_KW;
-if_elif_stmt_block : IF_KW TUPLE_STRT expr TUPLE_END block_stmt (ELIF_KW expr THEN_KW block_stmt)+ ELSE_KW block_stmt;
+if_elif_stmt
+  : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW
+      stmt
+    (ELIF_KW expr THEN_KW stmt)+
+    ELSE_KW
+      stmt
+    END_IF_KW
+  ;
+
+
+if_elif_stmt_block
+  : IF_KW TUPLE_STRT expr TUPLE_END BLOCK_STRT
+    thenBlock+=stmt*
+    (elifBlocks+=elif_stmt_block)+
+    ELSE_KW BLOCK_STRT
+    elseBlock+=stmt*
+    END_KW
+  ;
+
+elif_stmt_block
+  : ELIF_KW expr BLOCK_STRT stmt* #ElifBlockBranch
+  ;
+
 
 if_else_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt ELSE_KW stmt END_IF_KW;
 if_else_stmt_block : IF_KW TUPLE_STRT expr TUPLE_END block_stmt ELSE_KW block_stmt;
@@ -165,5 +186,5 @@ expr
   | IDENTIFIER                                                          # ident
   ;
 
-inputExpr : INPUT_KW TUPLE_STRT expr? TUPLE_END END_STMT_KW;
-lenExpr : LEN_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;
+inputExpr : INPUT_KW TUPLE_STRT expr? TUPLE_END;
+lenExpr : LEN_KW TUPLE_STRT expr TUPLE_END;
