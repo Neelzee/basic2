@@ -34,6 +34,9 @@
             zlib
             antlr4
           ];
+          shellHook = ''
+          alias antdbg='java org.antlr.v4.gui.TestRig'
+          '';
         };
       });
     };

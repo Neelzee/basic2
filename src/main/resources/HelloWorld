@@ -1,0 +1,3 @@
+BEGIN PROC HelloWorld
+PRINT("Hello, World!");
+PROC HelloWorld END

@@ -1,0 +1,8 @@
+BEGIN PROC ReassignVariable
+LET hello = "Hello";
+hello += ", World!";
+PRINT(hello);
+LET world = "Hello";
+world = world + ", World!";
+PRINT(world);
+PROC ReassignVariable END

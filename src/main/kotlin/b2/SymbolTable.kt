@@ -1,20 +1,21 @@
 package b2
 
+import b2.symbols.Symbol
+
 data class SymbolTable(
     private val variables: MutableMap<String, Symbol.Var> = mutableMapOf(),
     private val fnImpls: MutableMap<String, Symbol.FnImpl> = mutableMapOf(),
     private val fnDecls: MutableMap<String, Symbol.FnDecl> = mutableMapOf(),
+    private val modules: MutableList<String> = mutableListOf(),
     private var next: SymbolTable? = null,
+    private val scopes: MutableList<SymbolTable> = mutableListOf(),
 ) {
 
-    companion object {
-        fun SymbolTable(table: SymbolTable): SymbolTable = SymbolTable(
-            variables = mutableMapOf(),
-            fnImpls = mutableMapOf(),
-            fnDecls = mutableMapOf(),
-            next = table
-        )
-    }
+    fun iterVariable() = variables.asIterable()
+
+    fun iterFnDecl() = fnDecls.asIterable()
+
+    fun iterFnImpl() = fnImpls.asIterable()
 
     fun enterScope(): SymbolTable = SymbolTable(
         variables = mutableMapOf(),
@@ -23,30 +24,50 @@ data class SymbolTable(
         next = this
     )
 
-    fun exitScope(): SymbolTable = next ?: this
-
-    fun declVar(id: String, type: Type) {
-        variables[id] = Symbol.Var(Value.VNull(type))
+    fun exitScope(debug: Boolean = false): SymbolTable = if (debug) {
+        next?.let {
+            next!!.scopes.add(this)
+            next
+        } ?: this
+    } else {
+        next ?: this
     }
 
-    fun declAssVar(id: String, value: Value, type: Type? = null) {
-        val t = type ?: value.type()
-        val v = if (type == null) { value } else { Value.withType(value, t) }
-        variables[id] = Symbol.Var(v)
+    fun declModule(module: String) {
+        modules.add(module)
     }
 
-    fun reAssVar(id: String, value: Value) {
-        when (val old = getVarNullable(id)) {
-            is Symbol.Var -> {
-                if (old.value.type() != value.type()) throw RuntimeException("Cannot reassign with different types")
-                variables[id] = Symbol.Var(value)
+    fun hasModule(module: String): Boolean = when (modules.contains(module)) {
+        true -> true
+        false -> next?.hasModule(module) == true
+    }
+
+    fun declVar(id: String, type: Symbol.Var.Type) {
+        variables[id] = Symbol.Var.Value.VNull(type)
+    }
+
+    fun declAssVar(id: String, value: Symbol.Var.Value, type: Symbol.Var.Type? = null) {
+        variables[id] = if (type == null) { value } else { Symbol.Var.Value.withType(value, type) }
+    }
+
+    fun reAssVar(id: String, value: Symbol.Var.Value) {
+        when (val old = variables[id]) {
+            is Symbol.Var.Value -> {
+                if (old.type() == value.type() || old.type() == Symbol.Var.Type.TUnit)
+                    variables[id] = value
+                else
+                    throw RuntimeException("Cannot reassign with different types: ${old.type()} and ${value.type()}")
             }
-            else -> throw RuntimeException("Cannot reassign non-existing variable")
+            else -> if (next == null) {
+                throw RuntimeException("Cannot reassign non-existing variable")
+            } else {
+                next!!.reAssVar(id, value)
+            }
         }
     }
 
-    fun getVar(id: String): Symbol.Var = when (variables[id]) {
-        is Symbol.Var -> variables[id] as Symbol.Var
+    fun getVar(id: String): Symbol.Var.Value = when (variables[id]) {
+        is Symbol.Var.Value -> variables[id] as Symbol.Var.Value
         else -> next?.getVar(id) ?: throw RuntimeException("Could not find $id in scope")
     }
 
@@ -59,11 +80,11 @@ data class SymbolTable(
         else -> next?.getVarNullable(id)
     }
 
-    fun addFnDecl(id: String, params: List<Type>, result: Type) {
-        fnDecls[id] = Symbol.FnDecl(params.map { Symbol.Param(it) }, result)
+    fun addFnDecl(id: String, params: List<Symbol.Var.Type>, result: Symbol.Var.Type) {
+        fnDecls[id] = Symbol.FnDecl(null, params.map { Symbol.Param(it) }, result)
     }
 
-    fun addFnImpl(id: String, args: List<Symbol.Arg>, body: (List<Value?>) -> Value) {
+    fun addFnImpl(id: String, args: List<Symbol.Arg>, body: (List<Symbol.Var.Value?>) -> Symbol.Var.Value) {
         fnImpls[id] = Symbol.FnImpl(args, body)
     }
 
@@ -91,20 +112,42 @@ data class SymbolTable(
         ?: throw RuntimeException("Could not find $id in declarations")
 
     fun print() {
-        next?.printVariables()
+        println("Function Variables:")
         printVariables()
+        println("Function Variables END")
         println("Function Declarations:")
-        next?.printFnDecls()
         printFnDecls()
-        println("Function Implementations: ")
-        next?.printFnImpls()
+        println("Function Declarations END")
+        println("Function Implementations:")
         printFnImpls()
+        println("Function Implementations END")
     }
 
-    private fun printVariables() = variables.forEach { (k, v) -> println("$k: $v") }
+    private fun printVariables() {
+        variables.forEach { (k, v) -> println("$k: ${v.format()}") }
+        next?.let {
+            println("Inner: ")
+            it.printVariables()
+            println("END")
+        }
+    }
 
-    private fun printFnImpls() = fnImpls.forEach { (k, v) -> println("$k: $v") }
+    private fun printFnImpls() {
+        fnImpls.forEach { (k, v) -> println("$k: $v") }
+        next?.let {
+            println("Inner: ")
+            it.printFnImpls()
+            println("END")
+        }
+    }
 
-    private fun printFnDecls() = fnDecls.forEach { (k, v) -> println("$k: $v") }
+    private fun printFnDecls() {
+        fnDecls.forEach { (k, v) -> println("$k: $v") }
+        next?.let {
+            println("Inner: ")
+            it.printFnDecls()
+            println("END")
+        }
+    }
 
 }

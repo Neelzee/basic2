@@ -1,0 +1,106 @@
+BEGIN PROC InventorySystem
+
+DECL isAdd(STR) : BOOL;
+IMPL isAdd(s) DO
+  LET x = s[0] == "A";
+  LET y = s[1] == "D";
+  LET z = s[2] == "D";
+  RETURN x && y && z;
+END
+
+DECL isRem(STR) : BOOL;
+IMPL isRem(s) DO
+  LET x = s[0] == "R";
+  LET y = s[1] == "E";
+  LET z = s[2] == "M";
+  RETURN x && y && z;
+END
+
+DECL isLst(STR) : BOOL;
+IMPL isLst(s) DO
+  LET x = s[0] == "L";
+  LET y = s[1] == "S";
+  LET z = s[2] == "T";
+  RETURN x && y && z;
+END
+
+DECL getItem(STR) : STR;
+IMPL getItem(s) DO
+  LET itemName = "";
+  LET len = LEN(s);
+  FOR (i IN FROM 4 TO (len - 1)) THEN
+    itemName += s[i];
+  END
+  RETURN itemName;
+END
+
+DECL find(STR) : INT;
+IMPL find(name) DO
+  IF (LEN(inv) == 0) THEN
+    RETURN -1;
+  FI
+  LET i = 0;
+  FOR (el IN inv) THEN
+    DO
+      IF (el[0] == name) THEN
+        RETURN i;
+      FI
+      i += 1;
+    END
+  END
+  RETURN -1;
+END
+
+LET inv: [(STR, INT)] = [];
+
+
+WHILE (TRUE) DO
+  LET query = INPUT("> ");
+  query = TRIM(query);
+  IF ((query == "Q") || (query == "q")) DO
+    PRINT("Exiting");
+    BREAK;
+  END
+  LET name = getItem(query);
+  LET itemInd = find(name);
+
+
+  IF (isAdd(query)) DO
+    IF (itemInd == -1) DO
+      PRINT("Added new item: " + name);
+      ADD((name, 1), inv);
+    ELSE
+      LET old = inv[itemInd];
+      LET count: STR = old[1] + 1;
+      PRINT("Added item: " + name + ", up to: " + count);
+      LET newCount = old[1] + 1;
+      LET new = (name, newCount);
+      inv[itemInd] = new;
+    END
+    CONTINUE;
+  END
+
+  IF (isRem(query)) DO
+    LET old = inv[itemInd];
+    LET count: STR = old[1] - 1;
+    PRINT("Removed item: " + name + ", down to: " + count);
+    LET new = (name, old[1] - 1);
+    inv[itemInd] = new;
+    CONTINUE;
+  END
+
+  IF (isLst(query)) DO
+    FOR (pair IN inv) THEN
+      DO
+        LET count: STR = pair[1];
+        LET name = pair[0];
+        PRINT("Item: " + name + ", Count: " + count);
+      END
+    END
+    CONTINUE;
+  END
+
+  PRINT("Unknown command: " + query);
+END
+
+PROC InventorySystem END

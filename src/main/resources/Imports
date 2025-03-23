@@ -1,0 +1,6 @@
+BEGIN PROC Imports
+USE ImportBar;
+USE ImportFoo;
+IMPL Foo() PRINT(Bar);
+LET _ = Foo();
+PROC Imports END

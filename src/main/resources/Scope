@@ -1,0 +1,7 @@
+BEGIN PROC SCOPE
+LET global = "global";
+DO
+  LET inner = "inner";
+  global += "-inner";
+END
+PROC SCOPE END

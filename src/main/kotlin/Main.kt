@@ -1,8 +1,6 @@
 import b2.B2Visitor
-import no.nilsmf.antlr.Basic2Lexer
-import no.nilsmf.antlr.Basic2Parser
-import org.antlr.v4.kotlinruntime.CharStreams
-import org.antlr.v4.kotlinruntime.CommonTokenStream
+import b2.interpreter.B2Interpreter
+import java.nio.file.Paths
 
 val while_test = """
     LET count = 0;
@@ -61,17 +59,28 @@ LET result = fac(30);
 PRINT(result);
 """.trimIndent()
 
-fun main() {
-    val input = factory_test
-    val lexer = Basic2Lexer(CharStreams.fromString(input))
-    val tokens = CommonTokenStream(lexer)
-    val parser = Basic2Parser(tokens)
+val input_test = """
+LET foo: STR = INPUT("> ");
+PRINT(foo);
+""".trimIndent()
 
-    val tree = parser.program()
+const val TESTING = true
 
-    val visitor = B2Visitor()
+fun main() = if (TESTING) {
+   testing()
+} else {
+    inter()
+}
 
-    visitor.visit(tree)
 
-    visitor.printSymbolTable()
+fun testing() {
+    val visitor = B2Visitor(path = Paths.get("src/main/resources/InventorySystem"))
+    visitor.typeCheck()
+    visitor.eval()
+    visitor.print()
+}
+
+fun inter() {
+    val it = B2Interpreter()
+    it.interpret()
 }

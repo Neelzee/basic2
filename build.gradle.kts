@@ -14,6 +14,8 @@ repositories {
 dependencies {
     antlr("org.antlr:antlr4:4.13.2")
     implementation("com.strumenta:antlr-kotlin-runtime:1.0.0")
+    implementation("io.arrow-kt:arrow-core:2.0.1")
+    implementation("io.arrow-kt:arrow-fx-coroutines:2.0.1")
     testImplementation(kotlin("test"))
 }
 
@@ -38,3 +40,12 @@ tasks.named("compileKotlin") {
     dependsOn(tasks.named("generateKotlinGrammarSource"))
 }
 
+tasks.named("compileTestKotlin") {
+    dependsOn(tasks.named("generateKotlinGrammarSource"), tasks.named("generateTestGrammarSource"))
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xwhen-guards")
+    }
+}
