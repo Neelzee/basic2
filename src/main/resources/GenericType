@@ -1,0 +1,5 @@
+BEGIN PROC GenericType
+DECL <T>foo(T) : T;
+IMPL foo(v) PRINT(v);
+LET _ = foo(10);
+PROC GenericType END

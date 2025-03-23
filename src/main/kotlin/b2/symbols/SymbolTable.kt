@@ -1,11 +1,9 @@
-package b2
-
-import b2.symbols.Symbol
+package b2.symbols
 
 data class SymbolTable(
     private val variables: MutableMap<String, Symbol.Var> = mutableMapOf(),
-    private val fnImpls: MutableMap<String, Symbol.FnImpl> = mutableMapOf(),
-    private val fnDecls: MutableMap<String, Symbol.FnDecl> = mutableMapOf(),
+    private val fnImpls: MutableMap<String, Symbol.Fn.FnImpl> = mutableMapOf(),
+    private val fnDecls: MutableMap<String, Symbol.Fn.FnDecl> = mutableMapOf(),
     private val modules: MutableList<String> = mutableListOf(),
     private var next: SymbolTable? = null,
     private val scopes: MutableList<SymbolTable> = mutableListOf(),
@@ -81,35 +79,32 @@ data class SymbolTable(
     }
 
     fun addFnDecl(id: String, params: List<Symbol.Var.Type>, result: Symbol.Var.Type) {
-        fnDecls[id] = Symbol.FnDecl(null, params.map { Symbol.Param(it) }, result)
+        fnDecls[id] = Symbol.Fn.FnDecl(null, params.map { Symbol.Param(it) }, result)
     }
 
     fun addFnImpl(id: String, args: List<Symbol.Arg>, body: (List<Symbol.Var.Value?>) -> Symbol.Var.Value) {
-        fnImpls[id] = Symbol.FnImpl(args, body)
+        fnImpls[id] = Symbol.Fn.FnImpl(args, body)
     }
 
-    fun getDecl(id: String): Symbol.FnDecl = when {
-        fnDecls[id] != null -> fnDecls[id] as Symbol.FnDecl
+    fun getDecl(id: String): Symbol.Fn.FnDecl = when {
+        fnDecls[id] != null -> fnDecls[id] as Symbol.Fn.FnDecl
         else -> next?.getDecl(id) ?: throw RuntimeException("Could not find $id in scope")
     }
 
-    fun getDeclNullable(id: String): Symbol.FnDecl? = when {
-        fnDecls[id] != null -> fnDecls[id] as Symbol.FnDecl
+    fun getDeclNullable(id: String): Symbol.Fn.FnDecl? = when {
+        fnDecls[id] != null -> fnDecls[id] as Symbol.Fn.FnDecl
         else -> next?.getDecl(id)
     }
 
-    fun getImpl(id: String): Symbol.FnImpl  = when {
-        fnImpls[id] != null -> fnImpls[id] as Symbol.FnImpl
+    fun getImpl(id: String): Symbol.Fn.FnImpl  = when {
+        fnImpls[id] != null -> fnImpls[id] as Symbol.Fn.FnImpl
         else -> next?.getImplNullable(id) ?: throw RuntimeException("Could not find $id in scope")
     }
 
-    fun getImplNullable(id: String): Symbol.FnImpl? = when {
-        fnImpls[id] != null -> fnImpls[id] as Symbol.FnImpl
+    fun getImplNullable(id: String): Symbol.Fn.FnImpl? = when {
+        fnImpls[id] != null -> fnImpls[id] as Symbol.Fn.FnImpl
         else -> next?.getImplNullable(id)
     }
-
-    fun getParams(id: String): List<Symbol.Param> = fnDecls[id]?.params
-        ?: throw RuntimeException("Could not find $id in declarations")
 
     fun print() {
         println("Function Variables:")

@@ -1,6 +1,7 @@
 package b2
 
 import b2.symbols.Symbol
+import b2.symbols.SymbolTable
 import no.nilsmf.antlr.Basic2BaseVisitor
 
 open class B2(

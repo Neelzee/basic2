@@ -53,6 +53,15 @@ sealed class B2Exception : Throwable() {
             val pos: Position? = null
         ) : TypeException(pos)
         data class MissingModuleException(val id: String, val pos: Position? = null) : TypeException(pos)
+        data class UnknownGenericTypeException(
+            val list: List<Symbol.Var.Type.Generic>,
+            val pos: Position? = null
+        ) : TypeException(pos)
+        data class InvalidResultType(
+            val declaredType: Symbol.Var.Type,
+            val inferredType: Symbol.Var.Type,
+            val pos: Position? = null
+        ) : TypeException(pos)
     }
     data object ContinueException : B2Exception() {
         private fun readResolve(): Any = ContinueException

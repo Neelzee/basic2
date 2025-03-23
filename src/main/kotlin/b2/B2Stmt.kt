@@ -8,15 +8,17 @@ open class B2Stmt : B2Eval() {
 
     companion object {
 
-        fun visitFnDeclStmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.FnDecl {
+        fun visitFnDeclStmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.Fn.FnDecl {
             val id = ctx.IDENTIFIER().text
             var types = ctx.type().map { visitType(it) }
+
             val (typeParams, returnType) = if (types.isEmpty()) {
                 Pair(emptyList(), Symbol.Var.Type.TUnit)
             } else {
                 Pair(types.subList(0, types.size - 1), types[types.size - 1])
             }
-            return Symbol.FnDecl(
+
+            return Symbol.Fn.FnDecl(
                 id = id,
                 params = typeParams.map { Symbol.Param(it) }.toList(),
                 resultType = returnType,

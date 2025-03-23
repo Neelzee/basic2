@@ -56,11 +56,11 @@ open class B2Use : B2Stmt() {
             val rename = imports.getOrNull(i)?.newName ?: ""
             val newId = { id: String -> if (rename.isEmpty()) { id } else { rename } }
             when (it.type) {
-                is Symbol.FnImpl -> {
+                is Symbol.Fn.FnImpl -> {
                     val (args, body) = moduleSymbolTable.getImpl(it.id)
                     getSymbolTable().addFnImpl(newId(it.id), args, body)
                 }
-                is Symbol.FnDecl -> {
+                is Symbol.Fn.FnDecl -> {
                     val (_, params, result) = moduleSymbolTable.getDecl(it.id)
                     getSymbolTable().addFnDecl(newId(it.id), params.map { t -> t.type }, result)
                 }
@@ -108,11 +108,11 @@ open class B2Use : B2Stmt() {
 
     override fun visitFnDecl(ctx: Basic2Parser.FnDeclContext): Symbol.Var.ImportItem {
         val id = ctx.IDENTIFIER().text
-        return Symbol.Var.ImportItem(id, Symbol.FnDecl())
+        return Symbol.Var.ImportItem(id, Symbol.Fn.FnDecl())
     }
 
     override fun visitFnImpl(ctx: Basic2Parser.FnImplContext): Symbol.Var.ImportItem {
-        return Symbol.Var.ImportItem(ctx.IDENTIFIER().text, Symbol.FnImpl())
+        return Symbol.Var.ImportItem(ctx.IDENTIFIER().text, Symbol.Fn.FnImpl())
     }
 
     override fun visitFnDeclImpl(ctx: Basic2Parser.FnDeclImplContext): Symbol.Var.ImportItem

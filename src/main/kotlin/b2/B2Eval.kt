@@ -19,8 +19,10 @@ open class B2Eval : B2() {
         fun visitType(ctx: Basic2Parser.TypeContext): Symbol.Var.Type {
             return ctx.PRIM_TYPES()?.let { Symbol.Var.Type.from(it.text) } ?: if (ctx.ARRAY_STRT() != null) {
                 Symbol.Var.Type.TList(visitType(ctx.type(0)!!))
-            } else {
+            } else if (ctx.TUPLE_STRT() != null) {
                 Symbol.Var.Type.Tuple(visitType(ctx.type(0)!!), visitType(ctx.type(1)!!))
+            } else {
+                Symbol.Var.Type.Generic(ctx.IDENTIFIER()?.text!!)
             }
         }
     }

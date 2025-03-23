@@ -8,12 +8,12 @@ open class B2TypeChecker() : B2() {
     override fun defaultResult() = Symbol.Var.Type.TUnit
 
     // PROGRAM =================================================================
-    override fun visitProgram(ctx: Basic2Parser.ProgramContext): Symbol.Var.Type.TUnit {
+    override fun visitProgram(ctx: Basic2Parser.ProgramContext): Symbol.Var.Type {
         val moduleName1 = ctx.IDENTIFIER(0)!!.text
         val moduleName2 = ctx.IDENTIFIER(1)!!.text
         if (moduleName1 != moduleName2)
             throw B2Exception.TypeException.InvalidModuleException(moduleName1, moduleName2)
-        return Symbol.Var.Type.TUnit
+        return stmtLst(ctx.stmt())
     }
 
     // EXPRESSIONS =============================================================
@@ -89,8 +89,18 @@ open class B2TypeChecker() : B2() {
         return arr.t
     }
 
-    override fun visitFnCall(ctx: Basic2Parser.FnCallContext)
-        = getSymbolTable().getDecl(ctx.IDENTIFIER().text).resultType
+    // TODO: Figure out a way to do Generics maybe?
+    override fun visitFnCall(ctx: Basic2Parser.FnCallContext): Symbol.Var.Type {
+        val fn = ctx.IDENTIFIER().text
+        val args = ctx.expr().map { exprTypeCtx(it).default() }
+        val resultType = getSymbolTable().getDecl(fn).resultType
+        val inferredType = getSymbolTable().getImpl(fn).body(args).type()
+
+        if (resultType != inferredType)
+            throw B2Exception.TypeException.InvalidResultType(resultType, inferredType, ctx.position)
+
+        return resultType
+    }
 
     override fun visitBinop(ctx: Basic2Parser.BinopContext): Symbol.Var.Type {
         val left = exprTypeCtx(ctx.expr(0)!!)
@@ -133,10 +143,11 @@ open class B2TypeChecker() : B2() {
             Symbol.Var.Type.TUnit
         }
         is Basic2Parser.BlockContext -> visitBlock(ctx)
-        is Basic2Parser.InputContext -> visitInput(ctx)
         is Basic2Parser.RetContext -> visitRet(ctx)
         is Basic2Parser.BreakContext -> visitBreak(ctx)
         is Basic2Parser.BinopIncrContext -> visitBinopIncr(ctx)
+        is Basic2Parser.Fn_declContext -> visitFn_decl(ctx)
+        is Basic2Parser.Fn_implContext -> visitFn_impl(ctx)
         else -> TODO(ctx.text)
     }
 
@@ -336,6 +347,18 @@ open class B2TypeChecker() : B2() {
 
     override fun visitFn_decl_stmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.Var.Type.TUnit {
         val (_, params, resultType) = B2Stmt.visitFnDeclStmt(ctx)
+        val generics = ctx.generic_type()?.IDENTIFIER()?.map { Symbol.Var.Type.Generic(it.text) } ?: emptyList()
+
+        val unknownTypes = params.map { it.type }
+            .filter { it is Symbol.Var.Type.Generic && !generics.contains(it) }
+            .map { it as Symbol.Var.Type.Generic }
+
+        if (unknownTypes.isNotEmpty())
+            throw B2Exception.TypeException.UnknownGenericTypeException(unknownTypes, ctx.position)
+
+        if (resultType is Symbol.Var.Type.Generic && !generics.contains(resultType))
+            throw B2Exception.TypeException.UnknownGenericTypeException(listOf(resultType), ctx.position)
+
         getSymbolTable().addFnDecl(ctx.IDENTIFIER().text, params.map { it.type }, resultType)
         return Symbol.Var.Type.TUnit
     }
@@ -355,14 +378,17 @@ open class B2TypeChecker() : B2() {
                     throw B2Exception.TypeException.NonMatchingParamTypeException(id, ctx.position)
             }
         }
+
         val body = { args: List<Symbol.Var.Value?> ->
             args.forEachIndexed { i, arg -> arg?.let { argsParams[i].value = it } }
             runFnCall {
                 argsParams.forEach { getSymbolTable().declAssVar(it.id, it.value!!) }
+                val result = stmtTypeCtx(ctx.stmt())
                 argsParams.forEach { getSymbolTable().remVar(it.id) }
-                Symbol.Var.Value.VUnit
+                result.default()
             } as Symbol.Var.Value.VUnit
         }
+
         getSymbolTable().addFnImpl(id, argsParams, body)
         return Symbol.Var.Type.TUnit
     }
@@ -392,7 +418,6 @@ open class B2TypeChecker() : B2() {
     // ========================== TYPING-STATEMENTS ==========================
 
     override fun visitTyping(ctx: Basic2Parser.TypingContext): Symbol.Var.Type = visitType(ctx.type())
-
 
     override fun visitType(ctx: Basic2Parser.TypeContext) = B2Eval.visitType(ctx)
 }

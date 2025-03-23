@@ -1,7 +1,7 @@
 package b2.symbols
 
 import b2.B2Exception
-import b2.symbols.Symbol.Var.Value.VList
+import b2.symbols.Symbol.Var.Value.*
 
 import kotlin.math.pow
 
@@ -25,6 +25,7 @@ sealed class Symbol {
             is Value -> this.format()
             is Variable -> "${this.id} = ${this.value}"
             is ImportItem -> TODO()
+            is Type.Generic -> this.type
         }
         data class ImportItem(val id: String, val type: Symbol, val newName: String? = null) : Var()
         data class Variable(
@@ -39,6 +40,7 @@ sealed class Symbol {
             data object TBool : Type()
             data class Tuple(val fst: Type, val snd: Type) : Type()
             data class TList(val t: Type) : Type()
+            data class Generic(val type: String) : Type()
 
             operator fun plus(right: Type): Type {
                 val left = this
@@ -97,13 +99,14 @@ sealed class Symbol {
             }
 
             fun default(): Value = when (this) {
-                is TBool -> Value.VBoolean(true)
-                is TFloat -> Value.VFloat(0f)
-                is TInt -> Value.VInt(0)
-                is TList -> Value.VList(mutableListOf<Value>(), this)
-                is TStr -> Value.VString("")
-                is TUnit -> Value.VUnit
-                is Tuple -> Value.Tuple(Pair(this.fst.default(), this.snd.default()), this)
+                is TBool -> VBoolean(true)
+                is TFloat -> VFloat(0f)
+                is TInt -> VInt(0)
+                is TList -> VList(mutableListOf<Value>(), this)
+                is TStr -> VString("")
+                is TUnit -> VUnit
+                is Tuple -> Tuple(Pair(this.fst.default(), this.snd.default()), this)
+                is Generic -> VUnit
             }
 
             companion object {
@@ -481,13 +484,15 @@ sealed class Symbol {
     }
     data class Param(val type: Var.Type) : Symbol()
     data class Arg(val id: String, var value: Var.Value?) : Symbol()
-    data class FnDecl(
-        val id: String? = null,
-        val params: List<Param> = emptyList(),
-        val resultType: Var.Type = Var.Type.TUnit
-    ) : Symbol()
-    data class FnImpl(
-        val args: List<Arg> = emptyList(),
-        val body: (args: List<Var.Value?>) -> Var.Value = { Var.Value.VUnit }
-    ) : Symbol()
+    sealed class Fn : Symbol() {
+        data class FnImpl(
+            val args: List<Arg> = emptyList(),
+            val body: (args: List<Var.Value?>) -> Var.Value = { VUnit }
+        ) : Fn()
+        data class FnDecl(
+            val id: String? = null,
+            val params: List<Param> = emptyList(),
+            val resultType: Var.Type = Var.Type.TUnit
+        ) : Fn()
+    }
 }
