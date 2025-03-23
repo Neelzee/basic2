@@ -81,7 +81,7 @@ data class SymbolTable(
     }
 
     fun addFnDecl(id: String, params: List<Symbol.Var.Type>, result: Symbol.Var.Type) {
-        fnDecls[id] = Symbol.FnDecl(params.map { Symbol.Param(it) }, result)
+        fnDecls[id] = Symbol.FnDecl(null, params.map { Symbol.Param(it) }, result)
     }
 
     fun addFnImpl(id: String, args: List<Symbol.Arg>, body: (List<Symbol.Var.Value?>) -> Symbol.Var.Value) {

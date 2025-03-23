@@ -198,7 +198,7 @@ open class B2TypeChecker() : B2() {
         if (exprTypeCtx(ctx.expr()) !is Symbol.Var.Type.TBool) {
             throw B2Exception.TypeException.NotBoolException(ctx.text, ctx.position)
         }
-        visitBlock_stmt(ctx.block_stmt())
+        stmtLst(ctx.stmt())
         Symbol.Var.Type.TUnit
     } as Symbol.Var.Type
 
@@ -213,8 +213,8 @@ open class B2TypeChecker() : B2() {
     override fun visitIf_else_stmt_block(ctx: Basic2Parser.If_else_stmt_blockContext) = runScope {
         if (exprTypeCtx(ctx.expr()) !is Symbol.Var.Type.TBool)
             throw B2Exception.TypeException.NotBoolException(ctx.text, ctx.position)
-        ctx.block_stmt(0)?.let { visitBlock_stmt(it) }
-        ctx.block_stmt(1)?.let { visitBlock_stmt(it) } ?: Symbol.Var.Type.TUnit
+        stmtLst(ctx.ifThenBlock().stmt())
+        stmtLst(ctx.ifElseBlock().stmt())
     }
 
     override fun visitIf_else(ctx: Basic2Parser.If_elseContext) = visitIf_else_stmt(ctx.if_else_stmt())
@@ -314,10 +314,7 @@ open class B2TypeChecker() : B2() {
 
     // =========================== BUILTINS-STATEMENTS =========================
 
-    override fun visitInput(ctx: Basic2Parser.InputContext) = visitInput_stmt(ctx.input_stmt())
-
-    override fun visitInput_stmt(ctx: Basic2Parser.Input_stmtContext): Symbol.Var.Type
-        = ctx.typing()?.let { visitTyping(it) } ?: Symbol.Var.Type.TStr
+    override fun visitInput(ctx: Basic2Parser.InputContext) = Symbol.Var.Type.TStr
 
     override fun visitLen(ctx: Basic2Parser.LenContext) = Symbol.Var.Type.TInt
 
@@ -338,7 +335,8 @@ open class B2TypeChecker() : B2() {
     override fun visitFn_decl(ctx: Basic2Parser.Fn_declContext) = visitFn_decl_stmt(ctx.fn_decl_stmt())
 
     override fun visitFn_decl_stmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.Var.Type.TUnit {
-        B2Stmt.visitFnDeclStmt(ctx, getSymbolTable())
+        val (_, params, resultType) = B2Stmt.visitFnDeclStmt(ctx)
+        getSymbolTable().addFnDecl(ctx.IDENTIFIER().text, params.map { it.type }, resultType)
         return Symbol.Var.Type.TUnit
     }
 

@@ -32,5 +32,6 @@ class B2Visitor(
     }
 
     fun print() = visitor.printSymbolTable()
+    fun printTC() = typeChecker.printSymbolTable()
     fun getSymbolTableEval() = visitor.getSymbolTable()
 }

@@ -8,7 +8,7 @@ open class B2Stmt : B2Eval() {
 
     companion object {
 
-        fun visitFnDeclStmt(ctx: Basic2Parser.Fn_decl_stmtContext, symbolTable: SymbolTable): Symbol.Var.Value.VUnit {
+        fun visitFnDeclStmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.FnDecl {
             val id = ctx.IDENTIFIER().text
             var types = ctx.type().map { visitType(it) }
             val (typeParams, returnType) = if (types.isEmpty()) {
@@ -16,8 +16,11 @@ open class B2Stmt : B2Eval() {
             } else {
                 Pair(types.subList(0, types.size - 1), types[types.size - 1])
             }
-            symbolTable.addFnDecl(id, typeParams, returnType)
-            return Symbol.Var.Value.VUnit
+            return Symbol.FnDecl(
+                id = id,
+                params = typeParams.map { Symbol.Param(it) }.toList(),
+                resultType = returnType,
+            )
         }
 
         fun uniIncr(kind: String): (Symbol.Var.Value) -> Symbol.Var.Value = when (kind) {
@@ -44,15 +47,21 @@ open class B2Stmt : B2Eval() {
         is Basic2Parser.Var_re_assContext -> visitVar_re_ass_stmt(ctx.var_re_ass_stmt())
         is Basic2Parser.Var_assContext -> visitVar_ass(ctx)
         is Basic2Parser.AppendContext -> visitAppend_stmt(ctx.append_stmt())
-        is Basic2Parser.If_blockContext -> visitIf_block(ctx)
         is Basic2Parser.While_blockContext -> visitWhile_block(ctx)
         is Basic2Parser.ArrReAssContext -> visitArr_re_ass_stmt(ctx.arr_re_ass_stmt())
-        is Basic2Parser.IfContext -> visitIf(ctx)
         is Basic2Parser.PrintContext -> visitPrint(ctx)
         is Basic2Parser.BlockContext -> visitBlock(ctx)
         is Basic2Parser.RetContext -> visitRet(ctx)
         is Basic2Parser.BreakContext -> visitBreak(ctx)
         is Basic2Parser.BinopIncrContext -> visitBinopIncr(ctx)
+        is Basic2Parser.If_elifContext -> visitIf_elif(ctx)
+        is Basic2Parser.If_elif_blockContext -> visitIf_elif_block(ctx)
+        is Basic2Parser.If_blockContext -> visitIf_block(ctx)
+        is Basic2Parser.IfContext -> visitIf(ctx)
+        is Basic2Parser.If_elseContext -> visitIf_else(ctx)
+        is Basic2Parser.If_else_blockContext -> visitIf_else_block(ctx)
+        is Basic2Parser.For_rContext -> visitFor_r(ctx)
+        is Basic2Parser.ContinueContext -> visitContinue_stmt(ctx.continue_stmt())
         else -> TODO(ctx.text)
     } as Symbol.Var.Value
 
@@ -105,7 +114,7 @@ open class B2Stmt : B2Eval() {
         val ctx = c.if_stmt_block()
         val pred = exprCtx(ctx.expr()).toBool()
         if (pred) {
-            visitBlock_stmt(ctx.block_stmt())
+            stmtLst(ctx.stmt())
         } else {
             Symbol.Var.Value.VUnit
         }
@@ -127,9 +136,9 @@ open class B2Stmt : B2Eval() {
     override fun visitIf_else_stmt_block(ctx: Basic2Parser.If_else_stmt_blockContext) = runScope {
         val pred = exprCtx(ctx.expr()).toBool()
         if (pred) {
-            ctx.block_stmt(0)?.let { visitBlock_stmt(it) }
+            stmtLst(ctx.ifThenBlock().stmt())
         } else {
-            ctx.block_stmt(1)?.let { visitBlock_stmt(it) }
+            stmtLst(ctx.ifElseBlock().stmt())
         } ?: Symbol.Var.Value.VUnit
     }
 
@@ -372,7 +381,11 @@ open class B2Stmt : B2Eval() {
 
     override fun visitFn_decl(ctx: Basic2Parser.Fn_declContext) = visitFn_decl_stmt(ctx.fn_decl_stmt())
 
-    override fun visitFn_decl_stmt(ctx: Basic2Parser.Fn_decl_stmtContext) = visitFnDeclStmt(ctx, getSymbolTable())
+    override fun visitFn_decl_stmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.Var.Value.VUnit {
+        val (_, params, resultType) = visitFnDeclStmt(ctx)
+        getSymbolTable().addFnDecl(ctx.IDENTIFIER().text, params.map { it.type }, resultType)
+        return Symbol.Var.Value.VUnit
+    }
 
     override fun visitFn_impl(ctx: Basic2Parser.Fn_implContext) = visitFn_impl_stmt(ctx.fn_impl_stmt())
 

@@ -105,6 +105,8 @@ open class B2Eval : B2() {
             "-" -> left - right
             "*" -> left * right
             "%" -> left % right
+            "&&" -> left.and(right)
+            "||" -> left.or(right)
             else -> TODO("Missing operator: ${ctx.bin_op().text}")
         }
     }
@@ -138,6 +140,8 @@ open class B2Eval : B2() {
         is Basic2Parser.GroupContext -> visitGroup(ctx)
         is Basic2Parser.BinopCompContext -> visitBinopComp(ctx)
         is Basic2Parser.CastContext -> visitCast(ctx)
+        is Basic2Parser.InputContext -> visitInput(ctx)
+        is Basic2Parser.LenContext -> visitLen(ctx)
         else -> TODO("Not implemented for: ${ctx.text}")
     }
 

@@ -61,13 +61,13 @@ open class B2Use : B2Stmt() {
                     getSymbolTable().addFnImpl(newId(it.id), args, body)
                 }
                 is Symbol.FnDecl -> {
-                    val (params, result) = moduleSymbolTable.getDecl(it.id)
+                    val (_, params, result) = moduleSymbolTable.getDecl(it.id)
                     getSymbolTable().addFnDecl(newId(it.id), params.map { t -> t.type }, result)
                 }
                 is Symbol.Var.Value.VUnit -> {
                     val (args, body) = moduleSymbolTable.getImpl(it.id)
                     getSymbolTable().addFnImpl(newId(it.id), args, body)
-                    val (params, result) = moduleSymbolTable.getDecl(it.id)
+                    val (_, params, result) = moduleSymbolTable.getDecl(it.id)
                     getSymbolTable().addFnDecl(newId(it.id), params.map { t -> t.type }, result)
                 }
                 is Symbol.Var.Variable -> {

@@ -74,9 +74,10 @@ fun main() = if (TESTING) {
 
 
 fun testing() {
-    val visitor = B2Visitor(path = Paths.get("src/main/resources/Imports"))
+    val visitor = B2Visitor(path = Paths.get("src/main/resources/InventorySystem"))
     visitor.typeCheck()
     visitor.eval()
+    visitor.print()
 }
 
 fun inter() {

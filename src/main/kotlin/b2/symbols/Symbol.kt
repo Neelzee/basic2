@@ -315,7 +315,7 @@ sealed class Symbol {
                         val pair = Pair(ll.or(rl), lr.or(rr))
                         Tuple(pair, Type.Tuple(Type.Companion.infer(pair.first), Type.Companion.infer(pair.second)))
                     }
-                    else -> throw RuntimeException("Illegal operation, cannot add $this and $b")
+                    else -> throw RuntimeException("Illegal operation, cannot || $this and $b")
                 }
             }
 
@@ -389,6 +389,9 @@ sealed class Symbol {
                 is VList if (ind.value >= this.value.size || ind.value < 0) ->
                     throw RuntimeException("OutOfBoundsException: ${ind.value} on $this")
                 is VList -> this.value[ind.value]
+                is VString if (ind.value >= this.value.length || ind.value < 0) ->
+                    throw RuntimeException("OutOfBoundsException: ${ind.value} on $this")
+                is VString -> Value.VString(this.value[ind.value].toString())
                 is Tuple if (ind.value == 0) -> this.value.first
                 is Tuple if (ind.value == 1) -> this.value.second
                 is Tuple ->
@@ -404,7 +407,10 @@ sealed class Symbol {
                         "Illegal operation, element $newVar is of type ${newVar.type()}" +
                                 ", while the array is of type: ${this.type}"
                     )
-                is VList -> this.value[ind.value]
+                is VList -> {
+                    this.value[ind.value] = newVar
+                    this
+                }
                 is VString if (ind.value >= this.value.length || ind.value < 0) ->
                     throw RuntimeException("OutOfBoundsException: ${ind.value} on $this")
                 is VString if (newVar.type() !is Type.TStr) ->
@@ -459,6 +465,7 @@ sealed class Symbol {
 
                 fun withType(v: Value, t: Type): Value = when {
                     v is VInt && t is Type.TFloat -> VFloat(v.value.toFloat())
+                    v is VInt && t is Type.TStr -> VString(v.value.toString())
                     v is VFloat && t is Type.TInt -> VInt(v.value.toInt())
                     v is VString && t is Type.TInt -> VInt(v.value.toInt())
                     v is VString && t is Type.TFloat -> VFloat(v.value.toFloat())
@@ -475,6 +482,7 @@ sealed class Symbol {
     data class Param(val type: Var.Type) : Symbol()
     data class Arg(val id: String, var value: Var.Value?) : Symbol()
     data class FnDecl(
+        val id: String? = null,
         val params: List<Param> = emptyList(),
         val resultType: Var.Type = Var.Type.TUnit
     ) : Symbol()
