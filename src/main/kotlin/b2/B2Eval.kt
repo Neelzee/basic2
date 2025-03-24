@@ -22,7 +22,7 @@ open class B2Eval : B2() {
             } else if (ctx.TUPLE_STRT() != null) {
                 Symbol.Var.Type.Tuple(visitType(ctx.type(0)!!), visitType(ctx.type(1)!!))
             } else {
-                Symbol.Var.Type.Generic(ctx.IDENTIFIER()?.text!!)
+                throw IllegalStateException("Invalid type")
             }
         }
     }

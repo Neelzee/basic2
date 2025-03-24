@@ -25,7 +25,6 @@ sealed class Symbol {
             is Value -> this.format()
             is Variable -> "${this.id} = ${this.value}"
             is ImportItem -> TODO()
-            is Type.Generic -> this.type
         }
         data class ImportItem(val id: String, val type: Symbol, val newName: String? = null) : Var()
         data class Variable(
@@ -40,7 +39,6 @@ sealed class Symbol {
             data object TBool : Type()
             data class Tuple(val fst: Type, val snd: Type) : Type()
             data class TList(val t: Type) : Type()
-            data class Generic(val type: String) : Type()
 
             operator fun plus(right: Type): Type {
                 val left = this
@@ -106,7 +104,6 @@ sealed class Symbol {
                 is TStr -> VString("")
                 is TUnit -> VUnit
                 is Tuple -> Tuple(Pair(this.fst.default(), this.snd.default()), this)
-                is Generic -> VUnit
             }
 
             companion object {

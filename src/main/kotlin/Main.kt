@@ -74,7 +74,7 @@ fun main() = if (TESTING) {
 
 
 fun testing() {
-    val visitor = B2Visitor(path = Paths.get("src/main/resources/GenericType"))
+    val visitor = B2Visitor(path = Paths.get("src/main/resources/Scope"))
     visitor.typeCheck()
     visitor.eval()
     visitor.print()

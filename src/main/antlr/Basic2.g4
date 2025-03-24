@@ -68,10 +68,8 @@ var_re_ass_stmt : IDENTIFIER ASS_KW expr END_STMT_KW;
 typing : ':' type;
 block_stmt : BLOCK_STRT stmt* END_KW;
 fn_decl_stmt
-  : FUNCTION_DECL generic_type? IDENTIFIER TUPLE_STRT type? (SEP type)* SEP? TUPLE_END (':' type)? END_STMT_KW
+  : FUNCTION_DECL IDENTIFIER TUPLE_STRT type? (SEP type)* SEP? TUPLE_END (':' type)? END_STMT_KW
   ;
-
-generic_type : GEN_TYPE_STRT IDENTIFIER (SEP IDENTIFIER)* SEP? GEN_TYPE_END ;
 
 fn_impl_stmt
   : FUNCTION_IMPL IDENTIFIER TUPLE_STRT fn_param? (SEP fn_param)* SEP? TUPLE_END stmt
@@ -159,7 +157,6 @@ type
   : PRIM_TYPES
   | ARRAY_STRT type ARRAY_END
   | TUPLE_STRT type SEP type TUPLE_END
-  | IDENTIFIER
   ;
 
 iterable

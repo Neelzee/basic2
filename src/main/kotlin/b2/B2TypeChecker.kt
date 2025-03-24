@@ -347,18 +347,6 @@ open class B2TypeChecker() : B2() {
 
     override fun visitFn_decl_stmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.Var.Type.TUnit {
         val (_, params, resultType) = B2Stmt.visitFnDeclStmt(ctx)
-        val generics = ctx.generic_type()?.IDENTIFIER()?.map { Symbol.Var.Type.Generic(it.text) } ?: emptyList()
-
-        val unknownTypes = params.map { it.type }
-            .filter { it is Symbol.Var.Type.Generic && !generics.contains(it) }
-            .map { it as Symbol.Var.Type.Generic }
-
-        if (unknownTypes.isNotEmpty())
-            throw B2Exception.TypeException.UnknownGenericTypeException(unknownTypes, ctx.position)
-
-        if (resultType is Symbol.Var.Type.Generic && !generics.contains(resultType))
-            throw B2Exception.TypeException.UnknownGenericTypeException(listOf(resultType), ctx.position)
-
         getSymbolTable().addFnDecl(ctx.IDENTIFIER().text, params.map { it.type }, resultType)
         return Symbol.Var.Type.TUnit
     }
