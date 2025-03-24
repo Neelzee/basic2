@@ -1,4 +1,4 @@
-package b2
+package b2.interpreter
 
 import b2.symbols.Symbol
 import org.antlr.v4.kotlinruntime.ast.Position

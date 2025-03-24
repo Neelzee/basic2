@@ -1,11 +1,5 @@
-import b2.B2Exception
-import b2.B2TypeChecker
 import b2.B2Visitor
 import b2.symbols.Symbol
-import no.nilsmf.antlr.Basic2Lexer
-import no.nilsmf.antlr.Basic2Parser
-import org.antlr.v4.kotlinruntime.CharStreams
-import org.antlr.v4.kotlinruntime.CommonTokenStream
 import java.io.ByteArrayInputStream
 import java.nio.file.Paths
 import kotlin.test.Test
@@ -14,7 +8,7 @@ import kotlin.test.assertEquals
 class B2VisitorTest {
     @Test
     fun `Hello World Test`() {
-        val visitor = B2Visitor(path = Paths.get("src/main/resources/HelloWorld"))
+        val visitor = B2Visitor(path = Paths.get("compiler-frontend/src/main/resources/HelloWorld"))
         visitor.eval()
     }
 
@@ -24,13 +18,13 @@ class B2VisitorTest {
         val input = "1\n2\n10\n100\n3123\nQ"
 
         System.setIn(ByteArrayInputStream(input.toByteArray()))
-        B2Visitor(path = Paths.get("src/main/resources/FizzBuzz")).eval()
+        B2Visitor(path = Paths.get("compiler-frontend/src/main/resources/FizzBuzz")).eval()
     }
 
 
     @Test
     fun `Scope Test`() {
-        val visitor = B2Visitor(path = Paths.get("src/main/resources/Scope"))
+        val visitor = B2Visitor(path = Paths.get("compiler-frontend/src/main/resources/Scope"))
 
         visitor.eval()
 
@@ -43,7 +37,7 @@ class B2VisitorTest {
 
     @Test
     fun `Reassign Variable Test`() {
-        val visitor = B2Visitor(path = Paths.get("src/main/resources/ReassignVariable"))
+        val visitor = B2Visitor(path = Paths.get("compiler-frontend/src/main/resources/ReassignVariable"))
 
         visitor.eval()
 

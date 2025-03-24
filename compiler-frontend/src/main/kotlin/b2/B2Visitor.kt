@@ -1,5 +1,7 @@
 package b2
 
+import b2.interpreter.B2Use
+import b2.typechecker.B2TypeChecker
 import no.nilsmf.antlr.Basic2Lexer
 import no.nilsmf.antlr.Basic2Parser
 import org.antlr.v4.kotlinruntime.CharStreams

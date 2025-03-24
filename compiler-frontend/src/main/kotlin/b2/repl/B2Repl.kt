@@ -1,13 +1,9 @@
-package b2.interpreter
+package b2.repl
 
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
 import b2.B2Visitor
-import no.nilsmf.antlr.Basic2Lexer
-import no.nilsmf.antlr.Basic2Parser
-import org.antlr.v4.kotlinruntime.CharStreams
-import org.antlr.v4.kotlinruntime.CommonTokenStream
 
 sealed class Cmd {
     data object Help : Cmd()

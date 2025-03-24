@@ -1,6 +1,6 @@
 package b2.symbols
 
-import b2.B2Exception
+import b2.interpreter.B2Exception
 import b2.symbols.Symbol.Var.Value.*
 
 import kotlin.math.pow

@@ -1,5 +1,9 @@
-package b2
+package b2.typechecker
 
+import b2.interpreter.B2
+import b2.interpreter.B2Eval
+import b2.interpreter.B2Exception
+import b2.interpreter.B2Stmt
 import b2.symbols.Symbol
 import no.nilsmf.antlr.Basic2Parser
 
@@ -277,7 +281,7 @@ open class B2TypeChecker() : B2() {
         val startValue = exprTypeCtx(ctx.expr(0)!!).default()
         getSymbolTable().declAssVar(startId, startValue)
         val compID = ctx.IDENTIFIER(0)!!.text
-        val op = B2Eval.getCompOp(ctx.comp().text)
+        val op = B2Eval.Companion.getCompOp(ctx.comp().text)
         val compValue = exprTypeCtx(ctx.expr(1)!!)
         val compOp = {
             val left = getSymbolTable().getVar(compID)
@@ -286,13 +290,13 @@ open class B2TypeChecker() : B2() {
         val incrId = ctx.IDENTIFIER(0)!!.text
         val incrOp = {
             ctx.incr()?.let {
-                val iOp = B2Stmt.binIncr(it.text)
+                val iOp = B2Stmt.Companion.binIncr(it.text)
                 val old = getSymbolTable().getVar(incrId)
                 val incr = exprTypeCtx(ctx.expr(2)!!).default()
                 val newValue = iOp(old, incr)
                 getSymbolTable().reAssVar(incrId, newValue)
             } ?: ctx.incr_uni()?.let {
-                val iOp = B2Stmt.uniIncr(it.text)
+                val iOp = B2Stmt.Companion.uniIncr(it.text)
                 getSymbolTable().reAssVar(incrId, iOp(getSymbolTable().getVar(incrId)))
             }!!
         }
@@ -346,7 +350,7 @@ open class B2TypeChecker() : B2() {
     override fun visitFn_decl(ctx: Basic2Parser.Fn_declContext) = visitFn_decl_stmt(ctx.fn_decl_stmt())
 
     override fun visitFn_decl_stmt(ctx: Basic2Parser.Fn_decl_stmtContext): Symbol.Var.Type.TUnit {
-        val (_, params, resultType) = B2Stmt.visitFnDeclStmt(ctx)
+        val (_, params, resultType) = B2Stmt.Companion.visitFnDeclStmt(ctx)
         getSymbolTable().addFnDecl(ctx.IDENTIFIER().text, params.map { it.type }, resultType)
         return Symbol.Var.Type.TUnit
     }
@@ -398,7 +402,7 @@ open class B2TypeChecker() : B2() {
         val id = ctx.IDENTIFIER().text
         var v = getSymbolTable().getVar(id)
         val i = exprTypeCtx(ctx.expr()).default()
-        val newValue = B2Stmt.binIncr(ctx.incr().text)(v, i)
+        val newValue = B2Stmt.Companion.binIncr(ctx.incr().text)(v, i)
         getSymbolTable().reAssVar(id, newValue)
         return Symbol.Var.Type.TUnit
     }
@@ -407,5 +411,5 @@ open class B2TypeChecker() : B2() {
 
     override fun visitTyping(ctx: Basic2Parser.TypingContext): Symbol.Var.Type = visitType(ctx.type())
 
-    override fun visitType(ctx: Basic2Parser.TypeContext) = B2Eval.visitType(ctx)
+    override fun visitType(ctx: Basic2Parser.TypeContext) = B2Eval.Companion.visitType(ctx)
 }

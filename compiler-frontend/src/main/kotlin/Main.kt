@@ -1,5 +1,5 @@
 import b2.B2Visitor
-import b2.interpreter.B2Interpreter
+import b2.repl.B2Interpreter
 import java.nio.file.Paths
 
 val while_test = """
@@ -74,7 +74,7 @@ fun main() = if (TESTING) {
 
 
 fun testing() {
-    val visitor = B2Visitor(path = Paths.get("src/main/resources/Scope"))
+    val visitor = B2Visitor(path = Paths.get("compiler-frontend/src/main/resources/Scope"))
     visitor.typeCheck()
     visitor.eval()
     visitor.print()

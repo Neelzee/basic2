@@ -1,5 +1,5 @@
-import b2.B2Exception
-import b2.B2TypeChecker
+import b2.interpreter.B2Exception
+import b2.typechecker.B2TypeChecker
 import no.nilsmf.antlr.Basic2Lexer
 import no.nilsmf.antlr.Basic2Parser
 import org.antlr.v4.kotlinruntime.CharStreams
@@ -11,7 +11,7 @@ import java.nio.file.Paths
 class B2TypeCheckerTest {
     @Test
     fun `Hello World Test`() {
-        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/HelloWorld")))
+        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("compiler-frontend/src/main/resources/HelloWorld")))
         val tokens = CommonTokenStream(lexer)
         val parser = Basic2Parser(tokens)
 
@@ -29,7 +29,7 @@ class B2TypeCheckerTest {
 
         System.setIn(ByteArrayInputStream(input.toByteArray()))
 
-        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/FizzBuzz")))
+        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("compiler-frontend/src/main/resources/FizzBuzz")))
         val tokens = CommonTokenStream(lexer)
         val parser = Basic2Parser(tokens)
 
@@ -43,7 +43,7 @@ class B2TypeCheckerTest {
 
     @Test
     fun `Scope Test`() {
-        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/Scope")))
+        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("compiler-frontend/src/main/resources/Scope")))
         val tokens = CommonTokenStream(lexer)
         val parser = Basic2Parser(tokens)
 
@@ -56,7 +56,7 @@ class B2TypeCheckerTest {
 
     @Test
     fun `Reassign Variable Test`() {
-        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("src/main/resources/ReassignVariable")))
+        val lexer = Basic2Lexer(CharStreams.fromPath(Paths.get("compiler-frontend/src/main/resources/ReassignVariable")))
         val tokens = CommonTokenStream(lexer)
         val parser = Basic2Parser(tokens)
 

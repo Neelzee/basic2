@@ -1,11 +1,11 @@
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm")
     id("antlr")
-    id("com.strumenta.antlr-kotlin") version "1.0.2"
+    id("com.strumenta.antlr-kotlin")
 }
 
-group = "com.example"
-version = "1.0.2"
+group = "no.nilsmf.compiler-frontend"
+version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -18,8 +18,6 @@ dependencies {
     implementation("io.arrow-kt:arrow-fx-coroutines:2.0.1")
     testImplementation(kotlin("test"))
 }
-
-sourceSets["main"].kotlin.srcDir("build/generated-src/")
 
 tasks.register<com.strumenta.antlrkotlin.gradle.AntlrKotlinTask>("generateKotlinGrammarSource") {
     packageName = "no.nilsmf.antlr"
@@ -43,6 +41,8 @@ tasks.named("compileKotlin") {
 tasks.named("compileTestKotlin") {
     dependsOn(tasks.named("generateKotlinGrammarSource"), tasks.named("generateTestGrammarSource"))
 }
+
+sourceSets["main"].kotlin.srcDir("build/generated-src/")
 
 kotlin {
     compilerOptions {

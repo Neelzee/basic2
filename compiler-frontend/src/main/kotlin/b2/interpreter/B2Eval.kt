@@ -1,7 +1,6 @@
-package b2
+package b2.interpreter
 
 import b2.symbols.Symbol
-import no.nilsmf.antlr.Basic2BaseVisitor
 import no.nilsmf.antlr.Basic2Parser
 import org.antlr.v4.kotlinruntime.tree.TerminalNode
 import kotlin.text.trim

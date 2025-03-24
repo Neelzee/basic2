@@ -1,4 +1,4 @@
-package b2
+package b2.interpreter
 
 import b2.symbols.Symbol
 import no.nilsmf.antlr.Basic2Parser
