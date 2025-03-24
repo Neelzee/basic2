@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     id("antlr")
     id("com.strumenta.antlr-kotlin")
+    kotlin("plugin.serialization")
 }
 
 group = "no.nilsmf.compiler-frontend"
@@ -16,6 +17,7 @@ dependencies {
     implementation("com.strumenta:antlr-kotlin-runtime:1.0.0")
     implementation("io.arrow-kt:arrow-core:2.0.1")
     implementation("io.arrow-kt:arrow-fx-coroutines:2.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     testImplementation(kotlin("test"))
 }
 

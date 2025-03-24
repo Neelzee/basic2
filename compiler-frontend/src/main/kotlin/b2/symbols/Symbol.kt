@@ -2,6 +2,7 @@ package b2.symbols
 
 import b2.interpreter.B2Exception
 import b2.symbols.Symbol.Var.Value.*
+import kotlinx.serialization.Serializable
 
 import kotlin.math.pow
 
@@ -26,18 +27,30 @@ sealed class Symbol {
             is Variable -> "${this.id} = ${this.value}"
             is ImportItem -> TODO()
         }
+
         data class ImportItem(val id: String, val type: Symbol, val newName: String? = null) : Var()
+
+        @Serializable
         data class Variable(
             val id: String = "",
-            val value: Value = Value.VUnit
+            val value: Value = VUnit
         ) : Var()
+
+        @Serializable
         sealed class Type : Var() {
+            @Serializable
             data object TUnit : Type()
+            @Serializable
             data object TInt : Type()
+            @Serializable
             data object TFloat : Type()
+            @Serializable
             data object TStr : Type()
+            @Serializable
             data object TBool : Type()
+            @Serializable
             data class Tuple(val fst: Type, val snd: Type) : Type()
+            @Serializable
             data class TList(val t: Type) : Type()
 
             operator fun plus(right: Type): Type {
@@ -136,14 +149,24 @@ sealed class Symbol {
                 }
             }
         }
+
+        @Serializable
         sealed class Value : Var() {
+            @Serializable
             data object VUnit : Value()
+            @Serializable
             data class VNull(val type: Type) : Value()
+            @Serializable
             data class VInt(val value: Int) : Value()
+            @Serializable
             data class VFloat(val value: Float) : Value()
+            @Serializable
             data class VString(var value: String) : Value()
+            @Serializable
             data class VBoolean(val value: Boolean) : Value()
+            @Serializable
             data class Tuple(val value: Pair<Value, Value>, val type: Type.Tuple) : Value()
+            @Serializable
             data class VList(val value: MutableList<Value>, val type: Type.TList) : Value()
 
             fun type(): Type = when (this) {
