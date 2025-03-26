@@ -1,13 +1,13 @@
 package b2.typechecker
 
-import b2.interpreter.B2
+import b2.interpreter.B2Interpreter
 import b2.interpreter.B2Eval
 import b2.interpreter.B2Exception
 import b2.interpreter.B2Stmt
 import b2.symbols.Symbol
 import no.nilsmf.antlr.Basic2Parser
 
-open class B2TypeChecker() : B2() {
+open class B2TypeChecker() : B2Interpreter() {
 
     override fun defaultResult() = Symbol.Var.Type.TUnit
 

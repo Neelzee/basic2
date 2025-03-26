@@ -1,6 +1,5 @@
 package b2.symbols
 
-import b2.interpreter.B2Exception
 import b2.symbols.Symbol.Var.Value.*
 import kotlinx.serialization.Serializable
 
@@ -35,120 +34,6 @@ sealed class Symbol {
             val id: String = "",
             val value: Value = VUnit
         ) : Var()
-
-        @Serializable
-        sealed class Type : Var() {
-            @Serializable
-            data object TUnit : Type()
-            @Serializable
-            data object TInt : Type()
-            @Serializable
-            data object TFloat : Type()
-            @Serializable
-            data object TStr : Type()
-            @Serializable
-            data object TBool : Type()
-            @Serializable
-            data class Tuple(val fst: Type, val snd: Type) : Type()
-            @Serializable
-            data class TList(val t: Type) : Type()
-
-            operator fun plus(right: Type): Type {
-                val left = this
-                return when {
-                    (right == this) -> this
-                    (left is TFloat && right is TInt) -> TFloat
-                    (left is TInt && right is TFloat) -> TFloat
-                    else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
-                }
-            }
-
-            operator fun minus(right: Type): Type {
-                val left = this
-                return when {
-                    (right == this) -> this
-                    (left is TFloat && right is TInt) -> TFloat
-                    (left is TInt && right is TFloat) -> TFloat
-                    else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
-                }
-            }
-
-            operator fun times(right: Type): Type {
-                val left = this
-                return when {
-                    (right == this) -> if (this is TList || this is Tuple || this is TStr) {
-                        throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
-                    } else {
-                        this
-                    }
-                    (right == this) -> this
-                    (left is TFloat && right is TInt) -> TFloat
-                    (left is TInt && right is TFloat) -> TFloat
-                    (left is TStr && right is TInt) -> TStr
-                    (left is TInt && right is TStr) -> TStr
-                    else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
-                }
-            }
-
-            operator fun rem(right: Type): Type {
-                val left = this
-                return when {
-                    (right == this) -> if (this is TList || this is Tuple || this is TStr) {
-                        throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
-                    } else {
-                        this
-                    }
-                    (right == this) -> this
-                    else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(left, right))
-                }
-            }
-
-            fun add(value: Type) = when (this) {
-                is TList if (this == TList(value)) -> Unit
-                is TList if (this.t == TUnit) -> Unit
-                else -> throw B2Exception.TypeException.InvalidOperandsException(listOf(value, this))
-            }
-
-            fun default(): Value = when (this) {
-                is TBool -> VBoolean(true)
-                is TFloat -> VFloat(0f)
-                is TInt -> VInt(0)
-                is TList -> VList(mutableListOf<Value>(), this)
-                is TStr -> VString("")
-                is TUnit -> VUnit
-                is Tuple -> Tuple(Pair(this.fst.default(), this.snd.default()), this)
-            }
-
-            companion object {
-                fun infer(v: Any?): Type = when (v) {
-                    is Int -> TInt
-                    is Float -> TFloat
-                    is Boolean -> TBool
-                    is String -> TStr
-                    is MutableList<*> -> TList(infer(v.first()))
-                    is Pair<*, *> -> Tuple(infer(v.first), infer(v.second))
-                    is Value -> v.type()
-                    else -> throw RuntimeException("Unknown type inference: $v")
-                }
-
-                fun from(s: String): Type = when (s.trim()) {
-                    "INT" -> TInt
-                    "FLOAT" -> TFloat
-                    "BOOL" -> TBool
-                    "STR" -> TStr
-                    else -> when {
-                        s.contains('[') ->
-                            TList(from(s.replace("[", "").replace("]", "")))
-                        s.contains('(') -> s.replace("(", "")
-                            .replace(")", "")
-                            .split(",")
-                            .map { it.trim() }
-                            .let { (fst, snd) -> Tuple(from(fst), from(snd)) }
-                        else -> throw RuntimeException("Unknown type: $s")
-                    }
-                }
-            }
-        }
 
         @Serializable
         sealed class Value : Var() {

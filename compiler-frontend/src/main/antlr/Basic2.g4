@@ -9,74 +9,71 @@ program
   ;
 
 stmt
-  : if_else_stmt_block               # if_else_block
-  | if_else_stmt                     # if_else
-  | if_elif_stmt_block               # if_elif_block
-  | if_elif_stmt                     # if_elif
-  | if_stmt_block                    # if_block
-  | if_stmt                          # if
-  | while_stmt                       # while
-  | while_stmt_block                 # while_block
-  | for_range                        # for_r
-  | for_stmt                         # for
-  | return_stmt                      # ret
-  | break_stmt                       # break
-  | continue_stmt                    # continue
-  | print_stmt                       # print
-  | append_stmt                      # append
-  | arr_re_ass_stmt                  # arrReAss
-  | var_decl_stmt                    # var_decl
-  | var_decl_ass_stmt                # var_ass
-  | var_re_ass_stmt                  # var_re_ass
-  | block_stmt                       # block
-  | fn_decl_stmt                     # fn_decl
-  | fn_impl_stmt                     # fn_impl
-  | import_stmt                      # use
-  | expr incr_uni END_STMT_KW        # preIncr
-  | incr_uni expr  END_STMT_KW       # postIncr
+  : ifElseStmtBlock                  # ElseBlock
+  | ifElseStmt                       # ifElse
+  | ifElifStmtBlock                  # elifBlock
+  | ifElifStmt                       # Elif
+  | ifStmtBlock                      # ifBlock
+  | ifStmt                           # if
+  | whileStmt                        # while
+  | whileStmtBlock                   # whileBlock
+  | forRange                         # forR
+  | forStmt                          # for
+  | returnStmt                       # ret
+  | breakStmt                        # brk
+  | continueStmt                     # cont
+  | printStmt                        # prnt
+  | arrReStmt                        # arrReAss
+  | varDeclStmt                      # varDecl
+  | varDeclAssignStmt                # varAs
+  | varReStmt                        # varReAs
+  | blockStmt                        # block
+  | fnDeclStmt                       # decl
+  | fnImplStmt                       # impl
+  | importStmt                       # use
+  | expr incrUni END_STMT_KW         # preIncr
   | IDENTIFIER incr expr END_STMT_KW # binopIncr
   ;
 
-return_stmt : RET_KW expr? END_STMT_KW;
-break_stmt : BREAK_KW END_STMT_KW;
-continue_stmt : CONTINUE_KW END_STMT_KW;
-print_stmt : PRINT_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;
-append_stmt : APPEND_KW TUPLE_STRT expr SEP IDENTIFIER TUPLE_END END_STMT_KW;
-arr_re_ass_stmt : IDENTIFIER ARRAY_STRT expr ARRAY_END ASS_KW expr END_STMT_KW;
-import_stmt
+returnStmt : RET_KW expr? END_STMT_KW;
+breakStmt : BREAK_KW END_STMT_KW;
+continueStmt : CONTINUE_KW END_STMT_KW;
+printStmt : PRINT_KW TUPLE_STRT expr TUPLE_END END_STMT_KW;
+arrReStmt : IDENTIFIER ARRAY_STRT expr ARRAY_END ASS_KW expr END_STMT_KW;
+importStmt
   : IMPORT_KW IDENTIFIER renaming? END_STMT_KW # useAll
   | IMPORT_KW IDENTIFIER
-    ARRAY_STRT import_items renaming?
-      (SEP import_items renaming?) SEP?
+    ARRAY_STRT importItems?
+      (SEP importItems?) SEP?
     ARRAY_END
     END_STMT_KW                                # useSpecific
   ;
 
 renaming : AS_KW IDENTIFIER;
 
-import_items
-  : FUNCTION_DECL IDENTIFIER # fnDecl
-  | FUNCTION_IMPL IDENTIFIER # fnImpl
-  | FUNCTION_KW IDENTIFIER   # fnDeclImpl
-  | IDENTIFIER               # var
+importItems
+  : FUNCTION_DECL IDENTIFIER renaming? # fnDecl
+  | FUNCTION_IMPL IDENTIFIER renaming? # fnImpl
+  | FUNCTION_KW IDENTIFIER renaming?   # fnDeclImpl
+  | IDENTIFIER renaming?               # var
   ;
 
-var_decl_stmt : LET_KW IDENTIFIER typing END_STMT_KW;
-var_decl_ass_stmt : LET_KW IDENTIFIER typing? ASS_KW expr END_STMT_KW;
-var_re_ass_stmt : IDENTIFIER ASS_KW expr END_STMT_KW;
+varDeclStmt : LET_KW IDENTIFIER typing END_STMT_KW;
+varDeclAssignStmt : LET_KW IDENTIFIER typing? ASS_KW expr END_STMT_KW;
+varReStmt : IDENTIFIER ASS_KW expr END_STMT_KW;
 
 typing : ':' type;
-block_stmt : BLOCK_STRT stmt* END_KW;
-fn_decl_stmt
+blockStmt : BLOCK_STRT stmt* END_KW;
+fnDeclStmt
   : FUNCTION_DECL IDENTIFIER TUPLE_STRT type? (SEP type)* SEP? TUPLE_END (':' type)? END_STMT_KW
   ;
 
-fn_impl_stmt
-  : FUNCTION_IMPL IDENTIFIER TUPLE_STRT fn_param? (SEP fn_param)* SEP? TUPLE_END stmt
+fnImplStmt
+  : FUNCTION_IMPL IDENTIFIER TUPLE_STRT fnParam? (SEP fnParam)* SEP? TUPLE_END stmt
   ;
-fn_param : IDENTIFIER (ASS_KW expr)?;
+fnParam : IDENTIFIER (ASS_KW expr)?;
 
-if_elif_stmt
+ifElifStmt
   : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW
       stmt
     (ELIF_KW expr THEN_KW stmt)+
@@ -86,22 +83,22 @@ if_elif_stmt
   ;
 
 
-if_elif_stmt_block
+ifElifStmtBlock
   : IF_KW TUPLE_STRT expr TUPLE_END BLOCK_STRT
     thenBlock+=stmt*
-    (elifBlocks+=elif_stmt_block)+
+    elifStmtBlock+
     ELSE_KW BLOCK_STRT
     elseBlock+=stmt*
     END_KW
   ;
 
-elif_stmt_block
-  : ELIF_KW TUPLE_STRT expr TUPLE_END BLOCK_STRT stmt* #ElifBlockBranch
+elifStmtBlock
+  : ELIF_KW TUPLE_STRT expr TUPLE_END BLOCK_STRT stmt*
   ;
 
-if_else_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt ELSE_KW stmt END_IF_KW;
+ifElseStmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt ELSE_KW stmt END_IF_KW;
 
-if_else_stmt_block : IF_KW TUPLE_STRT expr TUPLE_END
+ifElseStmtBlock : IF_KW TUPLE_STRT expr TUPLE_END
     ifThenBlock
   ELSE_KW
     ifElseBlock;
@@ -110,23 +107,23 @@ ifThenBlock : BLOCK_STRT stmt*;
 
 ifElseBlock : stmt* END_KW;
 
-if_stmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt END_IF_KW;
+ifStmt : IF_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt END_IF_KW;
 
-if_stmt_block : IF_KW TUPLE_STRT expr TUPLE_END BLOCK_STRT stmt* END_KW;
+ifStmtBlock : IF_KW TUPLE_STRT expr TUPLE_END BLOCK_STRT stmt* END_KW;
 
-while_stmt : WHILE_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt END_KW;
-while_stmt_block : WHILE_KW TUPLE_STRT expr TUPLE_END block_stmt;
+whileStmt : WHILE_KW TUPLE_STRT expr TUPLE_END THEN_KW stmt END_KW;
+whileStmtBlock : WHILE_KW TUPLE_STRT expr TUPLE_END blockStmt;
 
-for_stmt
+forStmt
   : FOR_KW TUPLE_STRT
       IDENTIFIER ASS_KW expr END_KW
       IDENTIFIER comp expr END_KW
-      IDENTIFIER ((incr expr) | incr_uni) END_KW
+      IDENTIFIER ((incr expr) | incrUni) END_KW
     TUPLE_END
     THEN_KW stmt END_KW
   ;
 
-for_range : FOR_KW TUPLE_STRT IDENTIFIER 'IN' iterable TUPLE_END THEN_KW stmt END_KW;
+forRange : FOR_KW TUPLE_STRT IDENTIFIER 'IN' iterable TUPLE_END THEN_KW stmt END_KW;
 
 comp
   : '=='
@@ -148,7 +145,7 @@ incr
   | '|='
   ;
 
-incr_uni
+incrUni
   : '++'
   | '--'
   ;
@@ -164,7 +161,7 @@ iterable
   | expr
   ;
 
-bin_op
+binOp
   : '+'
   | '-'
   | '/'
@@ -176,17 +173,17 @@ bin_op
   ;
 
 expr
-  : NUM_LIT                                                             # num
-  | FLOAT_LIT                                                           # float
-  | STR_LIT                                                             # str
-  | BOOL_LIT                                                            # bool
+  : NUM_LIT                                                             # intLit
+  | FLOAT_LIT                                                           # floatLit
+  | STR_LIT                                                             # strLit
+  | BOOL_LIT                                                            # boolLit
   | TUPLE_STRT expr TUPLE_END                                           # group
   | TUPLE_STRT expr SEP expr TUPLE_END                                  # tuple
-  | (ARRAY_STRT expr (SEP expr)* SEP? ARRAY_END | ARRAY_STRT ARRAY_END) # array
+  | ARRAY_STRT expr (SEP expr)* SEP? ARRAY_END                          # arrExpLit
+  | ARRAY_STRT type ';' NUM_LIT ARRAY_END                               # arrLit
   | expr AS_KW type                                                     # cast
-  | expr bin_op expr                                                    # binop
+  | expr binOp expr                                                     # binop
   | expr comp expr                                                      # binopComp
-  | expr '?' expr ':' expr                                              # ternary
   | expr ARRAY_STRT expr ARRAY_END                                      # arrInd
   | TRIM_KW TUPLE_STRT expr TUPLE_END                                   # trim
   | inputExpr                                                           # input

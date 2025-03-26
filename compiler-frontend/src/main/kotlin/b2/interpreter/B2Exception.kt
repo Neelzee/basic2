@@ -1,5 +1,6 @@
 package b2.interpreter
 
+import b2.symbols.B2Ast
 import b2.symbols.Symbol
 import org.antlr.v4.kotlinruntime.ast.Position
 
@@ -63,13 +64,13 @@ sealed class B2Exception : Throwable() {
         private fun readResolve(): Any = ContinueException
     }
 
-    data class ReturnException(val returnValue: Symbol.Var.Value) : B2Exception()
+    data class ReturnException(val returnValue: B2Ast.Expression?) : B2Exception()
     data object BreakException : B2Exception() {
         private fun readResolve(): Any = BreakException
     }
 
-    fun getSymbol() : Symbol.Var.Value = when (this) {
-        is ReturnException -> returnValue
-        else -> Symbol.Var.Value.VUnit
+    fun getSymbol() : B2Ast.Expression = when (this) {
+        is ReturnException -> returnValue ?: B2Ast.Expression.NoOp
+        else -> B2Ast.Expression.NoOp
     }
 }
