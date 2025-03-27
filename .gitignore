@@ -27,3 +27,4 @@ build
 src/main/gen/*
 .kotlin
 *.log
+compiler-frontend/src/main/gen
