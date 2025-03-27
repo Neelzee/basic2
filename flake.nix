@@ -32,6 +32,7 @@
             ncurses
             patchelf
             zlib
+            llvmPackages_latest.llvm
             antlr4
           ];
           shellHook = ''

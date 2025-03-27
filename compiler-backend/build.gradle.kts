@@ -1,5 +1,5 @@
 plugins {
-    kotlin("multiplatform")
+    kotlin("jvm")
 }
 
 group = "no.nilsmf.compiler-backend"
@@ -9,34 +9,7 @@ repositories {
     mavenCentral()
 }
 
-kotlin {
-    val hostOs = System.getProperty("os.name")
-    val isArm64 = System.getProperty("os.arch") == "aarch64"
-    val isMingwX64 = hostOs.startsWith("Windows")
-    val nativeTarget = when {
-        hostOs == "Mac OS X" && isArm64 -> macosArm64("native")
-        hostOs == "Mac OS X" && !isArm64 -> macosX64("native")
-        hostOs == "Linux" && isArm64 -> linuxArm64("native")
-        hostOs == "Linux" && !isArm64 -> linuxX64("native")
-        isMingwX64 -> mingwX64("native")
-        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
-    }
-
-    nativeTarget.apply {
-        binaries {
-            executable {
-                entryPoint = "main"
-            }
-        }
-    }
-
-    sourceSets {
-        nativeMain.dependencies {
-        }
-    }
-}
-
-tasks.withType<Wrapper> {
-    gradleVersion = "8.12"
-    distributionType = Wrapper.DistributionType.BIN
+dependencies {
+    implementation("org.bytedeco:llvm-platform:17.0.6-1.5.10")
+    implementation("org.bytedeco:llvm:17.0.6-1.5.10")
 }
