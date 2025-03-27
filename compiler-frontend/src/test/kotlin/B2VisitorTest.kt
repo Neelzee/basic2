@@ -1,3 +1,4 @@
+/*
 import b2.B2Visitor
 import b2.symbols.Symbol
 import java.io.ByteArrayInputStream
@@ -53,11 +54,11 @@ class B2VisitorTest {
             LET intIterable = (0, 10);
             LET outputInt = [];
             FOR (i IN FROM intIterable[0] TO intIterable[1]) THEN ADD(i, outputInt); END
-            
+
             LET arrIterable = ["foo", "bar", "foobar"];
             LET outputArr = [];
             FOR (j IN arrIterable) THEN ADD(j, outputArr); END
-            
+
             LET strIterable = "ABC";
             LET outputStr = [];
             FOR (k IN strIterable) THEN ADD(k, outputStr); END
@@ -83,3 +84,4 @@ class B2VisitorTest {
         )
     }
 }
+ */

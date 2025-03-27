@@ -1,7 +1,30 @@
 package b2.symbols
 
 import b2.interpreter.B2Exception
+import b2.symbols.B2Ast.Expression.*
+import b2.symbols.B2Ast.Type.*
 import kotlinx.serialization.Serializable
+
+@Serializable
+data class Point(
+    val line: Int,
+    val column: Int,
+) {
+    companion object {
+        fun from(other: org.antlr.v4.kotlinruntime.ast.Point) = Point(other.line, other.column)
+    }
+}
+
+@Serializable
+data class Position(
+    val start: Point,
+    val end: Point,
+) {
+    companion object {
+        fun from(other: org.antlr.v4.kotlinruntime.ast.Position?)
+            = other?.let { Position(Point.from(it.start), Point.from(it.end)) }
+    }
+}
 
 @Serializable
 sealed class B2Ast {
@@ -11,90 +34,169 @@ sealed class B2Ast {
     @Serializable
     sealed class Statement : B2Ast() {
         @Serializable
-        data object NoOp : Statement()
+        data class TypeAlias(val ident: String, val type: Type) : Statement()
         @Serializable
-        data class VarDecl(val ident: String, val type: Type) : Statement()
+        data class NoOp(val position: Position? = null) : Statement()
         @Serializable
-        data class VarAssDecl(val ident: String, val type: Type, val value: Expression) : Statement()
+        data class VarDecl(val ident: String, val type: Type, val position: Position?) : Statement()
         @Serializable
-        data class VarReAssign(val ident: String, val newValue: Expression) : Statement()
+        data class VarAssDecl(
+            val ident: String,
+            val type: Type,
+            val value: Expression,
+            val position: Position?
+        ) : Statement()
         @Serializable
-        data class ArrIndReAssign(val ident: String, val ind: Expression, val newValue: Expression) : Statement()
+        data class VarReAssign(
+            val ident: String,
+            val newValue: Expression,
+            val position: Position?
+        ) : Statement()
         @Serializable
-        data class ImportSpecific(val moduleIdent: String, val imports: List<Pair<ImportItem, String?>>) : Statement()
+        data class ArrIndReAssign(
+            val ident: String,
+            val ind: Expression,
+            val newValue: Expression,
+            val position: Position?
+        ) : Statement()
         @Serializable
-        data class Import(val moduleIdent: String, val rename: String?) : Statement()
+        data class Unpack(
+            val idents: Array<String>,
+            val expr: Expression,
+            val position: Position?
+        ) : Statement() {
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (javaClass != other?.javaClass) return false
+
+                other as Unpack
+
+                return idents.contentEquals(other.idents)
+            }
+
+            override fun hashCode(): Int {
+                return idents.contentHashCode()
+            }
+        }
+
+        @Serializable
+        data class ImportSpecific(
+            val moduleIdent: String,
+            val imports: List<Pair<ImportItem, String?>>,
+            val position: Position?
+            ) : Statement()
+        @Serializable
+        data class Import(
+            val moduleIdent: String,
+            val rename: String?,
+            val position: Position?
+            ) : Statement()
         @Serializable
         sealed class ImportItem() : B2Ast() {
             @Serializable
-            data class Var(val value: String) : ImportItem()
+            data class Var(val value: String, val position: Position?) : ImportItem()
             @Serializable
-            data class FnDecl(val ident: String) : ImportItem()
+            data class FnDecl(val ident: String, val position: Position?) : ImportItem()
             @Serializable
-            data class FnImpl(val ident: String) : ImportItem()
+            data class FnImpl(val ident: String, val position: Position?) : ImportItem()
             @Serializable
-            data class FnDeclImpl(val ident: String) : ImportItem()
+            data class FnDeclImpl(val ident: String, val position: Position?) : ImportItem()
         }
         @Serializable
-        data class FnDecl(val ident: String, val params: List<Type>, val resultType: Type) : Statement()
+        data class FnDecl(
+            val ident: String,
+            val params: List<Type>,
+            val resultType: Type,
+            val position: Position?
+        ) : Statement()
         @Serializable
         data class FnImpl(
             val ident: String,
             val args: List<Pair<String, Expression?>>,
+            val body: List<Statement>,
+            val position: Position?
         ) : Statement()
         @Serializable
         data class If(
             val condition: Expression,
             val thenBranch: List<Statement>,
             val elif: List<Pair<Expression, List<Statement>>> = listOf(),
-            val elseBranch: List<Statement> = listOf()
+            val elseBranch: List<Statement> = listOf(),
+            val position: Position?
         ) : Statement()
         @Serializable
         data class While(
             val condition: Expression,
-            val body: List<Statement>
+            val body: List<Statement>,
+            val position: Position?,
         ) : Statement()
         @Serializable
-        data object Continue : Statement();
+        data class Continue(val position: Position?) : Statement();
         @Serializable
-        data object Break : Statement();
+        data class Break(val position: Position?) : Statement();
         @Serializable
-        data class Return(val value: Expression?) : Statement();
+        data class Return(val value: Expression?, val position: Position?) : Statement();
         @Serializable
         data class ForIter(
-            val ident: Expression.Var,
+            val ident: String,
             val iter: Expression,
             val body: List<Statement>,
+            val position: Position?
         ) : Statement()
         @Serializable
         data class For(
-            val i: Expression.Var,
+            val i: String,
             val init: Expression,
             val cond: Expression,
+            val h: String,
             val incr: Expression,
             val body: List<Statement>,
+            val position: Position?,
         ) : Statement()
         @Serializable
-        data class Print(val expr: Expression?) : Statement()
+        data class Print(val expr: Expression?, val position: Position?) : Statement()
         @Serializable
-        data class Block(val body: List<Statement>) : Statement()
+        data class Block(val body: List<Statement>, val position: Position?) : Statement()
+        @Serializable
+        data class Expr(val expr: Expression, val position: Position?) : Statement()
     }
     @Serializable
     sealed class Expression : B2Ast() {
         @Serializable
-        data object NoOp : Expression()
+        data class NoOp(val position: Position? = null) : Expression()
         @Serializable
-        data class Var(val ident: String) : Expression()
+        data class Var(val ident: String, val position: Position?) : Expression()
         @Serializable
-        data class Str(val value: String) : Expression()
+        data class Str(val value: String, val position: Position?) : Expression() {
+            companion object {
+                fun default() = Str("", null)
+            }
+        }
         @Serializable
-        data class Int(val value: kotlin.Int) : Expression()
+        data class Int(val value: kotlin.Int, val position: Position?) : Expression() {
+            companion object {
+                fun default() = Int(0, null)
+            }
+        }
         @Serializable
-        data class Bol(val value: Boolean) : Expression()
+        data class Bol(val value: Boolean, val position: Position?) : Expression() {
+            companion object {
+                fun default() = Bol(true, null)
+            }
+        }
         @Serializable
-        data class Flt(val value: Float) : Expression()
+        data class Flt(val value: Float, val position: Position?) : Expression() {
+            companion object {
+                fun default() = Flt(0f, null)
+            }
+        }
         @Serializable
-        data class Arr(val value: Array<Expression>, val elementType: Type, val size: kotlin.Int) : Expression() {
+        data class Arr(
+            val value: Array<Expression>,
+            val elementType: Type,
+            val size: kotlin.Int,
+            val position: Position?
+        ) : Expression() {
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
                 if (javaClass != other?.javaClass) return false
@@ -114,33 +216,42 @@ sealed class B2Ast {
                 result = 31 * result + elementType.hashCode()
                 return result
             }
+
+            companion object {
+                fun default() = Arr(emptyArray(), Type.Int, 0, null)
+            }
         }
         @Serializable
-        data class Group(val value: Expression) : Expression()
+        data class Group(val value: Expression, val position: Position?) : Expression()
         @Serializable
-        data class Tup(val fst: Expression, val snd: Expression) : Expression()
+        data class Tup(val fst: Expression, val snd: Expression, val position: Position?) : Expression()
         @Serializable
-        data class FnCall(val ident: String, val args: List<Expression>) : Expression()
+        data class FnCall(val ident: String, val args: List<Expression>, val position: Position?) : Expression()
         @Serializable
-        data class BinOp(val left: Expression, val operator: Operator.Bi, val right: Expression) : Expression()
+        data class BinOp(
+            val left: Expression,
+            val operator: Operator.Bi,
+            val right: Expression,
+            val position: Position?
+        ) : Expression()
         @Serializable
-        data class ArrInd(val arr: Expression, val ind: Expression) : Expression()
+        data class ArrInd(val arr: Expression, val ind: Expression, val position: Position?) : Expression()
         @Serializable
-        data class UniOp(val value: Expression, val operator: Operator.Uni) : Expression()
+        data class UniOp(
+            val value: Expression,
+            val operator: Operator.Uni,
+            val position: Position?
+        ) : Expression()
         @Serializable
-        data class Cast(val expr: Expression, val type: Type) : Expression()
+        data class Cast(val expr: Expression, val type: Type, val position: Position?) : Expression()
         @Serializable
-        data class Input(val prompt: Expression?) : Expression()
+        data class Input(val prompt: Expression?, val position: Position?) : Expression()
         @Serializable
-        data class Trim(val value: Str) : Expression()
+        data class Trim(val value: Str, val position: Position?) : Expression()
         @Serializable
-        data class Len(val value: Expression) : Expression()
+        data class Len(val value: Expression, val position: Position?) : Expression()
 
         fun from(s: String): Expression = TODO()
-
-        fun toBool(): Boolean {
-            TODO("Not yet implemented")
-        }
 
         fun value(): Any {
             TODO("Not yet implemented")
@@ -153,7 +264,7 @@ sealed class B2Ast {
             is Flt -> Type.Float
             is FnCall -> Type.Unit
             is Int -> Type.Int
-            is Arr -> Type.Lst(this.elementType)
+            is Arr -> Lst(this.elementType)
             is NoOp -> Type.Unit
             is Str -> Type.Str
             is Tup -> Type.Tup(this.fst.type(), this.snd.type())
@@ -163,6 +274,7 @@ sealed class B2Ast {
             is Input -> TODO()
             is Len -> TODO()
             is Trim -> TODO()
+            is Group -> TODO()
         }
     }
 
@@ -225,6 +337,8 @@ sealed class B2Ast {
         data class Tup(val fst: Type, val snd: Type) : Type()
         @Serializable
         data class Lst(val elementType: Type) : Type()
+        @Serializable
+        data class TypeAlias(val ident: String) : Type()
 
         operator fun plus(right: Type): Type {
             val left = this
@@ -283,13 +397,13 @@ sealed class B2Ast {
         }
 
         fun default(): Expression = when (this) {
-            is Bool -> Expression.Bol(true)
-            is Float -> Expression.Flt(0f)
-            is Int -> Expression.Int(0)
-            is Lst -> Expression.Arr(emptyArray(), this.elementType, 0)
-            is Str -> Expression.Str("")
-            is Unit -> Expression.NoOp
-            is Tup -> Expression.Tup(this.fst.default(), this.snd.default())
+            is Bool -> Bol(true, null)
+            is Float -> Flt(0f, null)
+            is Int -> Expression.Int(0, null)
+            is Lst -> Arr(emptyArray(), this.elementType, 0, null)
+            is Str -> Expression.Str("", null)
+            is Unit, is TypeAlias -> NoOp()
+            is Tup -> Expression.Tup(this.fst.default(), this.snd.default(), null)
         }
 
         companion object {

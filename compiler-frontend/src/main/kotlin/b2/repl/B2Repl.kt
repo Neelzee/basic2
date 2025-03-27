@@ -1,5 +1,7 @@
 package b2.repl
 
+/*
+
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
@@ -78,3 +80,4 @@ class B2Interpreter {
 
     private fun clearTerm() = print("\u001b[2J")
 }
+ */

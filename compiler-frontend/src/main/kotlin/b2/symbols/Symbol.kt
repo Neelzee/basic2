@@ -1,4 +1,6 @@
 package b2.symbols
+/*
+
 
 import b2.symbols.Symbol.Var.Value.*
 import kotlinx.serialization.Serializable
@@ -401,3 +403,4 @@ sealed class Symbol {
         ) : Fn()
     }
 }
+ */
