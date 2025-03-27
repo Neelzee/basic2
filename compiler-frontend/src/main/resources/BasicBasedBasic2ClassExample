@@ -1,0 +1,25 @@
+BEGIN PROC ClassExample
+#               Firstname, Lastname, Age, City, Postcode, Street
+ALIAS Person = (STR, (STR, (INT, (STR, (INT, (STR, INT))))));
+
+DECL Person(STR, STR, INT, STR, INT, STR) : Person;
+IMPL Person(firstName, lastName, age, city, postcode, street)
+  RETURN (firstName, (lastName, (age, (city, (postcode, (street, -1))))));
+
+DECL getAge(Person) : INT;
+IMPL getAge(p) RETURN p[1][1][0];
+
+DECL setAge(Person, INT) : PERSON;
+IMPL setAge(p, newAge) DO
+  LET (firstName, lastName, age, city, postCode, street) >< p;
+  RETURN Person(firstName, lastName, newAge, city, postCode, street);
+END
+
+LET Nils = Person("Nils Michael", "Fitjar", 24, "Kotlin", 4004, "Island Street");
+
+PRINT(getAge(Nils));
+LET newAge: INT = INPUT("Input new Age: ");
+Nils = setAge(Nils, newAge);
+PRINT(getAge(Nils));
+
+PROC ClassExample END

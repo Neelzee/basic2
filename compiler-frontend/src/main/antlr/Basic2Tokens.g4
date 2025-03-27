@@ -1,5 +1,7 @@
 lexer grammar Basic2Tokens;
 
+COMMENT : '#' (~[\r\n])* '\r'? '\n' -> skip;
+UNPACK_KW : '><' ;
 WHITESPACE : [ \r\n\t] -> skip;
 STR_LIT : '"' (~["])* '"' ;
 NUM_LIT : '-'? [0-9] [0-9]* ;
@@ -18,6 +20,7 @@ fragment CHARS : [a-zA-Z];
 SEP : ',';
 IMPORT_KW : 'USE';
 PRINT_KW : 'PRINT';
+ALIAS_KW : 'ALIAS' ;
 INPUT_KW : 'INPUT';
 FUNCTION_DECL : 'DECL' ;
 FUNCTION_IMPL : 'IMPL' ;

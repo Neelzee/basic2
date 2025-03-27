@@ -9,10 +9,10 @@ program
   ;
 
 stmt
-  : ifElseStmtBlock                  # ElseBlock
+  : ifElseStmtBlock                  # elseBlock
   | ifElseStmt                       # ifElse
   | ifElifStmtBlock                  # elifBlock
-  | ifElifStmt                       # Elif
+  | ifElifStmt                       # elif
   | ifStmtBlock                      # ifBlock
   | ifStmt                           # if
   | whileStmt                        # while
@@ -31,6 +31,8 @@ stmt
   | fnDeclStmt                       # decl
   | fnImplStmt                       # impl
   | importStmt                       # use
+  | typeAliasStmt                    # typeAlias
+  | unpack_stmt                      # unpack
   | expr incrUni END_STMT_KW         # preIncr
   | IDENTIFIER incr expr END_STMT_KW # binopIncr
   ;
@@ -49,6 +51,8 @@ importStmt
     END_STMT_KW                                # useSpecific
   ;
 
+unpack_stmt : LET_KW TUPLE_STRT IDENTIFIER? (SEP IDENTIFIER)* SEP? TUPLE_END UNPACK_KW expr END_STMT_KW;
+
 renaming : AS_KW IDENTIFIER;
 
 importItems
@@ -58,6 +62,7 @@ importItems
   | IDENTIFIER renaming?               # var
   ;
 
+typeAliasStmt : ALIAS_KW IDENTIFIER ASS_KW type END_STMT_KW;
 varDeclStmt : LET_KW IDENTIFIER typing END_STMT_KW;
 varDeclAssignStmt : LET_KW IDENTIFIER typing? ASS_KW expr END_STMT_KW;
 varReStmt : IDENTIFIER ASS_KW expr END_STMT_KW;
@@ -154,6 +159,7 @@ type
   : PRIM_TYPES
   | ARRAY_STRT type ARRAY_END
   | TUPLE_STRT type SEP type TUPLE_END
+  | IDENTIFIER
   ;
 
 iterable

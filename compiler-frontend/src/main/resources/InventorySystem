@@ -1,7 +1,7 @@
 BEGIN PROC InventorySystem
 
-DECL isAdd(STR) : BOOL;
-IMPL isAdd(s) DO
+DECL isadd(STR) : BOOL;
+IMPL isadd(s) DO
   LET x = s[0] == "A";
   LET y = s[1] == "D";
   LET z = s[2] == "D";
@@ -51,8 +51,7 @@ IMPL find(name) DO
   RETURN -1;
 END
 
-LET inv: [(STR, INT)] = [];
-
+LET inv = [(STR, INT); 10];
 
 WHILE (TRUE) DO
   LET query = INPUT("> ");
@@ -64,15 +63,14 @@ WHILE (TRUE) DO
   LET name = getItem(query);
   LET itemInd = find(name);
 
-
-  IF (isAdd(query)) DO
+  IF (isadd(query)) DO
     IF (itemInd == -1) DO
-      PRINT("Added new item: " + name);
-      ADD((name, 1), inv);
+      PRINT("added new item: " + name);
+      add((name, 1), inv);
     ELSE
       LET old = inv[itemInd];
       LET count: STR = old[1] + 1;
-      PRINT("Added item: " + name + ", up to: " + count);
+      PRINT("added item: " + name + ", up to: " + count);
       LET newCount = old[1] + 1;
       LET new = (name, newCount);
       inv[itemInd] = new;

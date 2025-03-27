@@ -1,7 +1,9 @@
 BEGIN PROC SCOPE
 LET global = "global";
+PRINT("Before: " + global);
 DO
   LET inner = "inner";
   global += "-inner";
 END
+PRINT("After: " + global);
 PROC SCOPE END
