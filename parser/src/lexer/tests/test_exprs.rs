@@ -1,0 +1,228 @@
+use crate::lexer::utils::Span;
+use crate::{
+    common::{BinOp, Primitive, UniOp},
+    lexer::{lex_expr::LexExpr, lex_type::LexType},
+};
+use nom::Parser;
+use rstest::rstest;
+
+#[rstest]
+#[case::parses_int("123", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_negative_int("-123", LexExpr::Literal(Primitive::Int(-123)))]
+#[case::parses_float_with_dot(".123", LexExpr::Literal(Primitive::Float(0.123)))]
+#[case::parses_float_with_0("0.123", LexExpr::Literal(Primitive::Float(0.123)))]
+#[case::parses_string(r##""string""##, LexExpr::Literal(Primitive::Str("string".to_string())))]
+#[case::parses_empty_string(r##""""##, LexExpr::Literal(Primitive::Str("".to_string())))]
+#[case::parses_group(r##"("string")"##, LexExpr::Group(Box::new(LexExpr::Literal(Primitive::Str("string".to_string())))))]
+#[case::parses_tuple(r##"("string", 123)"##, LexExpr::Tuple(Box::new(LexExpr::Literal(Primitive::Str("string".to_string()))), Box::new(LexExpr::Literal(Primitive::Int(123)))))]
+#[case::parses_list(r##"["string", 123]"##, LexExpr::List(vec![LexExpr::Literal(Primitive::Str("string".to_string())), LexExpr::Literal(Primitive::Int(123))]))]
+#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo".to_string(), arguments: Vec::new(), })]
+fn test_expression_parser(#[case] input: &str, #[case] expected: LexExpr) {
+    let result = LexExpr::parse_expr(Span::new(input));
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case::parses_int("123", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_negative_int("-123", LexExpr::Literal(Primitive::Int(-123)))]
+#[case::parses_positive_int("+123", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_int_with_space_affix("123 ", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_int_with_tab_affix("123 ", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_int_with_newline_affix("123 ", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_int_with_windows_newline_affix("123\r\n", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_int_with_all_whitespace_affix("123 \t\r\n", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_negative_int_with_space_affix("-123 ", LexExpr::Literal(Primitive::Int(-123)))]
+#[case::parses_negative_int_with_tab_affix("-123 ", LexExpr::Literal(Primitive::Int(-123)))]
+#[case::parses_negative_int_with_newline_affix("-123 ", LexExpr::Literal(Primitive::Int(-123)))]
+#[case::parses_negative_int_with_windows_newline_affix("-123\r\n", LexExpr::Literal(Primitive::Int(-123)))]
+#[case::parses_negative_int_with_all_whitespace_affix("-123 \t\r\n", LexExpr::Literal(Primitive::Int(-123)))]
+#[case::parses_positive_int_with_space_affix("+123 ", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_positive_int_with_tab_affix("+123 ", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_positive_int_with_newline_affix("+123 ", LexExpr::Literal(Primitive::Int(123)))]
+#[case::parses_positive_int_with_windows_newline_affix(
+    "+123\r\n",
+    LexExpr::Literal(Primitive::Int(123))
+)]
+#[case::parses_positive_int_with_all_whitespace_affix(
+    "+123 \t\r\n",
+    LexExpr::Literal(Primitive::Int(123))
+)]
+fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
+    let result = LexExpr::parse_expr(Span::new(input));
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case(
+    r##"!"""##,
+    LexExpr::UniOp {
+        op: UniOp::Neg,
+        operand: Box::new(LexExpr::Literal(Primitive::Str("".to_string())))
+    }
+)]
+#[case(
+    r##"!TRUE"##,
+    LexExpr::UniOp {
+        op: UniOp::Neg,
+        operand: Box::new(LexExpr::Literal(Primitive::Bool(true)))
+    }
+)]
+#[case(
+    r##"!!TRUE"##,
+    LexExpr::UniOp {
+        op: UniOp::Neg,
+        operand: Box::new(
+            LexExpr::UniOp {
+            op: UniOp::Neg,
+            operand: Box::new(LexExpr::Literal(Primitive::Bool(true)))
+            }
+        )
+    }
+)]
+fn test_unary_expr(#[case] input: &str, #[case] expected: LexExpr) {
+    let result = LexExpr::parse_unary_operation.parse(Span::new(input));
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case(
+    "1 + 1",
+    LexExpr::BinOp {
+        op: BinOp::Add,
+        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
+    }
+)]
+#[case(
+    "1 - 1",
+    LexExpr::BinOp {
+        op: BinOp::Sub,
+        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
+    }
+)]
+#[case(
+    "1 * 1",
+    LexExpr::BinOp {
+        op: BinOp::Mul,
+        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
+    }
+)]
+#[case(
+    "1 / 1",
+    LexExpr::BinOp {
+        op: BinOp::Div,
+        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
+    }
+)]
+#[case(
+    "1 ^ 1",
+    LexExpr::BinOp {
+        op: BinOp::Pow,
+        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
+    }
+)]
+#[case(
+    "1 + 1 + 1",
+    LexExpr::BinOp {
+        op: BinOp::Add,
+        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+        right_operand: Box::new(LexExpr::BinOp {
+        op: BinOp::Add,
+        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
+    })
+    }
+)]
+#[case(
+    "1 + 1 + 1 + 1",
+    LexExpr::BinOp {
+        op: BinOp::Add,
+        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+        right_operand: Box::new(LexExpr::BinOp {
+            op: BinOp::Add,
+            left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+            right_operand: Box::new(LexExpr::BinOp {
+                op: BinOp::Add,
+                left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
+                right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
+            })
+        })
+    }
+)]
+fn test_binary_expr(#[case] input: &str, #[case] expected: LexExpr) {
+    let result = LexExpr::parse_binary_operation.parse(Span::new(input));
+    assert!(result.is_ok(), "{:?}", result.unwrap_err());
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case(
+    "STRUCTURE empty WITH END",
+    LexExpr::Struct {
+        identifier: "empty".to_string(),
+        field_implementations: Vec::new(),
+    }
+)]
+#[case(
+    "STRUCTURE FOO WITH
+        IMPL bar = 10;
+    END",
+    LexExpr::Struct {
+        identifier: "FOO".to_string(),
+        field_implementations: vec![("bar".to_string(), LexExpr::Literal(Primitive::Int(10)))],
+    }
+)]
+#[case(
+    r##"STRUCTURE FOOBAR WITH
+        IMPL bar = 10;
+        IMPL foo = "";
+    END"##,
+    LexExpr::Struct {
+        identifier: "FOOBAR".to_string(),
+        field_implementations: vec![
+            ("bar".to_string(), LexExpr::Literal(Primitive::Int(10))),
+            ("foo".to_string(), LexExpr::Literal(Primitive::Str(String::new())))
+        ],
+    }
+)]
+fn test_struct_expr(#[case] input: &str, #[case] expected: LexExpr) {
+    let result = LexExpr::parse_struct.parse(Span::new(input));
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case(
+    "IMPL bar = 10;\nIMPL foo = 10;",
+    (
+        "bar".to_string(),
+        LexExpr::Literal(Primitive::Int(10))
+    ),
+    "\nIMPL foo = 10;"
+)]
+fn test_struct_field_impl_parser(
+    #[case] input: &str,
+    #[case] expected: (String, LexExpr),
+    #[case] remainder: &str,
+) {
+    let result = LexExpr::parse_struct_field.parse(Span::new(input));
+    assert!(result.is_ok(), "{result:?}");
+    let result = result.unwrap();
+    assert_eq!(result.1, expected);
+    assert_eq!(result.0.to_string(), remainder.to_string());
+}
+
+#[rstest]
+#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo".to_string(), arguments: Vec::new(), })]
+fn test_function_call_parser(#[case] input: &str, #[case] expected: LexExpr) {
+    let result = LexExpr::parse_function_call.parse(Span::new(input));
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!(result.unwrap().1, expected);
+}
