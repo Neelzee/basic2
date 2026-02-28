@@ -1,0 +1,3 @@
+BEGIN MODULE FunctionDeclaration
+DECL f();
+MODULE FunctionDeclaration END

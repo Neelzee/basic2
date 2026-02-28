@@ -1,0 +1,26 @@
+BEGIN PROC FizzBuzz
+DECL fizzbuzz(INT) : STR;
+IMPL fizzbuzz(n) DO
+  LET result: STR = "";
+  IF (n % 3 == 0) THEN
+    result = result + "Fizz";
+  FI
+  IF (n % 5 == 0) THEN
+    result = result + "Buzz";
+  FI
+  RETURN result;
+END
+
+INVOKE PRINT("=" * 10);
+INVOKE PRINT("Welcome to FIZZBUZZ");
+INVOKE PRINT("=" * 10);
+WHILE (TRUE) DO
+  INVOKE PRINT("Input a number, or Q to quit");
+  LET query: STR = INPUT("> ");
+  IF (query == "Q") THEN
+    BREAK;
+  FI
+  LET fb = fizzbuzz(query AS INT);
+  INVOKE PRINT(fb);
+END
+PROC FizzBuzz END

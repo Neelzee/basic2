@@ -1,0 +1,5 @@
+BEGIN MODULE FunctionImplementation
+DECL g();
+IMPL g() DOES
+END
+MODULE FunctionImplementation END

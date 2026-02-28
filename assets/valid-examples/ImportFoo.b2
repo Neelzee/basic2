@@ -1,0 +1,3 @@
+BEGIN PROC ImportFoo
+DECL Foo();
+PROC ImportFoo END

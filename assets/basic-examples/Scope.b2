@@ -1,0 +1,9 @@
+BEGIN MODULE SCOPE
+LET global = "global";
+INVOKE PRINT("Before: " + global);
+DO
+  LET inner = "inner";
+  global += "-inner";
+END
+INVOKE PRINT("After: " + global);
+MODULE SCOPE END

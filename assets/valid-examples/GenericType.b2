@@ -1,0 +1,5 @@
+BEGIN PROC GenericType
+DECL foo[T](T) : NIL;
+IMPL foo(v) INVOKE PRINT(v);
+LET _ = foo(10);
+PROC GenericType END

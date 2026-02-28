@@ -1,0 +1,17 @@
+BEGIN PROC traits
+DECL id[T](T) : T;
+IMPL id(n) RETURN n;
+
+TRAIT Orderable WHERE
+  DECL gt(IT, IT) : Bool;
+END
+
+TEACH Orderable TO INT
+  IMPL gt(a, b) RETURN a > b;
+END
+
+TRAIT Semigroup WHERE
+  DECL combine(Element, Element) : Element;
+END
+
+PROC traits END

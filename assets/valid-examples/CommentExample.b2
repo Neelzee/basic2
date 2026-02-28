@@ -1,0 +1,6 @@
+BEGIN MODULE CommentExample
+# Single line comment
+#-
+  Multi-line comment
+-#
+MODULE CommentExample END

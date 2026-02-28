@@ -1,0 +1,3 @@
+BEGIN MODULE HelloWorld
+INVOKE PRINT("Hello, World!");
+MODULE HelloWorld END

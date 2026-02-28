@@ -1,0 +1,3 @@
+BEGIN PROC ImportBar
+LET Bar = "Bar";
+PROC ImportBar END

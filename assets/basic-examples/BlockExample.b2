@@ -1,0 +1,8 @@
+BEGIN MODULE BlockExample
+# Everything in a module body is in a block
+# This is a nested block
+DO
+  # It has it's own scope
+  # Statements have to end with ;
+END
+MODULE BlockExample END

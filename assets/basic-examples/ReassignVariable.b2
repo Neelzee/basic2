@@ -1,0 +1,8 @@
+BEGIN MODULE ReassignVariable
+LET hello = "Hello";
+hello += ", World!";
+INVOKE PRINT(hello);
+LET world = "Hello";
+world = world + ", World!";
+INVOKE PRINT(world);
+MODULE ReassignVariable END
