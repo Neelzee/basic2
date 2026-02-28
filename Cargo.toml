@@ -1,0 +1,13 @@
+[package]
+name = "basic2"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = ["parser"]
+
+[workspace.dependencies]
+rstest = "0.26.1"
+anyhow = "1.0.102"
+
+[dependencies]

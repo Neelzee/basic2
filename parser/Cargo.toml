@@ -1,0 +1,12 @@
+[package]
+name = "parser"
+version = "0.1.0"
+edition = "2024"
+
+[dev-dependencies]
+rstest = { workspace = true }
+anyhow = { workspace = true }
+
+[dependencies]
+nom = "8.0.0"
+nom_locate = "5.0.0"
