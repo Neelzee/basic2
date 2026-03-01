@@ -1,12 +1,16 @@
-use crate::common::Primitive;
-use crate::lexer::lex_expr::LexExpr;
-use crate::lexer::lex_type::LexType;
-use crate::lexer::utils::helper_parsers::parse_comment;
-use crate::lexer::utils::helper_parsers::parse_identifier;
-use crate::lexer::utils::helper_parsers::parse_parameters;
-use crate::lexer::utils::helper_parsers::parse_poly_list_with;
-use crate::lexer::utils::{B2Result, Span};
-use nom::IResult;
+use crate::{
+    common::Primitive,
+    lexer::{
+        lex_expr::LexExpr,
+        lex_type::LexType,
+        utils::{
+            B2Result, Span,
+            helper_parsers::{
+                parse_comment, parse_identifier, parse_parameters, parse_poly_list_with,
+            },
+        },
+    },
+};
 use nom::Parser;
 use rstest::rstest;
 

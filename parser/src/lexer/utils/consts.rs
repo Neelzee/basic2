@@ -68,6 +68,7 @@ pub const BREAK_STMT_KW: &str = "BREAK";
 
 pub const STRING_KW: &str = "\"";
 pub const STRING_CHAR: char = '"';
+pub const ASSIGNMENT_KW: &str = "=";
 
 #[cfg(test)]
 pub mod test_const {

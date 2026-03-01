@@ -10,32 +10,26 @@ use crate::{
                 FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_IMPLEMENTATION_KW,
                 FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END,
                 FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER,
-                FUNCTION_PARAMETERS_DELIMITER_CHAR, FUNCTION_PARAMETERS_END,
-                FUNCTION_PARAMETERS_END_CHAR, FUNCTION_PARAMETERS_START,
-                IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
-                STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_DECL_KW, STRUCT_FIELD_IMPL_KW,
-                STRUCT_KW, STRUCT_START_KW, VARIABLE_REASIGNMENT, WHILE_STATEMENT_BODY_START_KW,
-                WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
+                FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, IF_STATEMENT_BODY_START_KW,
+                IF_STATEMENT_END_KW, IF_STATEMENT_START_KW, STRUCT_DECL_KW, STRUCT_END_KW,
+                STRUCT_FIELD_DECL_KW, STRUCT_KW, VARIABLE_REASIGNMENT,
+                WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
                 parse_comment, parse_identifier, parse_parameters, parse_poly_list_with,
-                till_end_of_stmt,
             },
         },
     },
 };
 use nom::{
-    IResult, Parser,
-    branch::{alt, permutation},
-    bytes::complete::{tag, take, take_till, take_until},
-    character::complete::{
-        alpha1, alphanumeric0, char, digit1, multispace0, none_of, one_of, space0, space1,
-    },
-    combinator::{cut, opt},
+    Parser,
+    branch::alt,
+    bytes::complete::{tag, take, take_until},
+    character::complete::{multispace0, space0, space1},
+    combinator::opt,
     error::context,
-    multi::{many0, separated_list0},
-    number::complete::float,
-    sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
+    multi::many0,
+    sequence::{delimited, pair, preceded, terminated},
 };
 
 const VARIABLE_DECLARATION: &str = "LET";
@@ -156,17 +150,17 @@ impl LexStmt {
             "parse-variable-reassignment",
             preceded(
                 multispace0,
-terminated(
-                (
-                    parse_identifier,
-                    terminated(
-                        preceded(space0, opt(BinOp::parse_symbol)),
-                        tag(VARIABLE_REASIGNMENT),
+                terminated(
+                    (
+                        parse_identifier,
+                        terminated(
+                            preceded(space0, opt(BinOp::parse_symbol)),
+                            tag(VARIABLE_REASIGNMENT),
+                        ),
+                        preceded(space0, LexExpr::parse_expr),
                     ),
-                    preceded(space0, LexExpr::parse_expr),
+                    tag(END_STMT_KW),
                 ),
-                tag(END_STMT_KW),
-            )
             ),
         )
         .map(

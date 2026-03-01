@@ -3,26 +3,21 @@ use crate::{
     lexer::utils::{
         B2Result, Span, VerboseError,
         consts::{
-            FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_END_CHAR,
-            FUNCTION_CALL_START, GROUP_END, GROUP_START, LIST_DELIMITER, LIST_END, LIST_END_CHAR,
-            LIST_START, STRUCT_END_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_DECL_KW,
-            STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, TUPLE_DELIMITER,
-            TUPLE_DELIMITER_CHAR, TUPLE_END, TUPLE_END_CHAR, TUPLE_START,
+            FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_START, GROUP_END,
+            GROUP_START, LIST_DELIMITER, LIST_END, LIST_START, STRUCT_END_KW,
+            STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW,
+            STRUCT_START_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
         },
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
 };
 use nom::{
-    IResult, Parser,
+    Parser,
     branch::{alt, permutation},
-    bytes::complete::{tag, take, take_till, take_until1},
-    character::complete::{
-        alpha1, alphanumeric0, char, digit1, multispace0, none_of, one_of, space0,
-    },
-    combinator::{cut, opt},
+    bytes::complete::tag,
+    character::complete::{multispace0, space0},
     error::context,
     multi::{many0, separated_list0},
-    number::complete::float,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
 

@@ -7,11 +7,10 @@ use crate::lexer::{
     },
 };
 use nom::{
-    IResult, Parser,
+    Parser,
     branch::alt,
     bytes::complete::tag,
     character::complete::{multispace0, space1},
-    error::ErrorKind,
     multi::many0,
     sequence::preceded,
 };

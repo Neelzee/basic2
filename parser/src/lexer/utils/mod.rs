@@ -1,5 +1,5 @@
 use nom::{
-    IResult, Parser,
+    IResult,
     error::{ContextError, ErrorKind, ParseError},
 };
 use nom_locate::LocatedSpan;

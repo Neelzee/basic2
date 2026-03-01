@@ -1,31 +1,19 @@
-use std::process::Output;
-
-use crate::{
-    common::{BinOp, Primitive, UniOp},
-    lexer::{
-        lex_expr::LexExpr,
-        utils::{
-            B2Result, Span, VerboseError, VerboseErrorKind,
-            consts::{
-                FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END_CHAR, FUNCTION_CALL_START, GROUP_END,
-                GROUP_START, LIST_DELIMITER, LIST_END_CHAR, LIST_START, SINGLE_LINE_COMMENT,
-                TUPLE_DELIMITER, TUPLE_DELIMITER_CHAR, TUPLE_END_CHAR, TUPLE_START,
-            },
-        },
+use crate::lexer::{
+    lex_expr::LexExpr,
+    utils::{
+        B2Result, Span,
+        consts::{ASSIGNMENT_KW, SINGLE_LINE_COMMENT},
     },
 };
 use nom::{
-    IResult, Parser,
+    Parser,
     branch::{alt, permutation},
-    bytes::complete::{tag, take, take_till, take_until},
-    character::complete::{
-        alpha1, alphanumeric0, char, digit1, multispace0, none_of, one_of, space0,
-    },
-    combinator::{cut, opt},
+    bytes::complete::{tag, take_till},
+    character::complete::{alpha1, alphanumeric0, multispace0, space0},
+    combinator::opt,
     error::context,
-    multi::{many0, separated_list0},
-    number::complete::float,
-    sequence::{delimited, pair, preceded, separated_pair, terminated},
+    multi::separated_list0,
+    sequence::{pair, preceded, terminated},
 };
 
 pub fn parse_identifier(input: Span) -> B2Result<Span> {
@@ -67,10 +55,6 @@ where
     )
 }
 
-pub fn till_end_of_stmt(input: Span) -> B2Result<Span> {
-    take_until(";").parse(input)
-}
-
 pub fn parse_parameters(input: Span) -> B2Result<(String, Option<LexExpr>)> {
     context(
         "parse-parameters",
@@ -84,7 +68,7 @@ pub fn parse_parameters(input: Span) -> B2Result<(String, Option<LexExpr>)> {
                 opt(preceded(
                     space0,
                     preceded(
-                        context("parameter-default-argument-assignment", tag("=")),
+                        context("parameter-default-argument-assignment", tag(ASSIGNMENT_KW)),
                         preceded(space0, LexExpr::parse_expr),
                     ),
                 )),

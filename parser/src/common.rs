@@ -1,17 +1,16 @@
+use crate::lexer::utils::{
+    B2Result, Span,
+    consts::{STRING_CHAR, STRING_KW},
+};
 use nom::{
-    IResult, Parser,
+    Parser,
     branch::alt,
-    bytes::complete::{tag, take, take_till},
-    character::complete::{alpha1, char, digit0, digit1, space0},
+    bytes::complete::{tag, take_till},
+    character::complete::{char, digit1, space0},
     combinator::{map, opt, recognize},
     error::context,
     number::complete::float,
     sequence::{delimited, pair, preceded},
-};
-
-use crate::lexer::utils::{
-    B2Result, Span,
-    consts::{STRING_CHAR, STRING_KW},
 };
 
 #[derive(Debug, PartialEq)]

@@ -1,7 +1,6 @@
-use crate::lexer::utils::Span;
 use crate::{
     common::{BinOp, Primitive, UniOp},
-    lexer::{lex_expr::LexExpr, lex_type::LexType},
+    lexer::{lex_expr::LexExpr, utils::Span},
 };
 use nom::Parser;
 use rstest::rstest;

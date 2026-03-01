@@ -1,5 +1,7 @@
-use crate::lexer::utils::Span;
-use crate::lexer::{lex_prog::LexProgram, utils::consts::test_const::EMPTY_PROGRAM_PATH};
+use crate::lexer::{
+    lex_prog::LexProgram,
+    utils::{Span, consts::test_const::EMPTY_PROGRAM_PATH},
+};
 use anyhow::{Context, Result};
 use rstest::rstest;
 use std::{fs::File, io::Read, path::PathBuf};
