@@ -8,5 +8,5 @@ LET me = STRUCTURE Person WITH
     IMPL firstName = "Nils";
     IMPL lastName = "Fitjar";
     IMPL age = 24;
-END
+END;
 MODULE BlockExample END
