@@ -31,13 +31,13 @@ use rstest::rstest;
     ""
 )]
 fn test_parse_poly_list_with<P, O>(
-    #[case] start: &str,
-    #[case] delimiter: &str,
-    #[case] end: &str,
+    #[case] start: &'static str,
+    #[case] delimiter: &'static str,
+    #[case] end: &'static str,
     #[case] parser: P,
-    #[case] input: &str,
+    #[case] input: &'static str,
     #[case] expected: Vec<O>,
-    #[case] remainder: &str,
+    #[case] remainder: &'static str,
 ) where
     O: std::fmt::Debug + PartialEq,
     P: Fn(Span) -> B2Result<O> + Clone,

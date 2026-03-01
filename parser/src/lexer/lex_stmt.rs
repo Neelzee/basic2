@@ -206,7 +206,7 @@ impl LexStmt {
         let (i, parameters) = parse_poly_list_with(
             FUNCTION_PARAMETERS_START,
             FUNCTION_PARAMETERS_DELIMITER,
-            FUNCTION_PARAMETERS_END_CHAR,
+            FUNCTION_PARAMETERS_END,
             LexType::parse_type,
         )
         .parse(i)?;
@@ -235,7 +235,13 @@ impl LexStmt {
         )
         .map(|s| s.to_string())
         .parse(i)?;
-        let (i, parameters) = parse_poly_list_with("(", ",", ')', parse_parameters).parse(i)?;
+        let (i, parameters) = parse_poly_list_with(
+            FUNCTION_PARAMETERS_START,
+            FUNCTION_PARAMETERS_DELIMITER,
+            FUNCTION_PARAMETERS_END,
+            parse_parameters,
+        )
+        .parse(i)?;
         let (i, _do_kw) = preceded(multispace0, tag(FUNCTION_IMPLEMENTATION_START_KW)).parse(i)?;
         let (i, body) = many0(preceded(multispace0, Self::parse_statement)).parse(i)?;
         let (rem, _end_kw) = preceded(multispace0, tag(FUNCTION_BODY_END_KW)).parse(i)?;

@@ -3,11 +3,11 @@ use crate::{
     lexer::utils::{
         B2Result, Span,
         consts::{
-            FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END_CHAR, FUNCTION_CALL_START, GROUP_END,
-            GROUP_START, LIST_DELIMITER, LIST_END, LIST_END_CHAR, LIST_START, STRUCT_END_KW,
-            STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_DECL_KW, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW,
-            STRUCT_KW, STRUCT_START_KW, TUPLE_DELIMITER, TUPLE_DELIMITER_CHAR, TUPLE_END,
-            TUPLE_END_CHAR, TUPLE_START,
+            FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_END_CHAR,
+            FUNCTION_CALL_START, GROUP_END, GROUP_START, LIST_DELIMITER, LIST_END, LIST_END_CHAR,
+            LIST_START, STRUCT_END_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_DECL_KW,
+            STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, TUPLE_DELIMITER,
+            TUPLE_DELIMITER_CHAR, TUPLE_END, TUPLE_END_CHAR, TUPLE_START,
         },
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
@@ -82,21 +82,23 @@ impl LexExpr {
     }
 
     pub fn parse_literal(input: Span) -> B2Result<Self> {
-        Primitive::parse_primitive(input)
-            .map(|(rem, p)| (rem, Self::Literal(p)))
+        Primitive::parse_primitive(input).map(|(rem, p)| (rem, Self::Literal(p)))
     }
 
     pub fn parse_tuple(input: Span) -> B2Result<Self> {
         context(
             "tuple-expr",
             separated_pair(
-            preceded(
-                permutation((tag(TUPLE_START), multispace0)),
-                context("tuple-fst-expr", Self::parse_expr),
+                preceded(
+                    permutation((tag(TUPLE_START), multispace0)),
+                    context("tuple-fst-expr", Self::parse_expr),
+                ),
+                permutation((tag(TUPLE_DELIMITER), multispace0)),
+                terminated(
+                    context("tuple-snd-expr", Self::parse_expr),
+                    permutation((tag(TUPLE_END), multispace0)),
+                ),
             ),
-            permutation((tag(TUPLE_DELIMITER), multispace0)),
-            terminated(context("tuple-snd-expr", Self::parse_expr), permutation((tag(TUPLE_END), multispace0))),
-        )
         )
         .map(|(fst, snd)| Self::Tuple(Box::new(fst), Box::new(snd)))
         .parse(input)
@@ -137,7 +139,7 @@ impl LexExpr {
         let (rem, arguments) = parse_poly_list_with(
             FUNCTION_CALL_START,
             FUNCTION_CALL_DELIMITER,
-            FUNCTION_CALL_END_CHAR,
+            FUNCTION_CALL_END,
             Self::parse_expr,
         )
         .parse(i)?;
