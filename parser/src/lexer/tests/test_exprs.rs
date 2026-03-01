@@ -17,6 +17,22 @@ use rstest::rstest;
 #[case::parses_tuple(r##"("string", 123)"##, LexExpr::Tuple(Box::new(LexExpr::Literal(Primitive::Str("string".to_string()))), Box::new(LexExpr::Literal(Primitive::Int(123)))))]
 #[case::parses_list(r##"["string", 123]"##, LexExpr::List(vec![LexExpr::Literal(Primitive::Str("string".to_string())), LexExpr::Literal(Primitive::Int(123))]))]
 #[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo".to_string(), arguments: Vec::new(), })]
+#[case::parses_struct_expr(
+    r##"STRUCTURE Person WITH
+        IMPL firstName = "Nils";
+        IMPL lastName = "Fitjar";
+        IMPL age = 24;
+    END
+    "##,
+    LexExpr::Struct {
+        identifier: "Person".to_string(),
+        field_implementations: vec![
+            ("firstName".to_string(), LexExpr::Literal(Primitive::Str("Nils".to_string()))),
+            ("lastName".to_string(), LexExpr::Literal(Primitive::Str("Fitjar".to_string()))),
+            ("age".to_string(), LexExpr::Literal(Primitive::Int(24))),
+        ]
+    }
+)]
 fn test_expression_parser(#[case] input: &str, #[case] expected: LexExpr) {
     let result = LexExpr::parse_expr(Span::new(input));
     assert!(result.is_ok(), "{result:?}");

@@ -6,8 +6,8 @@ use crate::{
         utils::{
             B2Result, Span,
             consts::{
-                BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, FUNCTION_BODY_END_KW,
-                FUNCTION_DECLARATION_KW, FUNCTION_IMPLEMENTATION_KW,
+                BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW, END_STMT_KW,
+                FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_IMPLEMENTATION_KW,
                 FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END,
                 FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER,
                 FUNCTION_PARAMETERS_DELIMITER_CHAR, FUNCTION_PARAMETERS_END,
@@ -32,9 +32,10 @@ use nom::{
         alpha1, alphanumeric0, char, digit1, multispace0, none_of, one_of, space0, space1,
     },
     combinator::{cut, opt},
+    error::context,
     multi::{many0, separated_list0},
     number::complete::float,
-    sequence::{delimited, pair, preceded, separated_pair, terminated},
+    sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
 };
 
 const VARIABLE_DECLARATION: &str = "LET";
@@ -84,6 +85,7 @@ pub enum LexStmt {
         identifier: String,
         arguments: Vec<LexExpr>,
     },
+    Break,
 }
 
 impl LexStmt {
@@ -99,86 +101,91 @@ impl LexStmt {
             Self::parse_block_statement,
             Self::parse_function_invocation,
             Self::parse_struct_declaration,
+            Self::parse_break,
         ))
         .parse(input)
     }
 
-    pub fn parse_variable_declaration(input: Span) -> B2Result<Self> {
-        let (i, identifier) = preceded(
-            tag(VARIABLE_DECLARATION),
-            preceded(multispace0, parse_identifier),
-        )
-        .map(|s| s.to_string())
-        .parse(input)?;
-        let (rem, variable_type) = terminated(
-            opt(preceded(
-                tag(":"),
-                preceded(multispace0, LexType::parse_type),
-            )),
-            tag(";"),
-        )
-        .parse(i)?;
+    pub fn parse_break(input: Span) -> B2Result<Self> {
+        delimited(multispace0, tag(BREAK_STMT_KW), tag(END_STMT_KW))
+            .map(|_| Self::Break)
+            .parse(input)
+    }
 
-        Ok((
-            rem,
-            Self::VariableDeclaration {
-                identifier,
-                variable_type,
-            },
-        ))
+    pub fn parse_variable_declaration(input: Span) -> B2Result<Self> {
+        delimited(
+            preceded(multispace0, tag(VARIABLE_DECLARATION)),
+            (
+                preceded(multispace0, parse_identifier.map(|s| s.to_string())),
+                preceded(multispace0, opt(LexType::parse_type)),
+            ),
+            tag(END_STMT_KW),
+        )
+        .map(|(identifier, variable_type)| Self::VariableDeclaration {
+            identifier,
+            variable_type,
+        })
+        .parse(input)
     }
 
     pub fn parse_variable_declaration_assignment(input: Span) -> B2Result<Self> {
-        let (i, identifier) = preceded(
-            tag(VARIABLE_DECLARATION),
-            preceded(multispace0, parse_identifier),
+        delimited(
+            preceded(multispace0, tag(VARIABLE_DECLARATION)),
+            (
+                preceded(multispace0, parse_identifier.map(|s| s.to_string())),
+                preceded(multispace0, opt(LexType::parse_type)),
+                preceded(
+                    (multispace0, tag(VARIABLE_REASIGNMENT)),
+                    preceded(multispace0, LexExpr::parse_expr),
+                ),
+            ),
+            tag(END_STMT_KW),
         )
-        .map(|s| s.to_string())
-        .parse(input)?;
-        let (i, variable_type) = opt(preceded(tag(":"), LexType::parse_type)).parse(i)?;
-        let (i, _whitespace) = multispace0.parse(i)?;
-        let (i, value) = preceded(
-            tag("="),
-            preceded(multispace0, till_end_of_stmt.and_then(LexExpr::parse_expr)),
-        )
-        .parse(i)?;
-        let (rem, _end_kw) = tag(";").parse(i)?;
-
-        Ok((
-            rem,
-            Self::VariableDeclarationAssignment {
+        .map(
+            |(identifier, variable_type, value)| Self::VariableDeclarationAssignment {
                 identifier,
                 variable_type,
                 value,
             },
-        ))
+        )
+        .parse(input)
     }
 
     pub fn parse_variable_reassignment(input: Span) -> B2Result<Self> {
-        let (i, identifier) = preceded(multispace0, parse_identifier)
-            .map(|s| s.to_string())
-            .parse(input)?;
-        let (i, _whitespace) = multispace0.parse(i)?;
-        let (i, reassignment) = preceded(space0, opt(BinOp::parse_symbol)).parse(i)?;
-        let (rem, new_value) = preceded(
-            tag(VARIABLE_REASIGNMENT),
-            till_end_of_stmt.and_then(LexExpr::parse_expr),
+        context(
+            "parse-variable-reassignment",
+            preceded(
+                multispace0,
+terminated(
+                (
+                    parse_identifier,
+                    terminated(
+                        preceded(space0, opt(BinOp::parse_symbol)),
+                        tag(VARIABLE_REASIGNMENT),
+                    ),
+                    preceded(space0, LexExpr::parse_expr),
+                ),
+                tag(END_STMT_KW),
+            )
+            ),
         )
-        .parse(i)?;
-
-        Ok((
-            rem,
-            Self::VariableReassignment {
-                identifier,
+        .map(
+            |(ident, reassignment, new_value)| Self::VariableReassignment {
+                identifier: ident.to_string(),
                 reassignment,
                 new_value,
             },
-        ))
+        )
+        .parse(input)
     }
 
     pub fn parse_if_statement(input: Span) -> B2Result<Self> {
         let (i, _whitespace) = multispace0.parse(input)?;
-        let (i, condition) = preceded(tag(IF_STATEMENT_START_KW), LexExpr::parse_expr).parse(i)?;
+        let (i, condition) = preceded(
+            tag(IF_STATEMENT_START_KW),
+            delimited(space0, LexExpr::parse_expr, space0),
+        )
+        .parse(i)?;
         let (i, _then_kw) = preceded(multispace0, tag(IF_STATEMENT_BODY_START_KW)).parse(i)?;
         let (i, body) = many0(preceded(multispace0, Self::parse_statement)).parse(i)?;
         let (rem, _end_kw) = preceded(multispace0, tag(IF_STATEMENT_END_KW)).parse(i)?;
@@ -187,8 +194,11 @@ impl LexStmt {
 
     pub fn parse_while_statement(input: Span) -> B2Result<Self> {
         let (i, _whitespace) = multispace0.parse(input)?;
-        let (i, condition) =
-            preceded(tag(WHILE_STATEMENT_START_KW), LexExpr::parse_expr).parse(i)?;
+        let (i, condition) = preceded(
+            tag(WHILE_STATEMENT_START_KW),
+            delimited(space0, LexExpr::parse_expr, space0),
+        )
+        .parse(i)?;
         let (i, _do_kw) = preceded(multispace0, tag(WHILE_STATEMENT_BODY_START_KW)).parse(i)?;
         let (i, body) = many0(preceded(multispace0, Self::parse_statement)).parse(i)?;
         let (rem, _end_kw) = preceded(multispace0, tag(WHILE_STATEMENT_END_KW)).parse(i)?;
@@ -260,8 +270,8 @@ impl LexStmt {
         let (i, _multispace) = multispace0.parse(input)?;
         let (i, _block_start_kw) = tag(BLOCK_STATEMENT_START_KW).parse(i)?;
         let (i, body) = many0(alt((
-            parse_comment.map(|_| None),
-            Self::parse_statement.map(|x| Some(x)),
+            preceded(space0, parse_comment.map(|_| None)),
+            preceded(space0, Self::parse_statement.map(|x| Some(x))),
         )))
         .map(|xs| xs.into_iter().filter_map(|x| x).collect())
         .parse(i)?;

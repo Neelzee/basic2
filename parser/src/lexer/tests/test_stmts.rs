@@ -44,18 +44,39 @@ fn test_variable_declaration_fails_with_missing_end_stmt_kw() {
 }
 
 #[rstest]
-fn test_variable_declaration_assignment() {
-    let input = r##"LET FOO = "BAR";"##;
+#[case(
+    r##"LET FOO = "BAR";"##,
+    LexStmt::VariableDeclarationAssignment {
+        identifier: "FOO".to_string(),
+        variable_type: None,
+        value: LexExpr::Literal(Primitive::Str("BAR".to_string()))
+    }
+)]
+#[case(
+    r##"
+    LET me = STRUCTURE Person WITH
+        IMPL firstName = "Nils";
+        IMPL lastName = "Fitjar";
+        IMPL age = 24;
+    END;
+    "##,
+    LexStmt::VariableDeclarationAssignment {
+        identifier: "me".to_string(),
+        variable_type: None,
+        value: LexExpr::Struct {
+            identifier: "Person".to_string(),
+            field_implementations: vec![
+                ("firstName".to_string(), LexExpr::Literal(Primitive::Str("Nils".to_string()))),
+                ("lastName".to_string(), LexExpr::Literal(Primitive::Str("Fitjar".to_string()))),
+                ("age".to_string(), LexExpr::Literal(Primitive::Int(24))),
+            ]
+        }
+    }
+)]
+fn test_variable_declaration_assignment(#[case] input: &str, #[case] expected: LexStmt) {
     let result = LexStmt::parse_variable_declaration_assignment(Span::new(input));
     assert!(result.is_ok(), "{result:?}");
-    assert_eq!(
-        result.unwrap().1,
-        LexStmt::VariableDeclarationAssignment {
-            identifier: "FOO".to_string(),
-            variable_type: None,
-            value: LexExpr::Literal(Primitive::Str("BAR".to_string()))
-        }
-    );
+    assert_eq!(result.unwrap().1, expected);
 }
 
 #[rstest]
@@ -74,18 +95,28 @@ fn test_variable_declaration_assignment_consumes_end_stmt_kw() {
 }
 
 #[rstest]
-fn test_variable_reassignment() {
-    let input = r##"FOO = "BAR";"##;
+#[case(
+    r##"FOO = "BAR";"##,
+    LexStmt::VariableReassignment {
+        identifier: "FOO".to_string(),
+        new_value: LexExpr::Literal(Primitive::Str("BAR".to_string())),
+        reassignment: None
+    }
+)]
+#[case(
+    r##"
+    hello += ", World!";
+    "##,
+    LexStmt::VariableReassignment {
+        identifier: "hello".to_string(),
+        new_value: LexExpr::Literal(Primitive::Str(", World!".to_string())),
+        reassignment: Some(BinOp::Add),
+    }
+)]
+fn test_variable_reassignment(#[case] input: &str, #[case] expected: LexStmt) {
     let result = LexStmt::parse_variable_reassignment(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
-    assert_eq!(
-        result.unwrap().1,
-        LexStmt::VariableReassignment {
-            identifier: "FOO".to_string(),
-            new_value: LexExpr::Literal(Primitive::Str("BAR".to_string())),
-            reassignment: None
-        }
-    );
+    assert!(result.is_ok(), "{:?}", result.unwrap_err());
+    assert_eq!(result.unwrap().1, expected);
 }
 
 #[rstest]
@@ -208,6 +239,24 @@ fn test_parse_if(#[case] input: &str, #[case] expected: LexStmt) {
                 variable_type: None,
                 value: LexExpr::Literal(Primitive::Str("BAR".to_string()))
             }
+        ]
+    }
+)]
+#[case(
+    r##"
+    WHILE (TRUE) DO
+        INVOKE PRINT("Hello!");
+        BREAK;
+    END
+    "##,
+    LexStmt::While {
+        condition: LexExpr::Group(Box::new(LexExpr::Literal(Primitive::Bool(true)))),
+        body: vec![
+            LexStmt::FunctionInvocation {
+                identifier: "PRINT".to_string(),
+                arguments: vec![LexExpr::Literal(Primitive::Str("Hello!".to_string()))]
+            },
+            LexStmt::Break,
         ]
     }
 )]

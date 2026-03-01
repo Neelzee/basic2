@@ -1,7 +1,7 @@
 use crate::{
     common::{BinOp, Primitive, UniOp},
     lexer::utils::{
-        B2Result, Span,
+        B2Result, Span, VerboseError,
         consts::{
             FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_END_CHAR,
             FUNCTION_CALL_START, GROUP_END, GROUP_START, LIST_DELIMITER, LIST_END, LIST_END_CHAR,
@@ -62,8 +62,8 @@ impl LexExpr {
             Self::parse_tuple,
             Self::parse_list,
             Self::parse_function_call,
-            Self::parse_variable,
             Self::parse_struct,
+            Self::parse_variable,
         ))
         .parse(input)
     }
@@ -76,6 +76,7 @@ impl LexExpr {
             Self::parse_tuple,
             Self::parse_list,
             Self::parse_function_call,
+            Self::parse_struct,
             Self::parse_variable,
         ))
         .parse(input)
@@ -123,9 +124,16 @@ impl LexExpr {
     }
 
     pub fn parse_variable(input: Span) -> B2Result<Self> {
-        parse_identifier
+        match parse_identifier
             .map(|s: Span| Self::Variable(s.to_string()))
-            .parse(input)
+            .parse(input)?
+        {
+            // TODO: Figure out a better way to not allow keywords as identifiers
+            (_, LexExpr::Variable(ident)) if matches!(ident.as_str(), STRUCT_KW) => Err(
+                nom::Err::Error(VerboseError::new(input, "not valid identifier")),
+            ),
+            res @ (_, _) => Ok(res),
+        }
     }
 
     pub fn parse_group(input: Span) -> B2Result<Self> {
@@ -155,7 +163,6 @@ impl LexExpr {
 
     pub fn parse_unary_operation(input: Span) -> B2Result<Self> {
         let (i, op) = UniOp::parse_unary_operation_symbol.parse(input)?;
-        dbg!(i);
         Self::parse_expr
             .map(|expr| Self::UniOp {
                 op,

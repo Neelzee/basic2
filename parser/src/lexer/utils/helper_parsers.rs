@@ -36,18 +36,18 @@ pub fn parse_identifier(input: Span) -> B2Result<Span> {
 
 /// Parses a list-like input, with a specified start, end and delimiter
 /// ```rust
-/// use parser::lexer::{utils::helper_parsers::parse_poly_list_with, lex_type::LexType};
+/// use parser::lexer::{utils::{helper_parsers::parse_poly_list_with, Span}, lex_type::LexType};
 /// use nom::Parser;
 ///
 /// let input = "(INT, STR, BOOL)";
-/// let result = parse_poly_list_with("(", ",", ')', LexType::parse_type).parse(input);
+/// let result = parse_poly_list_with("(", ",", ")", LexType::parse_type).parse(Span::new(input));
 /// assert!(result.is_ok(), "{result:?}");
-/// assert_eq!(result.unwrap().0, "");
+/// assert_eq!(result.unwrap().0.to_string(), "");
 ///
 /// let other_input = "(INT, STR, BOOL) some-other-string";
-/// let result = parse_poly_list_with("(", ",", ')', LexType::parse_type).parse(other_input);
+/// let result = parse_poly_list_with("(", ",", ")", LexType::parse_type).parse(Span::new(other_input));
 /// assert!(result.is_ok(), "{result:?}");
-/// assert_eq!(result.unwrap().0, " some-other-string");
+/// assert_eq!(result.unwrap().0.to_string(), " some-other-string");
 /// ```
 pub fn parse_poly_list_with<'a, P>(
     start: &'static str,
@@ -81,7 +81,13 @@ pub fn parse_parameters(input: Span) -> B2Result<(String, Option<LexExpr>)> {
             ),
             context(
                 "parse-parameter-optional-default-argument",
-                opt(preceded(space0, preceded(tag("="), LexExpr::parse_expr))),
+                opt(preceded(
+                    space0,
+                    preceded(
+                        context("parameter-default-argument-assignment", tag("=")),
+                        preceded(space0, LexExpr::parse_expr),
+                    ),
+                )),
             ),
         ),
     )

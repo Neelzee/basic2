@@ -4,11 +4,15 @@ use nom::{
     bytes::complete::{tag, take, take_till},
     character::complete::{alpha1, char, digit0, digit1, space0},
     combinator::{map, opt, recognize},
+    error::context,
     number::complete::float,
     sequence::{delimited, pair, preceded},
 };
 
-use crate::lexer::utils::{B2Result, Span};
+use crate::lexer::utils::{
+    B2Result, Span,
+    consts::{STRING_CHAR, STRING_KW},
+};
 
 #[derive(Debug, PartialEq)]
 pub enum Primitive {
@@ -63,9 +67,16 @@ impl Primitive {
     }
 
     pub fn parse_str(input: Span) -> B2Result<Self> {
-        delimited(tag("\""), take_till(|c| c == '"'), tag("\""))
-            .map(|s: Span| Self::Str(s.to_string()))
-            .parse(input)
+        context(
+            "string-primitive",
+            delimited(
+                context("string-start", tag(STRING_KW)),
+                context("string-content", take_till(|c| c == STRING_CHAR)),
+                context("string-end", tag(STRING_KW)),
+            ),
+        )
+        .map(|s: Span| Self::Str(s.to_string()))
+        .parse(input)
     }
 }
 

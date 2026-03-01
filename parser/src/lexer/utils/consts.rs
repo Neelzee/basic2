@@ -63,6 +63,11 @@ pub const FUNCTION_INVOCATION_START_KW: &str = "INVOKE";
 pub const FUNCTION_INVOCATION_END: &str = ";";
 
 pub const VARIABLE_REASIGNMENT: &str = "=";
+pub const END_STMT_KW: &str = ";";
+pub const BREAK_STMT_KW: &str = "BREAK";
+
+pub const STRING_KW: &str = "\"";
+pub const STRING_CHAR: char = '"';
 
 #[cfg(test)]
 pub mod test_const {
