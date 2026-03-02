@@ -1,3 +1,3 @@
-BEGIN PROC ImportBar
+BEGIN MODULE ImportBar
 LET Bar = "Bar";
-PROC ImportBar END
+MODULE ImportBar END

@@ -1,6 +1,6 @@
-BEGIN PROC Imports
+BEGIN MODULE Imports
 USE ImportBar;
 USE ImportFoo;
 IMPL Foo() INVOKE PRINT(Bar);
 LET _ = Foo();
-PROC Imports END
+MODULE Imports END

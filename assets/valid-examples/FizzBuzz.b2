@@ -1,4 +1,4 @@
-BEGIN PROC FizzBuzz
+BEGIN MODULE FizzBuzz
 DECL fizzbuzz(INT) : STR;
 IMPL fizzbuzz(n) DO
   LET result: STR = "";
@@ -23,4 +23,4 @@ WHILE (TRUE) DO
   LET fb = fizzbuzz(query AS INT);
   INVOKE PRINT(fb);
 END
-PROC FizzBuzz END
+MODULE FizzBuzz END
