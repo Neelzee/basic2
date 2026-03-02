@@ -1,6 +1,6 @@
 use crate::lexer::{
     lex_prog::LexProgram,
-    utils::{Span, consts::test_const::EMPTY_PROGRAM_PATH},
+    utils::{Span, consts::test_const::EMPTY_PROGRAM_PATH, convert_error},
 };
 use anyhow::{Context, Result};
 use rstest::rstest;
@@ -13,9 +13,14 @@ fn test_can_parse_empty_program() -> Result<()> {
     let mut file = File::open(&path).with_context(|| format!("{path:?}"))?;
     let mut buf = String::new();
     file.read_to_string(&mut buf)?;
+    let input = Span::new(&buf);
 
-    let result = LexProgram::parse_program(Span::new(&buf));
-    assert!(result.is_ok(), "{result:?}");
+    let result = LexProgram::parse_program(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
     Ok(())
 }
 
@@ -26,9 +31,14 @@ fn test_can_parse_basic_examples(
     let mut file = File::open(&path).with_context(|| format!("{path:?}"))?;
     let mut buf = String::new();
     file.read_to_string(&mut buf)?;
+    let input = Span::new(&buf);
 
-    let result = LexProgram::parse_program(Span::new(&buf));
-    assert!(result.is_ok(), "{result:?}");
+    let result = LexProgram::parse_program(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
 
     Ok(())
 }
@@ -41,8 +51,14 @@ fn test_can_parse_valid_examples(
     let mut buf = String::new();
     file.read_to_string(&mut buf)?;
 
-    let result = LexProgram::parse_program(Span::new(&buf));
-    assert!(result.is_ok(), "{result:?}");
+    let input = Span::new(&buf);
+    let result = LexProgram::parse_program(input);
+
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
 
     Ok(())
 }

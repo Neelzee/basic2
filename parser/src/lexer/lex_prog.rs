@@ -2,7 +2,7 @@ use crate::lexer::{
     lex_stmt::LexStmt,
     utils::{
         B2Result, Span,
-        consts::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW},
+        consts::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW, ONE_SPACE},
         helper_parsers::{parse_comment, parse_identifier},
     },
 };
@@ -11,65 +11,61 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{multispace0, space1},
-    error::{ErrorKind, FromExternalError, ParseError},
+    combinator::cut,
+    error::{ErrorKind, FromExternalError, ParseError, context},
     multi::many0,
-    sequence::preceded,
+    sequence::{delimited, pair, preceded},
 };
-use nom_language::error::VerboseError;
 
 #[derive(Debug)]
 pub struct LexProgram {
-    identifier: String,
+    start_identifier: String,
+    end_identifier: String,
     statements: Vec<LexStmt>,
 }
 
 impl LexProgram {
     pub fn parse_program(input: Span) -> B2Result<Self> {
-        let (i, identifier) = preceded(
-            tag(BEGIN_MODULE_KW),
-            preceded(
-                space1,
-                preceded(tag(MODULE_KW), preceded(space1, parse_identifier)),
-            ),
-        )
-        .map(|s| s.to_string())
-        .parse(input)?;
-        let (i, _newline) = alt((tag("\n"), tag("\r\n"))).parse(i)?;
-        let (i, statements) = many0(alt((
-            parse_comment.map(|_| None),
-            LexStmt::parse_statement.map(|s| Some(s)),
-        )))
-        .map(|xs| xs.into_iter().filter_map(|x| x).collect())
-        .parse(i)?;
-        let (rem, _end_module_kw) = preceded(
-            multispace0,
-            preceded(
-                tag(MODULE_KW),
+        context(
+            "module",
+            context(
+                "module-start-identifier",
                 preceded(
-                    space1,
-                    preceded(
-                        tag(identifier.as_str()),
-                        preceded(space1, tag(END_MODULE_KW)),
+                    (
+                        tag(BEGIN_MODULE_KW),
+                        tag(ONE_SPACE),
+                        tag(MODULE_KW),
+                        tag(ONE_SPACE),
                     ),
-                ),
-            ),
+                    parse_identifier,
+                )
+                .map(|s| s.to_string()),
+            )
+            .and(context(
+                "module-statements",
+                many0(preceded(
+                    alt((multispace0, parse_comment)),
+                    LexStmt::parse_statement,
+                )),
+            ))
+            .and(context(
+                "module-end-identifier",
+                preceded(
+                    multispace0,
+                    delimited(
+                        (tag(MODULE_KW), tag(ONE_SPACE)),
+                        parse_identifier,
+                        (tag(ONE_SPACE), tag(END_MODULE_KW)),
+                    ),
+                )
+                .map(|s| s.to_string()),
+            )),
         )
-        .parse(i)?;
-
-        if !rem.is_empty() {
-            return Err(nom::Err::Failure(VerboseError::from_external_error(
-                i,
-                ErrorKind::Fail,
-                "Extranous text remainding after program parse",
-            )));
-        }
-
-        Ok((
-            Span::new(""),
-            LexProgram {
-                identifier,
-                statements,
-            },
-        ))
+        .map(|((start_identifier, statements), end_identifier)| Self {
+            start_identifier,
+            end_identifier,
+            statements,
+        })
+        .parse(input)
     }
 }

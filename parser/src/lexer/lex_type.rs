@@ -1,17 +1,18 @@
 use crate::lexer::utils::{
     B2Result, Span,
     consts::{
-        BOOL_TYPE_KW, INT_TYPE_KW, LIST_END, LIST_START, STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_START,
+        BOOL_TYPE_KW, INT_TYPE_KW, LIST_END, LIST_START, STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_END,
+        TUPLE_START,
     },
 };
 use nom::{
     Parser,
     branch::{alt, permutation},
     bytes::complete::tag,
-    character::complete::space0,
+    character::{complete::space0, streaming::multispace0},
     error::context,
     multi::many0,
-    sequence::{delimited, pair, preceded, separated_pair},
+    sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -39,14 +40,20 @@ impl LexType {
         context(
             "tuple-type-parsing",
             separated_pair(
-                preceded(
-                    permutation((many0(space0), tag(TUPLE_START))),
-                    Self::parse_type,
+                context(
+                    "tuple-type-fst",
+                    preceded(
+                        preceded(multispace0, tag(TUPLE_START)),
+                        preceded(multispace0, Self::parse_type),
+                    ),
                 ),
-                preceded(many0(space0), tag(TUPLE_DELIMITER)),
-                preceded(
-                    permutation((many0(space0), tag(TUPLE_START))),
-                    Self::parse_type,
+                preceded(multispace0, tag(TUPLE_DELIMITER)),
+                context(
+                    "tuple-type-snd",
+                    terminated(
+                        preceded(multispace0, Self::parse_type),
+                        preceded(multispace0, tag(TUPLE_END)),
+                    ),
                 ),
             )
             .map(|(fst, snd)| Self::Tuple {

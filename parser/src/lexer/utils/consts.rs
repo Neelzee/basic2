@@ -32,6 +32,7 @@ pub const FUNCTION_CALL_DELIMITER_CHAR: char = ',';
 pub const BEGIN_MODULE_KW: &str = "BEGIN";
 pub const MODULE_KW: &str = "MODULE";
 pub const END_MODULE_KW: &str = "END";
+pub const ONE_SPACE: &str = " ";
 
 pub const STR_TYPE_KW: &str = "STR";
 pub const INT_TYPE_KW: &str = "INT";
@@ -84,6 +85,10 @@ pub const DIV_KW: &str = "/";
 pub const SUB_KW: &str = "-";
 pub const MUL_KW: &str = "*";
 pub const ADD_KW: &str = "+";
+
+pub const TYPE_ALIAS_KW: &str = "ALIAS";
+
+pub const IMPORT_MODULE_KW: &str = "USE";
 
 #[cfg(test)]
 pub mod test_const {

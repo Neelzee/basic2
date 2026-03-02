@@ -1,6 +1,11 @@
 use crate::{
     common::{binop::BinOp, primitive::Primitive},
-    lexer::{lex_expr::LexExpr, lex_stmt::LexStmt, lex_type::LexType, utils::Span},
+    lexer::{
+        lex_expr::LexExpr,
+        lex_stmt::LexStmt,
+        lex_type::LexType,
+        utils::{Span, convert_error},
+    },
 };
 use rstest::rstest;
 
@@ -469,8 +474,9 @@ fn test_parse_function_implementation(#[case] input: &str, #[case] expected: Lex
     LexStmt::Block { body: Vec::new() }
 )]
 fn test_parse_multiline_statements(#[case] input: &str, #[case] expected: LexStmt) {
-    let result = LexStmt::parse_statement(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
+    let input = Span::new(input);
+    let result = LexStmt::parse_statement(input);
+    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
     assert_eq!(result.unwrap().1, expected);
 }
 
@@ -505,17 +511,69 @@ fn test_parse_multiline_statements(#[case] input: &str, #[case] expected: LexStm
     LexStmt::Block { body: vec![LexStmt::VariableDeclaration { identifier: "FOO".to_string(), variable_type: None }] }
 )]
 fn test_parse_block_statements(#[case] input: &str, #[case] expected: LexStmt) {
-    let result = LexStmt::parse_block_statement(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
+    let input = Span::new(input);
+    let result = LexStmt::parse_block_statement(input);
+    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
     assert_eq!(result.unwrap().1, expected);
 }
 
 #[test]
-fn parse_function_invocation() {
+fn test_parse_function_invocation() {
     let input = r##"
     INVOKE PRINT("HELLO");
     "##;
     let result = LexStmt::parse_function_invocation(Span::new(input));
-    dbg!(result.as_ref());
     assert!(result.is_ok(), "{result:?}");
+}
+
+#[rstest]
+#[case(
+    r##"ALIAS Foo = INT;"##,
+    LexStmt::TypeAlias {
+        identifier: "Foo".to_string(),
+        b2_type: LexType::Int
+    }
+)]
+#[case(
+    r##"ALIAS Foo = (INT, INT);"##,
+    LexStmt::TypeAlias {
+        identifier: "Foo".to_string(),
+        b2_type: LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) }
+    }
+)]
+#[case(
+    r##"ALIAS Foo = (INT, (INT, INT));"##,
+    LexStmt::TypeAlias {
+        identifier: "Foo".to_string(),
+        b2_type: LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) }) }
+    }
+)]
+fn test_parse_type_alias(#[case] input: &str, #[case] expected: LexStmt) {
+    let input = Span::new(input);
+    let result = LexStmt::parse_type_alias(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case::alias(r##"ALIAS Foo = (INT, (INT, INT))"##)]
+#[case::declare_variable(r##"LET foo"##)]
+#[case::variable_assignment(r##"LET foo = "bar""##)]
+#[case::variable_reassignment(r##"foo = "bar""##)]
+#[case::variable_reassignment_add(r##"foo += "bar""##)]
+#[case::import(r##"USE Foobar"##)]
+#[case::function_invocation(r##"INVOKE Foo()"##)]
+fn test_parse_stmts_fail_with_missing_end_stmt_kw(#[case] input: &str) {
+    let input = Span::new(input);
+    let result = LexStmt::parse_statement(input);
+    assert!(
+        result.is_err(),
+        "Remainding: {}, result: {:?}",
+        result.as_ref().unwrap().0.to_string(),
+        result.unwrap().1
+    );
 }

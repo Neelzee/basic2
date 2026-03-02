@@ -6,14 +6,15 @@ use crate::{
         utils::{
             B2Result, Span,
             consts::{
-                BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW, END_STMT_KW,
-                FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_IMPLEMENTATION_KW,
-                FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END,
-                FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER,
-                FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, IF_STATEMENT_BODY_START_KW,
-                IF_STATEMENT_END_KW, IF_STATEMENT_START_KW, STRUCT_DECL_KW, STRUCT_END_KW,
-                STRUCT_FIELD_DECL_KW, STRUCT_KW, VARIABLE_REASIGNMENT,
-                WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
+                ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW,
+                END_STMT_KW, FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW,
+                FUNCTION_IMPLEMENTATION_KW, FUNCTION_IMPLEMENTATION_START_KW,
+                FUNCTION_INVOCATION_END, FUNCTION_INVOCATION_START_KW,
+                FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START,
+                IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
+                IMPORT_MODULE_KW, STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW,
+                TYPE_ALIAS_KW, VARIABLE_REASIGNMENT, WHILE_STATEMENT_BODY_START_KW,
+                WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
                 parse_comment, parse_identifier, parse_parameters, parse_poly_list_with,
@@ -80,23 +81,39 @@ pub enum LexStmt {
         arguments: Vec<LexExpr>,
     },
     Break,
+    Return {
+        value: Option<LexExpr>,
+    },
+    TypeAlias {
+        identifier: String,
+        b2_type: LexType,
+    },
+    ImportModule {
+        identifier: String,
+    },
 }
 
 impl LexStmt {
     pub fn parse_statement(input: Span) -> B2Result<Self> {
-        alt((
-            Self::parse_variable_declaration,
-            Self::parse_variable_declaration_assignment,
-            Self::parse_variable_reassignment,
-            Self::parse_if_statement,
-            Self::parse_while_statement,
-            Self::parse_function_declaration,
-            Self::parse_function_implementation,
-            Self::parse_block_statement,
-            Self::parse_function_invocation,
-            Self::parse_struct_declaration,
-            Self::parse_break,
-        ))
+        context(
+            "statements",
+            alt((
+                Self::parse_type_alias,
+                Self::parse_variable_declaration,
+                Self::parse_variable_declaration_assignment,
+                Self::parse_variable_reassignment,
+                Self::parse_if_statement,
+                Self::parse_while_statement,
+                Self::parse_function_declaration,
+                Self::parse_function_implementation,
+                Self::parse_block_statement,
+                Self::parse_function_invocation,
+                Self::parse_struct_declaration,
+                Self::parse_break,
+                Self::parse_return,
+                Self::parse_import_module,
+            )),
+        )
         .parse(input)
     }
 
@@ -104,6 +121,16 @@ impl LexStmt {
         delimited(multispace0, tag(BREAK_STMT_KW), tag(END_STMT_KW))
             .map(|_| Self::Break)
             .parse(input)
+    }
+
+    pub fn parse_return(input: Span) -> B2Result<Self> {
+        delimited(
+            preceded(multispace0, tag(BREAK_STMT_KW)),
+            opt(preceded(space0, LexExpr::parse_expr)),
+            tag(END_STMT_KW),
+        )
+        .map(|value| Self::Return { value })
+        .parse(input)
     }
 
     pub fn parse_variable_declaration(input: Span) -> B2Result<Self> {
@@ -261,16 +288,19 @@ impl LexStmt {
     }
 
     pub fn parse_block_statement(input: Span) -> B2Result<Self> {
-        let (i, _multispace) = multispace0.parse(input)?;
-        let (i, _block_start_kw) = tag(BLOCK_STATEMENT_START_KW).parse(i)?;
-        let (i, body) = many0(alt((
-            preceded(space0, parse_comment.map(|_| None)),
-            preceded(space0, Self::parse_statement.map(|x| Some(x))),
-        )))
-        .map(|xs| xs.into_iter().filter_map(|x| x).collect())
-        .parse(i)?;
-        let (rem, _block_end_kw) = preceded(multispace0, tag(BLOCK_STATEMENT_END_KW)).parse(i)?;
-        Ok((rem, Self::Block { body }))
+        context(
+            "block-statement",
+            delimited(
+                context("block-statement-start", tag(BLOCK_STATEMENT_START_KW).and(multispace0)),
+                context("block-inner-statements", many0((
+                    multispace0,
+                    parse_comment,
+                    Self::parse_statement
+                ).map(|(_, _, s)| s))),
+                context("block-statement-end", multispace0.and(tag(BLOCK_STATEMENT_END_KW)))
+            ).map(|body| Self::Block { body })
+        )
+        .parse(input)
     }
 
     pub fn parse_function_invocation(input: Span) -> B2Result<Self> {
@@ -332,6 +362,49 @@ impl LexStmt {
             tag(";"),
         )
         .map(|(f, _)| f)
+        .parse(input)
+    }
+
+    pub fn parse_type_alias(input: Span) -> B2Result<Self> {
+        context(
+            "type-alias-statement",
+            terminated(
+                pair(
+                    delimited(
+                        context(
+                            "type-alias-kw-and-multispace",
+                            preceded(tag(TYPE_ALIAS_KW), multispace0),
+                        ),
+                        context(
+                            "type-alias-identifier",
+                            parse_identifier.map(|s| s.to_string()),
+                        ),
+                        context("type-alias-type", preceded(multispace0, tag(ASSIGNMENT_KW))),
+                    ),
+                    preceded(multispace0, LexType::parse_type),
+                ),
+                tag(END_STMT_KW),
+            ),
+        )
+        .map(|(identifier, b2_type)| Self::TypeAlias {
+            identifier,
+            b2_type,
+        })
+        .parse(input)
+    }
+
+    pub fn parse_import_module(input: Span) -> B2Result<Self> {
+        context(
+            "import-module-statement",
+            terminated(
+                preceded(
+                    preceded(tag(IMPORT_MODULE_KW), multispace0),
+                    parse_identifier.map(|s| s.to_string()),
+                ),
+                tag(END_STMT_KW),
+            ),
+        )
+        .map(|identifier| Self::ImportModule { identifier })
         .parse(input)
     }
 }

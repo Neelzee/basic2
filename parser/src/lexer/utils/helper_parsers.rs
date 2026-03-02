@@ -80,7 +80,7 @@ pub fn parse_parameters(input: Span) -> B2Result<(String, Option<LexExpr>)> {
 
 pub fn parse_comment(input: Span) -> B2Result<Span> {
     preceded(
-        preceded(multispace0, tag(SINGLE_LINE_COMMENT)),
+        preceded(space0, tag(SINGLE_LINE_COMMENT)),
         take_till(|c| c == '\n'),
     )
     .parse(input)

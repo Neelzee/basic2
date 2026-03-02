@@ -195,10 +195,7 @@ impl LexExpr {
                     multispace0,
                     context("binary-operation-symbol", BinOp::parse_symbol),
                 ),
-                preceded(
-                    multispace0,
-                    context("right-operand", Self::parse_expr),
-                ),
+                preceded(multispace0, context("right-operand", Self::parse_expr)),
             ),
         )
         .map(|(l, op, r)| Self::Op(Box::new(Operation::Binary(l, op, r))))
