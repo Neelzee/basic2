@@ -1,6 +1,8 @@
 BEGIN MODULE Imports
 USE ImportBar;
 USE ImportFoo;
-IMPL Foo() INVOKE PRINT(Bar);
+IMPL Foo() DOES
+  INVOKE PRINT(Bar);
+END
 LET _ = Foo();
 MODULE Imports END

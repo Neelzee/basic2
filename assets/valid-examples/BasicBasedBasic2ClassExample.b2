@@ -3,14 +3,17 @@ BEGIN MODULE ClassExample
 ALIAS Person = (STR, (STR, (INT, (STR, (INT, (STR, INT))))));
 
 DECL Person(STR, STR, INT, STR, INT, STR) : Person;
-IMPL Person(firstName, lastName, age, city, postcode, street)
+IMPL Person(firstName, lastName, age, city, postcode, street) DOES
   RETURN (firstName, (lastName, (age, (city, (postcode, (street, -1))))));
+END
 
 DECL getAge(Person) : INT;
-IMPL getAge(p) RETURN p[1][1][0];
+IMPL getAge(p) DOES
+  RETURN p[1][1][0];
+END
 
 DECL setAge(Person, INT) : Person;
-IMPL setAge(p, newAge) DO
+IMPL setAge(p, newAge) DOES
   LET (firstName, lastName, age, city, postCode, street) >< p;
   RETURN Person(firstName, lastName, newAge, city, postCode, street);
 END
