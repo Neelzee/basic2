@@ -1,5 +1,5 @@
 use crate::{
-    common::Primitive,
+    common::primitive::Primitive,
     lexer::{
         lex_expr::LexExpr,
         lex_type::LexType,

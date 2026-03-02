@@ -1,5 +1,5 @@
 use crate::{
-    common::{BinOp, Primitive},
+    common::{binop::BinOp, primitive::Primitive},
     lexer::{lex_expr::LexExpr, lex_stmt::LexStmt, lex_type::LexType, utils::Span},
 };
 use rstest::rstest;

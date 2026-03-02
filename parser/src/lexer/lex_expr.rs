@@ -1,5 +1,5 @@
 use crate::{
-    common::{BinOp, Primitive, UniOp},
+    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
     lexer::utils::{
         B2Result, Span,
         consts::{
@@ -20,9 +20,8 @@ use nom::{
     multi::{many0, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
-use nom_language::error::VerboseError;
+use nom_language::{error::VerboseError, precedence::Operation};
 
-#[derive(Debug, PartialEq)]
 pub enum LexExpr {
     Literal(Primitive),
     Tuple(Box<Self>, Box<Self>),
@@ -33,15 +32,7 @@ pub enum LexExpr {
         identifier: String,
         arguments: Vec<Self>,
     },
-    UniOp {
-        op: UniOp,
-        operand: Box<Self>,
-    },
-    BinOp {
-        op: BinOp,
-        left_operand: Box<Self>,
-        right_operand: Box<Self>,
-    },
+    Op(Box<B2Op>),
     Struct {
         identifier: String,
         field_implementations: Vec<(String, Self)>,
@@ -50,6 +41,22 @@ pub enum LexExpr {
 
 impl LexExpr {
     pub fn parse_expr(input: Span) -> B2Result<Self> {
+        alt((
+            Self::parse_postfix_operation,
+            Self::parse_unary_operation,
+            Self::parse_binary_operation,
+            Self::parse_literal,
+            Self::parse_group,
+            Self::parse_tuple,
+            Self::parse_list,
+            Self::parse_function_call,
+            Self::parse_struct,
+            Self::parse_variable,
+        ))
+        .parse(input)
+    }
+
+    pub fn parse_expr_excl_postfix(input: Span) -> B2Result<Self> {
         alt((
             Self::parse_unary_operation,
             Self::parse_binary_operation,
@@ -161,38 +168,41 @@ impl LexExpr {
         ))
     }
 
+    pub fn parse_postfix_operation(input: Span) -> B2Result<Self> {
+        context(
+            "postfix-expresion",
+            pair(Self::parse_expr_excl_postfix, Postfix::parse_postfix),
+        )
+        .map(|(val, op)| Self::Op(Box::new(Operation::Postfix(val, op))))
+        .parse(input)
+    }
+
     pub fn parse_unary_operation(input: Span) -> B2Result<Self> {
-        let (i, op) = UniOp::parse_unary_operation_symbol.parse(input)?;
-        Self::parse_expr
-            .map(|expr| Self::UniOp {
-                op,
-                operand: Box::new(expr),
-            })
-            .parse(i)
+        context(
+            "unary-operation",
+            pair(UniOp::parse_unary_operation_symbol, Self::parse_expr),
+        )
+        .map(|(op, val)| Self::Op(Box::new(Operation::Prefix(op, val))))
+        .parse(input)
     }
 
     pub fn parse_binary_operation(input: Span) -> B2Result<Self> {
-        let (i, (left_expr, op)) = pair(
-            context(
-                "binary-operation-left-operand",
-                Self::parse_expr_excl_binary,
+        context(
+            "binary-operation",
+            (
+                context("left-operand", Self::parse_expr_excl_binary),
+                preceded(
+                    multispace0,
+                    context("binary-operation-symbol", BinOp::parse_symbol),
+                ),
+                preceded(
+                    multispace0,
+                    context("right-operand", Self::parse_expr),
+                ),
             ),
-            preceded(space0, BinOp::parse_symbol),
         )
-        .parse(input)?;
-        let (rem, right_expr) = context(
-            "binary-operation-right-operand",
-            preceded(space0, Self::parse_expr),
-        )
-        .parse(i)?;
-        Ok((
-            rem,
-            Self::BinOp {
-                op,
-                left_operand: Box::new(left_expr),
-                right_operand: Box::new(right_expr),
-            },
-        ))
+        .map(|(l, op, r)| Self::Op(Box::new(Operation::Binary(l, op, r))))
+        .parse(input)
     }
 
     pub fn parse_struct(input: Span) -> B2Result<Self> {
@@ -240,5 +250,96 @@ impl LexExpr {
         )
         .map(|(f, _)| f)
         .parse(input)
+    }
+}
+
+impl std::fmt::Debug for LexExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Literal(arg0) => f.debug_tuple("Literal").field(arg0).finish(),
+            Self::Tuple(arg0, arg1) => f.debug_tuple("Tuple").field(arg0).field(arg1).finish(),
+            Self::List(arg0) => f.debug_tuple("List").field(arg0).finish(),
+            Self::Variable(arg0) => f.debug_tuple("Variable").field(arg0).finish(),
+            Self::Group(arg0) => f.debug_tuple("Group").field(arg0).finish(),
+            Self::FunctionCall {
+                identifier,
+                arguments,
+            } => f
+                .debug_struct("FunctionCall")
+                .field("identifier", identifier)
+                .field("arguments", arguments)
+                .finish(),
+            Self::Op(arg0) => match &**arg0 {
+                Operation::Prefix(op, val) => f
+                    .debug_tuple("Operation::Prefix")
+                    .field(op)
+                    .field(val)
+                    .finish(),
+                Operation::Postfix(val, op) => f
+                    .debug_tuple("Operation::Postfix")
+                    .field(val)
+                    .field(op)
+                    .finish(),
+                Operation::Binary(l, op, r) => f
+                    .debug_tuple("Operation::Binary")
+                    .field(l)
+                    .field(op)
+                    .field(r)
+                    .finish(),
+            },
+            Self::Struct {
+                identifier,
+                field_implementations,
+            } => f
+                .debug_struct("Struct")
+                .field("identifier", identifier)
+                .field("field_implementations", field_implementations)
+                .finish(),
+        }
+    }
+}
+
+impl PartialEq for LexExpr {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Literal(l0), Self::Literal(r0)) => l0 == r0,
+            (Self::Tuple(l0, l1), Self::Tuple(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::List(l0), Self::List(r0)) => l0 == r0,
+            (Self::Variable(l0), Self::Variable(r0)) => l0 == r0,
+            (Self::Group(l0), Self::Group(r0)) => l0 == r0,
+            (
+                Self::FunctionCall {
+                    identifier: l_identifier,
+                    arguments: l_arguments,
+                },
+                Self::FunctionCall {
+                    identifier: r_identifier,
+                    arguments: r_arguments,
+                },
+            ) => l_identifier == r_identifier && l_arguments == r_arguments,
+            (Self::Op(l0), Self::Op(r0)) => match (&**l0, &**r0) {
+                (Operation::Prefix(lop, lval), Operation::Prefix(rop, rval)) => {
+                    lop == rop && lval == rval
+                }
+                (Operation::Postfix(lval, lop), Operation::Postfix(rval, rop)) => {
+                    lop == rop && lval == rval
+                }
+                (Operation::Binary(ll, lop, lr), Operation::Binary(rl, rop, rr)) => {
+                    lop == rop && ll == rl && lr == rr
+                }
+                _ => false,
+            },
+            (
+                Self::Struct {
+                    identifier: l_identifier,
+                    field_implementations: l_field_implementations,
+                },
+                Self::Struct {
+                    identifier: r_identifier,
+                    field_implementations: r_field_implementations,
+                },
+            ) => l_identifier == r_identifier && l_field_implementations == r_field_implementations,
+            _ => false,
+        }
     }
 }

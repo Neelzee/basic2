@@ -1,5 +1,5 @@
 use crate::{
-    common::{BinOp, Primitive, UniOp},
+    common::{B2Op, binop::BinOp, primitive::Primitive, uniop::UniOp},
     lexer::{lex_expr::LexExpr, utils::Span},
 };
 use nom::Parser;
@@ -72,29 +72,21 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
 #[rstest]
 #[case(
     r##"!"""##,
-    LexExpr::UniOp {
-        op: UniOp::Neg,
-        operand: Box::new(LexExpr::Literal(Primitive::Str("".to_string())))
-    }
+    LexExpr::Op(Box::new(B2Op::Prefix(
+        UniOp::Neg,
+        LexExpr::Literal(Primitive::Str("".to_string()))
+    )))
 )]
 #[case(
     r##"!TRUE"##,
-    LexExpr::UniOp {
-        op: UniOp::Neg,
-        operand: Box::new(LexExpr::Literal(Primitive::Bool(true)))
-    }
+    LexExpr::Op(Box::new(B2Op::Prefix(UniOp::Neg, LexExpr::Literal(Primitive::Bool(true)))))
 )]
 #[case(
     r##"!!TRUE"##,
-    LexExpr::UniOp {
-        op: UniOp::Neg,
-        operand: Box::new(
-            LexExpr::UniOp {
-            op: UniOp::Neg,
-            operand: Box::new(LexExpr::Literal(Primitive::Bool(true)))
-            }
-        )
-    }
+    LexExpr::Op(Box::new(B2Op::Prefix(
+        UniOp::Neg,
+        LexExpr::Op(Box::new(B2Op::Prefix(UniOp::Neg, LexExpr::Literal(Primitive::Bool(true)))))
+    )))
 )]
 fn test_unary_expr(#[case] input: &str, #[case] expected: LexExpr) {
     let result = LexExpr::parse_unary_operation.parse(Span::new(input));
@@ -105,71 +97,71 @@ fn test_unary_expr(#[case] input: &str, #[case] expected: LexExpr) {
 #[rstest]
 #[case(
     "1 + 1",
-    LexExpr::BinOp {
-        op: BinOp::Add,
-        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
-    }
+    LexExpr::Op(Box::new(B2Op::Binary(
+        LexExpr::Literal(Primitive::Int(1)),
+        BinOp::Add,
+        LexExpr::Literal(Primitive::Int(1))
+    )))
 )]
 #[case(
     "1 - 1",
-    LexExpr::BinOp {
-        op: BinOp::Sub,
-        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
-    }
+    LexExpr::Op(Box::new(B2Op::Binary(
+        LexExpr::Literal(Primitive::Int(1)),
+        BinOp::Sub,
+        LexExpr::Literal(Primitive::Int(1))
+    )))
 )]
 #[case(
     "1 * 1",
-    LexExpr::BinOp {
-        op: BinOp::Mul,
-        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
-    }
+    LexExpr::Op(Box::new(B2Op::Binary(
+        LexExpr::Literal(Primitive::Int(1)),
+        BinOp::Mul,
+        LexExpr::Literal(Primitive::Int(1))
+    )))
 )]
 #[case(
     "1 / 1",
-    LexExpr::BinOp {
-        op: BinOp::Div,
-        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
-    }
+    LexExpr::Op(Box::new(B2Op::Binary(
+        LexExpr::Literal(Primitive::Int(1)),
+        BinOp::Div,
+        LexExpr::Literal(Primitive::Int(1))
+    )))
 )]
 #[case(
     "1 ^ 1",
-    LexExpr::BinOp {
-        op: BinOp::Pow,
-        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
-    }
+    LexExpr::Op(Box::new(B2Op::Binary(
+        LexExpr::Literal(Primitive::Int(1)),
+        BinOp::Pow,
+        LexExpr::Literal(Primitive::Int(1))
+    )))
 )]
 #[case(
     "1 + 1 + 1",
-    LexExpr::BinOp {
-        op: BinOp::Add,
-        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-        right_operand: Box::new(LexExpr::BinOp {
-        op: BinOp::Add,
-        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-        right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
-    })
-    }
+    LexExpr::Op(Box::new(B2Op::Binary(
+        LexExpr::Literal(Primitive::Int(1)),
+        BinOp::Add,
+        LexExpr::Op(Box::new(B2Op::Binary(
+            LexExpr::Literal(Primitive::Int(1)),
+            BinOp::Add,
+            LexExpr::Literal(Primitive::Int(1))
+        )))
+    )))
 )]
 #[case(
     "1 + 1 + 1 + 1",
-    LexExpr::BinOp {
-        op: BinOp::Add,
-        left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-        right_operand: Box::new(LexExpr::BinOp {
-            op: BinOp::Add,
-            left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-            right_operand: Box::new(LexExpr::BinOp {
-                op: BinOp::Add,
-                left_operand: Box::new(LexExpr::Literal(Primitive::Int(1))),
-                right_operand: Box::new(LexExpr::Literal(Primitive::Int(1)))
-            })
-        })
-    }
+    LexExpr::Op(Box::new(B2Op::Binary(
+        LexExpr::Literal(Primitive::Int(1)),
+        BinOp::Add,
+        LexExpr::Op(Box::new(B2Op::Binary(
+            LexExpr::Literal(Primitive::Int(1)),
+            BinOp::Add,
+            LexExpr::Op(Box::new(B2Op::Binary(
+                LexExpr::Literal(Primitive::Int(1)),
+                BinOp::Add,
+                LexExpr::Literal(Primitive::Int(1))
+            )))
+        )))
+    )))
 )]
 fn test_binary_expr(#[case] input: &str, #[case] expected: LexExpr) {
     let result = LexExpr::parse_binary_operation.parse(Span::new(input));

@@ -1,0 +1,43 @@
+use crate::lexer::utils::{
+    B2Result, Span,
+    consts::{ADD_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LT_KW, MUL_KW, NEQ_KW, POW_KW, SUB_KW},
+};
+use nom::{
+    Parser, branch::alt, bytes::complete::tag, character::complete::space0, sequence::preceded,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum BinOp {
+    Add,
+    Mul,
+    Sub,
+    Div,
+    Pow,
+    Eq,
+    Geq,
+    Gt,
+    Leq,
+    Lt,
+    Neq,
+}
+
+impl BinOp {
+    pub fn parse_symbol(input: Span) -> B2Result<Self> {
+        preceded(
+            space0,
+            alt((
+                tag(ADD_KW).map(|_| Self::Add),
+                tag(MUL_KW).map(|_| Self::Mul),
+                tag(SUB_KW).map(|_| Self::Sub),
+                tag(DIV_KW).map(|_| Self::Div),
+                tag(POW_KW).map(|_| Self::Pow),
+                tag(EQ_KW).map(|_| Self::Eq),
+                tag(GEQ_KW).map(|_| Self::Geq),
+                tag(GT_KW).map(|_| Self::Gt),
+                tag(LT_KW).map(|_| Self::Lt),
+                tag(NEQ_KW).map(|_| Self::Neq),
+            )),
+        )
+        .parse(input)
+    }
+}
