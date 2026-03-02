@@ -32,3 +32,17 @@ fn test_can_parse_basic_examples(
 
     Ok(())
 }
+
+#[rstest]
+fn test_can_parse_valid_examples(
+    #[files("../assets/valid-examples/*.b2")] path: PathBuf,
+) -> Result<()> {
+    let mut file = File::open(&path).with_context(|| format!("{path:?}"))?;
+    let mut buf = String::new();
+    file.read_to_string(&mut buf)?;
+
+    let result = LexProgram::parse_program(Span::new(&buf));
+    assert!(result.is_ok(), "{result:?}");
+
+    Ok(())
+}

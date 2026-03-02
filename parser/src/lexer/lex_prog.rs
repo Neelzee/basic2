@@ -1,7 +1,7 @@
 use crate::lexer::{
     lex_stmt::LexStmt,
     utils::{
-        B2Result, Span, VerboseError,
+        B2Result, Span,
         consts::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW},
         helper_parsers::{parse_comment, parse_identifier},
     },
@@ -11,9 +11,11 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{multispace0, space1},
+    error::{ErrorKind, FromExternalError, ParseError},
     multi::many0,
     sequence::preceded,
 };
+use nom_language::error::VerboseError;
 
 #[derive(Debug)]
 pub struct LexProgram {
@@ -55,8 +57,9 @@ impl LexProgram {
         .parse(i)?;
 
         if !rem.is_empty() {
-            return Err(nom::Err::Failure(VerboseError::new(
+            return Err(nom::Err::Failure(VerboseError::from_external_error(
                 i,
+                ErrorKind::Fail,
                 "Extranous text remainding after program parse",
             )));
         }

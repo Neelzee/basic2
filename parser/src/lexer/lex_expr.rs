@@ -1,7 +1,7 @@
 use crate::{
     common::{BinOp, Primitive, UniOp},
     lexer::utils::{
-        B2Result, Span, VerboseError,
+        B2Result, Span,
         consts::{
             FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_START, GROUP_END,
             GROUP_START, LIST_DELIMITER, LIST_END, LIST_START, STRUCT_END_KW,
@@ -16,10 +16,11 @@ use nom::{
     branch::{alt, permutation},
     bytes::complete::tag,
     character::complete::{multispace0, space0},
-    error::context,
+    error::{ErrorKind, FromExternalError, context},
     multi::{many0, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
+use nom_language::error::VerboseError;
 
 #[derive(Debug, PartialEq)]
 pub enum LexExpr {
@@ -124,9 +125,13 @@ impl LexExpr {
             .parse(input)?
         {
             // TODO: Figure out a better way to not allow keywords as identifiers
-            (_, LexExpr::Variable(ident)) if matches!(ident.as_str(), STRUCT_KW) => Err(
-                nom::Err::Error(VerboseError::new(input, "not valid identifier")),
-            ),
+            (_, LexExpr::Variable(ident)) if matches!(ident.as_str(), STRUCT_KW) => {
+                Err(nom::Err::Error(VerboseError::from_external_error(
+                    input,
+                    ErrorKind::Fail,
+                    "not valid identifier",
+                )))
+            }
             res @ (_, _) => Ok(res),
         }
     }
