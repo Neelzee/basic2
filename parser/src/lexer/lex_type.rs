@@ -3,7 +3,7 @@ use crate::lexer::utils::{
     consts::{
         BOOL_TYPE_KW, INT_TYPE_KW, LIST_END, LIST_START, STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_END,
         TUPLE_START,
-    },
+    }, helper_parsers::parse_identifier,
 };
 use nom::{
     Parser,
@@ -22,6 +22,7 @@ pub enum LexType {
     Bool,
     Tuple { fst: Box<Self>, snd: Box<Self> },
     List(Box<Self>),
+    TypeAlias(String),
 }
 
 impl LexType {
@@ -32,6 +33,7 @@ impl LexType {
             tag(BOOL_TYPE_KW).map(|_| Self::Bool),
             Self::parse_tuple_type,
             Self::parse_list,
+            Self::parse_type_alias,
         ))
         .parse(input)
     }
@@ -74,6 +76,15 @@ impl LexType {
             )
             .map(|t| Self::List(Box::new(t))),
         )
+        .parse(input)
+    }
+
+    pub fn parse_type_alias(input: Span) -> B2Result<Self> {
+        context(
+            "type-alias",
+            parse_identifier
+        )
+        .map(|s| Self::TypeAlias(s.to_string()))
         .parse(input)
     }
 }
