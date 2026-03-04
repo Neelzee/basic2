@@ -1,14 +1,12 @@
 use crate::{
     common::primitive::Primitive,
     lexer::{
-        lex_expr::LexExpr,
-        lex_type::LexType,
-        utils::{
-            B2Result, Span,
+        lex_expr::LexExpr, lex_stmt::LexStmt, lex_type::LexType, utils::{
+            B2Result, Span, convert_error,
             helper_parsers::{
-                parse_comment, parse_identifier, parse_parameters, parse_poly_list_with,
+                consume_comments_and_multispace, parse_comment, parse_identifier, parse_parameters, parse_poly_list_with, parse_statements
             },
-        },
+        }
     },
 };
 use nom::Parser;
@@ -68,7 +66,8 @@ fn test_identifier_parser(#[case] ident: &str, #[case] is_ok: bool) {
 #[case("    # foobar123", true, "")]
 #[case("daj", false, "")]
 #[case("#daj", true, "")]
-#[case("#daj\nfoo", true, "\nfoo")]
+#[case("#daj\nfoo", true, "foo")]
+#[case("# Everything in a module body is in a block", true, "")]
 fn test_comment_parse(#[case] ident: &str, #[case] is_ok: bool, #[case] remainder: &str) {
     let res = parse_comment(Span::new(ident));
     let ok = if is_ok { res.is_ok() } else { res.is_err() };
@@ -76,4 +75,41 @@ fn test_comment_parse(#[case] ident: &str, #[case] is_ok: bool, #[case] remainde
     if res.is_ok() {
         assert_eq!(res.unwrap().0.to_string(), remainder.to_string());
     }
+}
+
+#[test]
+fn test_parse_comments_only_consumes_single_line() {
+    let input = Span::new(
+        r##"    # Should be 2 lines after this comment is consumed
+
+        "##,
+    );
+    let remainder = r##"
+        "##;
+    let res = parse_comment(input);
+    assert!(res.is_ok(), "{}", convert_error(input, res.unwrap_err()));
+    assert_eq!(res.unwrap().0.to_string(), remainder.to_string());
+}
+
+
+#[rstest]
+#[case(
+    r##"
+    # Everything in a module body is in a block
+    # This is a nested block
+    DO
+    # It has it's own scope
+    # Statements have to end with ;
+    END
+    "##,
+    vec![LexStmt::Block { body: Vec::new() }]
+)]
+fn test_parse_statements(#[case] input: &str, #[case] expected: Vec<LexStmt>) {
+    let input = Span::new(input);
+    let res = parse_statements(input);
+    assert!(res.is_ok(), "{}", convert_error(input, res.unwrap_err()));
+    let (remainder, stmt) = res.unwrap();
+    assert_eq!(stmt, expected);
+    assert_eq!(remainder.to_string(), String::new());
+
 }

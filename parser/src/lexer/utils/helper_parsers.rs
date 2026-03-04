@@ -1,20 +1,15 @@
 use crate::lexer::{
     lex_expr::LexExpr,
+    lex_stmt::LexStmt,
     utils::{
         B2Result, Span,
-        consts::{ASSIGNMENT_KW, SINGLE_LINE_COMMENT},
+        consts::{ASSIGNMENT_KW, SINGLE_LINE_COMMENT, SINGLE_LINE_COMMENT_END},
     },
 };
 use nom::{
-    Parser,
-    branch::{alt, permutation},
-    bytes::complete::{tag, take_till},
-    character::complete::{alpha1, alphanumeric0, multispace0, space0},
-    combinator::opt,
-    error::context,
-    multi::separated_list0,
-    sequence::{pair, preceded, terminated},
+    Err::Error, Parser, branch::{alt, permutation}, bytes::complete::{tag, take_till}, character::complete::{alpha1, alphanumeric0, multispace0, multispace1, space0}, combinator::{eof, opt}, error::{ErrorKind, ParseError, context}, multi::{many0, many1, separated_list0}, sequence::{pair, preceded, terminated}
 };
+use nom_language::error::VerboseError;
 
 pub fn parse_identifier(input: Span) -> B2Result<Span> {
     alt((tag("_"), alpha1))
@@ -79,9 +74,43 @@ pub fn parse_parameters(input: Span) -> B2Result<(String, Option<LexExpr>)> {
 }
 
 pub fn parse_comment(input: Span) -> B2Result<Span> {
-    preceded(
-        preceded(space0, tag(SINGLE_LINE_COMMENT)),
-        take_till(|c| c == '\n'),
+    context(
+        "parse-comment",
+        terminated(
+            preceded(
+                space0,
+                preceded(
+                    tag(SINGLE_LINE_COMMENT),
+                    alt((take_till(|c| c == '\n'), eof)),
+                ),
+            ),
+            alt((tag(SINGLE_LINE_COMMENT_END), eof)),
+        ),
     )
+    .parse(input)
+}
+
+pub fn parse_statements(input: Span) -> B2Result<Vec<LexStmt>> {
+    context(
+        "multi-statement",
+        many0(alt((
+            consume_comments_and_multispace.map(|_| None),
+            context("-statement", LexStmt::parse_statement).map(|x| Some(x))
+        ))
+        ),
+    )
+    .map(|xs| xs.into_iter().filter_map(|x| x).collect())
+    .parse(input)
+}
+
+pub fn consume_comments_and_multispace(input: Span) -> B2Result<()> {
+    context(
+        "consume-comments-multiline",
+        alt((
+            multispace1,
+            parse_comment
+        ))
+    )
+    .map(|_| ())
     .parse(input)
 }

@@ -476,7 +476,11 @@ fn test_parse_function_implementation(#[case] input: &str, #[case] expected: Lex
 fn test_parse_multiline_statements(#[case] input: &str, #[case] expected: LexStmt) {
     let input = Span::new(input);
     let result = LexStmt::parse_statement(input);
-    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
     assert_eq!(result.unwrap().1, expected);
 }
 
@@ -513,7 +517,11 @@ fn test_parse_multiline_statements(#[case] input: &str, #[case] expected: LexStm
 fn test_parse_block_statements(#[case] input: &str, #[case] expected: LexStmt) {
     let input = Span::new(input);
     let result = LexStmt::parse_block_statement(input);
-    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
     assert_eq!(result.unwrap().1, expected);
 }
 

@@ -17,7 +17,7 @@ use crate::{
                 WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
-                parse_comment, parse_identifier, parse_parameters, parse_poly_list_with,
+                parse_comment, parse_identifier, parse_parameters, parse_poly_list_with, parse_statements,
             },
         },
     },
@@ -26,7 +26,7 @@ use nom::{
     Parser,
     branch::alt,
     bytes::complete::{tag, take, take_until},
-    character::complete::{multispace0, space0, space1},
+    character::complete::{multispace0, multispace1, space0, space1},
     combinator::opt,
     error::context,
     multi::many0,
@@ -291,14 +291,20 @@ impl LexStmt {
         context(
             "block-statement",
             delimited(
-                context("block-statement-start", tag(BLOCK_STATEMENT_START_KW).and(multispace0)),
-                context("block-inner-statements", many0((
-                    multispace0,
-                    parse_comment,
-                    Self::parse_statement
-                ).map(|(_, _, s)| s))),
-                context("block-statement-end", multispace0.and(tag(BLOCK_STATEMENT_END_KW)))
-            ).map(|body| Self::Block { body })
+                context(
+                    "block-statement-start",
+                    multispace0.and(tag(BLOCK_STATEMENT_START_KW).and(multispace0)),
+                ),
+                context(
+                    "block-inner-statements",
+                    parse_statements,
+                ),
+                context(
+                    "block-statement-end",
+                    many0(alt((multispace1, parse_comment))).and(tag(BLOCK_STATEMENT_END_KW)),
+                ),
+            )
+            .map(|body| Self::Block { body }),
         )
         .parse(input)
     }

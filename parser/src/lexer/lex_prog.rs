@@ -3,7 +3,7 @@ use crate::lexer::{
     utils::{
         B2Result, Span,
         consts::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW, ONE_SPACE},
-        helper_parsers::{parse_comment, parse_identifier},
+        helper_parsers::{parse_comment, parse_identifier, parse_statements},
     },
 };
 use nom::{
@@ -43,11 +43,9 @@ impl LexProgram {
             )
             .and(context(
                 "module-statements",
-                many0(preceded(
-                    alt((multispace0, parse_comment)),
-                    LexStmt::parse_statement,
-                )),
-            ))
+                    parse_statements,
+                ),
+            )
             .and(context(
                 "module-end-identifier",
                 preceded(

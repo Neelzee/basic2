@@ -59,6 +59,7 @@ pub const BLOCK_STATEMENT_START_KW: &str = "DO";
 pub const BLOCK_STATEMENT_END_KW: &str = "END";
 
 pub const SINGLE_LINE_COMMENT: &str = "#";
+pub const SINGLE_LINE_COMMENT_END: &str = "\n";
 
 pub const FUNCTION_INVOCATION_START_KW: &str = "INVOKE";
 pub const FUNCTION_INVOCATION_END: &str = ";";
