@@ -255,8 +255,7 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
 
 #[rstest]
 #[case(
-    r##"
-        DECL f();
+    r##"DECL f();
     "##,
     LexStmt::FunctionDeclaration {
         identifier: "f".to_string(),
@@ -265,8 +264,7 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
     }
 )]
 #[case(
-    r##"
-        DECL foo() : INT;
+    r##"DECL foo() : INT;
     "##,
     LexStmt::FunctionDeclaration {
         identifier: "foo".to_string(),
@@ -275,8 +273,8 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
     }
 )]
 #[case(
-    r##"
-        DECL bar(INT, INT, INT);
+    r##"DECL
+        bar(INT, INT, INT);
     "##,
     LexStmt::FunctionDeclaration {
         identifier: "bar".to_string(),
@@ -285,13 +283,21 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
     }
 )]
 #[case(
-    r##"
-        DECL foobar(INT, INT, INT, STR) : STR;
+    r##"DECL foobar(INT, INT, INT, STR) : STR;
     "##,
     LexStmt::FunctionDeclaration {
         identifier: "foobar".to_string(),
         parameters: vec![LexType::Int, LexType::Int, LexType::Int, LexType::Str],
         return_type: Some(LexType::Str)
+    }
+)]
+#[case(
+    r##"DECL Person(STR, STR, INT, STR, INT, STR) : Person;
+    "##,
+    LexStmt::FunctionDeclaration {
+        identifier: "Person".to_string(),
+        parameters: vec![LexType::Str, LexType::Str, LexType::Int, LexType::Str, LexType::Int, LexType::Str],
+        return_type: Some(LexType::TypeAlias("Person".to_string()))
     }
 )]
 fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStmt) {
@@ -302,8 +308,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
 
 #[rstest]
 #[case(
-    r##"
-        IMPL f() DOES END
+    r##"IMPL f() DOES END
     "##,
     LexStmt::FunctionImplementation {
         identifier: "f".to_string(),
@@ -312,8 +317,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
     }
 )]
 #[case(
-    r##"
-        IMPL f() DOES
+    r##"IMPL f() DOES
         END
     "##,
     LexStmt::FunctionImplementation {
@@ -323,8 +327,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
     }
 )]
 #[case(
-    r##"
-        IMPL foo() DOES
+    r##"IMPL foo() DOES
             LET BAR = 0;
         END
     "##,
@@ -337,8 +340,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
     }
 )]
 #[case(
-    r##"
-        IMPL bar(a, b, c) DOES
+    r##"IMPL bar(a, b, c) DOES
         END
     "##,
     LexStmt::FunctionImplementation {
@@ -348,8 +350,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
     }
 )]
 #[case(
-    r##"
-        IMPL foobar(a = "FOO") DOES
+    r##"IMPL foobar(a = "FOO") DOES
             LET BAR = 0;
         END
     "##,
@@ -365,16 +366,58 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
         ]
     }
 )]
+#[case(
+    r##"IMPL Person(firstName, lastName, age, city, postcode, street) DOES
+        RETURN (firstName, (lastName, (age, (city, (postcode, (street, -1))))));
+    END
+    "##,
+    LexStmt::FunctionImplementation {
+        identifier: "Person".to_string(),
+        parameters: vec![
+            ("firstName".to_string(), None),
+            ("lastName".to_string(), None),
+            ("age".to_string(), None),
+            ("city".to_string(), None),
+            ("postcode".to_string(), None),
+            ("street".to_string(), None),
+        ],
+        body: vec![LexStmt::Return {
+            value: Some(LexExpr::Tuple(
+                Box::new(LexExpr::Variable("firstName".to_string())),
+                Box::new(LexExpr::Tuple(
+                    Box::new(LexExpr::Variable("lastName".to_string())),
+                    Box::new(LexExpr::Tuple(
+                        Box::new(LexExpr::Variable("age".to_string())),
+                        Box::new(LexExpr::Tuple(
+                            Box::new(LexExpr::Variable("city".to_string())),
+                            Box::new(LexExpr::Tuple(
+                                Box::new(LexExpr::Variable("postcode".to_string())),
+                                Box::new(LexExpr::Tuple(
+                                    Box::new(LexExpr::Variable("street".to_string())),
+                                    Box::new(LexExpr::Literal(Primitive::Int(-1)))
+                                ))
+                            ))
+                        ))
+                    ))
+                ))
+            ))
+        }]
+    }
+)]
 fn test_parse_function_implementation(#[case] input: &str, #[case] expected: LexStmt) {
-    let result = LexStmt::parse_function_implementation(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
+    let input = Span::new(input);
+    let result = LexStmt::parse_function_implementation(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
     assert_eq!(result.unwrap().1, expected);
 }
 
 #[rstest]
 #[case(
-    r##"
-    IMPL FOOBAR() DOES
+    r##"IMPL FOOBAR() DOES
         LET BAR = 0;
         LET BAR = 0;
         LET BAR = 0;

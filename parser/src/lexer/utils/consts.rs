@@ -67,6 +67,7 @@ pub const FUNCTION_INVOCATION_END: &str = ";";
 pub const VARIABLE_REASIGNMENT: &str = "=";
 pub const END_STMT_KW: &str = ";";
 pub const BREAK_STMT_KW: &str = "BREAK";
+pub const RETURN_STMT_KW: &str = "RETURN";
 
 pub const STRING_KW: &str = "\"";
 pub const STRING_CHAR: char = '"';
@@ -90,6 +91,9 @@ pub const ADD_KW: &str = "+";
 pub const TYPE_ALIAS_KW: &str = "ALIAS";
 
 pub const IMPORT_MODULE_KW: &str = "USE";
+
+pub const INDEX_START_KW: &str = "[";
+pub const INDEX_END_KW: &str = "]";
 
 #[cfg(test)]
 pub mod test_const {

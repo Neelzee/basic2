@@ -1,12 +1,16 @@
 use crate::{
     common::primitive::Primitive,
     lexer::{
-        lex_expr::LexExpr, lex_stmt::LexStmt, lex_type::LexType, utils::{
+        lex_expr::LexExpr,
+        lex_stmt::LexStmt,
+        lex_type::LexType,
+        utils::{
             B2Result, Span, convert_error,
             helper_parsers::{
-                consume_comments_and_multispace, parse_comment, parse_identifier, parse_parameters, parse_poly_list_with, parse_statements
+                consume_comments_and_multispace, parse_comment, parse_identifier, parse_parameters,
+                parse_poly_list_with, parse_statements,
             },
-        }
+        },
     },
 };
 use nom::Parser;
@@ -44,8 +48,13 @@ fn test_parse_poly_list_with<P, O>(
     O: std::fmt::Debug + PartialEq,
     P: Fn(Span) -> B2Result<O> + Clone,
 {
-    let result = parse_poly_list_with(start, delimiter, end, parser).parse(Span::new(input));
-    assert!(result.is_ok(), "{:?}", result.unwrap_err());
+    let input = Span::new(input);
+    let result = parse_poly_list_with(start, delimiter, end, parser).parse(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
     let result = result.unwrap();
     assert_eq!(result.1, expected);
     assert_eq!(result.0.to_string(), remainder.to_string());
@@ -91,7 +100,6 @@ fn test_parse_comments_only_consumes_single_line() {
     assert_eq!(res.unwrap().0.to_string(), remainder.to_string());
 }
 
-
 #[rstest]
 #[case(
     r##"
@@ -111,5 +119,4 @@ fn test_parse_statements(#[case] input: &str, #[case] expected: Vec<LexStmt>) {
     let (remainder, stmt) = res.unwrap();
     assert_eq!(stmt, expected);
     assert_eq!(remainder.to_string(), String::new());
-
 }

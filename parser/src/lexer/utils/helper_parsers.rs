@@ -7,7 +7,15 @@ use crate::lexer::{
     },
 };
 use nom::{
-    Err::Error, Parser, branch::{alt, permutation}, bytes::complete::{tag, take_till}, character::complete::{alpha1, alphanumeric0, multispace0, multispace1, space0}, combinator::{eof, opt}, error::{ErrorKind, ParseError, context}, multi::{many0, many1, separated_list0}, sequence::{pair, preceded, terminated}
+    Err::Error,
+    Parser,
+    branch::{alt, permutation},
+    bytes::complete::{tag, take_till},
+    character::complete::{alpha1, alphanumeric0, multispace0, multispace1, space0},
+    combinator::{eof, opt},
+    error::{ErrorKind, ParseError, context},
+    multi::{many0, many1, separated_list0},
+    sequence::{pair, preceded, terminated},
 };
 use nom_language::error::VerboseError;
 
@@ -44,7 +52,10 @@ where
     terminated(
         preceded(
             tag(start),
-            separated_list0(permutation((tag(delimiter), multispace0)), parser),
+            separated_list0(
+                permutation((multispace0, tag(delimiter), multispace0)),
+                parser,
+            ),
         ),
         tag(end),
     )
@@ -95,9 +106,8 @@ pub fn parse_statements(input: Span) -> B2Result<Vec<LexStmt>> {
         "multi-statement",
         many0(alt((
             consume_comments_and_multispace.map(|_| None),
-            context("-statement", LexStmt::parse_statement).map(|x| Some(x))
-        ))
-        ),
+            context("-statement", LexStmt::parse_statement).map(|x| Some(x)),
+        ))),
     )
     .map(|xs| xs.into_iter().filter_map(|x| x).collect())
     .parse(input)
@@ -106,10 +116,7 @@ pub fn parse_statements(input: Span) -> B2Result<Vec<LexStmt>> {
 pub fn consume_comments_and_multispace(input: Span) -> B2Result<()> {
     context(
         "consume-comments-multiline",
-        alt((
-            multispace1,
-            parse_comment
-        ))
+        alt((multispace1, parse_comment)),
     )
     .map(|_| ())
     .parse(input)

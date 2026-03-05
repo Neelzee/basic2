@@ -12,12 +12,13 @@ use crate::{
                 FUNCTION_INVOCATION_END, FUNCTION_INVOCATION_START_KW,
                 FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START,
                 IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
-                IMPORT_MODULE_KW, STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW,
-                TYPE_ALIAS_KW, VARIABLE_REASIGNMENT, WHILE_STATEMENT_BODY_START_KW,
-                WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
+                IMPORT_MODULE_KW, RETURN_STMT_KW, STRUCT_DECL_KW, STRUCT_END_KW,
+                STRUCT_FIELD_DECL_KW, STRUCT_KW, TYPE_ALIAS_KW, VARIABLE_REASIGNMENT,
+                WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
-                parse_comment, parse_identifier, parse_parameters, parse_poly_list_with, parse_statements,
+                parse_comment, parse_identifier, parse_parameters, parse_poly_list_with,
+                parse_statements,
             },
         },
     },
@@ -125,7 +126,7 @@ impl LexStmt {
 
     pub fn parse_return(input: Span) -> B2Result<Self> {
         delimited(
-            preceded(multispace0, tag(BREAK_STMT_KW)),
+            preceded(multispace0, tag(RETURN_STMT_KW)),
             opt(preceded(space0, LexExpr::parse_expr)),
             tag(END_STMT_KW),
         )
@@ -227,64 +228,69 @@ impl LexStmt {
     }
 
     pub fn parse_function_declaration(input: Span) -> B2Result<Self> {
-        let (i, _whitespace) = multispace0.parse(input)?;
-        let (i, identifier) = preceded(
-            tag(FUNCTION_DECLARATION_KW),
-            preceded(space1, parse_identifier),
+        context(
+            "function-declaration",
+            delimited(
+                tag(FUNCTION_DECLARATION_KW).and(multispace0),
+                (
+                    parse_identifier.map(|s| s.to_string()),
+                    parse_poly_list_with(
+                        FUNCTION_PARAMETERS_START,
+                        FUNCTION_PARAMETERS_DELIMITER,
+                        FUNCTION_PARAMETERS_END,
+                        LexType::parse_type,
+                    ),
+                    opt(preceded(
+                        (multispace0, tag(":"), multispace0),
+                        LexType::parse_type,
+                    )),
+                ),
+                tag(END_STMT_KW),
+            ),
         )
-        .map(|s| s.to_string())
-        .parse(i)?;
-        let (i, parameters) = parse_poly_list_with(
-            FUNCTION_PARAMETERS_START,
-            FUNCTION_PARAMETERS_DELIMITER,
-            FUNCTION_PARAMETERS_END,
-            LexType::parse_type,
-        )
-        .parse(i)?;
-        let (i, return_type) = opt(preceded(
-            space0,
-            preceded(tag(":"), preceded(space0, LexType::parse_type)),
-        ))
-        .parse(i)?;
-        let (rem, _stmt_end) = tag(";").parse(i)?;
-
-        Ok((
-            rem,
-            Self::FunctionDeclaration {
+        .map(
+            |(identifier, parameters, return_type)| Self::FunctionDeclaration {
                 identifier,
                 parameters,
                 return_type,
             },
-        ))
+        )
+        .parse(input)
     }
 
     pub fn parse_function_implementation(input: Span) -> B2Result<Self> {
-        let (i, _whitespace) = multispace0.parse(input)?;
-        let (i, identifier) = preceded(
-            tag(FUNCTION_IMPLEMENTATION_KW),
-            preceded(space1, parse_identifier),
+        context(
+            "function-implementation",
+            delimited(
+                tag(FUNCTION_IMPLEMENTATION_KW).and(multispace0),
+                (
+                    parse_identifier.map(|s| s.to_string()),
+                    parse_poly_list_with(
+                        FUNCTION_PARAMETERS_START,
+                        FUNCTION_PARAMETERS_DELIMITER,
+                        FUNCTION_PARAMETERS_END,
+                        parse_parameters,
+                    ),
+                    preceded(
+                        (
+                            multispace0,
+                            tag(FUNCTION_IMPLEMENTATION_START_KW),
+                            multispace0,
+                        ),
+                        parse_statements,
+                    ),
+                ),
+                (multispace0, tag(FUNCTION_BODY_END_KW)),
+            ),
         )
-        .map(|s| s.to_string())
-        .parse(i)?;
-        let (i, parameters) = parse_poly_list_with(
-            FUNCTION_PARAMETERS_START,
-            FUNCTION_PARAMETERS_DELIMITER,
-            FUNCTION_PARAMETERS_END,
-            parse_parameters,
-        )
-        .parse(i)?;
-        let (i, _do_kw) = preceded(multispace0, tag(FUNCTION_IMPLEMENTATION_START_KW)).parse(i)?;
-        let (i, body) = many0(preceded(multispace0, Self::parse_statement)).parse(i)?;
-        let (rem, _end_kw) = preceded(multispace0, tag(FUNCTION_BODY_END_KW)).parse(i)?;
-
-        Ok((
-            rem,
-            Self::FunctionImplementation {
+        .map(
+            |(identifier, parameters, body)| Self::FunctionImplementation {
                 identifier,
                 parameters,
                 body,
             },
-        ))
+        )
+        .parse(input)
     }
 
     pub fn parse_block_statement(input: Span) -> B2Result<Self> {
@@ -295,10 +301,7 @@ impl LexStmt {
                     "block-statement-start",
                     multispace0.and(tag(BLOCK_STATEMENT_START_KW).and(multispace0)),
                 ),
-                context(
-                    "block-inner-statements",
-                    parse_statements,
-                ),
+                context("block-inner-statements", parse_statements),
                 context(
                     "block-statement-end",
                     many0(alt((multispace1, parse_comment))).and(tag(BLOCK_STATEMENT_END_KW)),
