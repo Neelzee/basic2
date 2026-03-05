@@ -313,27 +313,25 @@ impl LexStmt {
     }
 
     pub fn parse_function_invocation(input: Span) -> B2Result<Self> {
-        let (i, _multispace) =
-            preceded(multispace0, tag(FUNCTION_INVOCATION_START_KW)).parse(input)?;
-        let (i, function) = preceded(space0, LexExpr::parse_function_call).parse(i)?;
-        let (rem, _end_stmt_kw) = preceded(
-            take_until(FUNCTION_INVOCATION_END),
-            take(FUNCTION_INVOCATION_END.chars().count()),
+        context(
+            "function-invocation",
+            delimited(
+                tag(FUNCTION_INVOCATION_START_KW).and(multispace0),
+                LexExpr::parse_function_call,
+                tag(FUNCTION_INVOCATION_END),
+            ),
         )
-        .parse(i)?;
-        match function {
+        .map(|function| match function {
             LexExpr::FunctionCall {
                 identifier,
                 arguments,
-            } => Ok((
-                rem,
-                Self::FunctionInvocation {
-                    identifier,
-                    arguments,
-                },
-            )),
+            } => Self::FunctionInvocation {
+                identifier,
+                arguments,
+            },
             _ => unreachable!("parse_function_call should only return functioncall"),
-        }
+        })
+        .parse(input)
     }
 
     pub fn parse_struct_declaration(input: Span) -> B2Result<Self> {

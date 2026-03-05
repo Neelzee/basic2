@@ -1,5 +1,5 @@
 use crate::{
-    common::primitive::Primitive,
+    common::{B2Op, binop::BinOp, primitive::Primitive},
     lexer::{
         lex_expr::LexExpr,
         lex_stmt::LexStmt,
@@ -34,6 +34,21 @@ use rstest::rstest;
     parse_parameters,
     r##"(a = "foo", a)"##,
     vec![("a".to_string(), Some(LexExpr::Literal(Primitive::Str("foo".to_string())))), ("a".to_string(), None)],
+    ""
+)]
+#[case(
+    "(",
+    ",",
+    ")",
+    LexExpr::parse_expr,
+    r##"("Before: " + global)"##,
+    vec![
+        LexExpr::Op(Box::new(B2Op::Binary(
+            LexExpr::Literal(Primitive::Str("Before: ".to_string())),
+            BinOp::Add,
+            LexExpr::Variable("global".to_string())
+        )))
+    ],
     ""
 )]
 fn test_parse_poly_list_with<P, O>(

@@ -46,6 +46,7 @@ pub enum LexExpr {
 impl LexExpr {
     pub fn parse_expr(input: Span) -> B2Result<Self> {
         alt((
+            Self::parse_binary_operation,
             Self::parse_literal,
             Self::parse_function_call,
             Self::parse_group,
@@ -54,7 +55,22 @@ impl LexExpr {
             Self::parse_struct,
             Self::parse_variable,
             Self::parse_index,
-            Self::parse_binary_operation,
+            Self::parse_postfix_operation,
+            Self::parse_unary_operation,
+        ))
+        .parse(input)
+    }
+
+    fn parse_expr_no_inf_rec(input: Span) -> B2Result<Self> {
+        alt((
+            Self::parse_literal,
+            Self::parse_function_call,
+            Self::parse_group,
+            Self::parse_tuple,
+            Self::parse_list,
+            Self::parse_struct,
+            Self::parse_variable,
+            Self::parse_index,
             Self::parse_postfix_operation,
             Self::parse_unary_operation,
         ))
@@ -128,19 +144,28 @@ impl LexExpr {
     pub fn parse_function_call(input: Span) -> B2Result<Self> {
         context(
             "parse-function-call",
-            pair(
+            (
                 parse_identifier.map(|s| s.to_string()),
-                alt((
-                    tag(FUNCTION_CALL_START)
-                        .and(multispace0.and(tag(FUNCTION_CALL_END)))
-                        .map(|_| Vec::new()),
-                    parse_poly_list_with(
-                        FUNCTION_CALL_START,
-                        FUNCTION_CALL_DELIMITER,
-                        FUNCTION_CALL_END,
-                        Self::parse_expr,
-                    ),
-                )),
+                context(
+                    "function-arguments",
+                    alt((
+                        tag(FUNCTION_CALL_START)
+                            .and(multispace0.and(tag(FUNCTION_CALL_END)))
+                            .map(|_| Vec::new()),
+                        parse_poly_list_with(
+                            FUNCTION_CALL_START,
+                            FUNCTION_CALL_DELIMITER,
+                            FUNCTION_CALL_END,
+                            Self::parse_expr,
+                        ),
+                        delimited(
+                            tag(FUNCTION_CALL_START).and(multispace0),
+                            Self::parse_expr,
+                            multispace0.and(tag(FUNCTION_CALL_END)),
+                        )
+                        .map(|x| vec![x]),
+                    )),
+                ),
             ),
         )
         .map(|(identifier, arguments)| Self::FunctionCall {
@@ -181,12 +206,18 @@ impl LexExpr {
         context(
             "binary-operation",
             (
-                context("left-operand", Self::parse_expr),
+                context("left-operand", Self::parse_expr_no_inf_rec),
                 preceded(
                     multispace0,
                     context("binary-operation-symbol", BinOp::parse_symbol),
                 ),
-                preceded(multispace0, context("right-operand", alt((Self::parse_binary_operation, Self::parse_expr)))),
+                preceded(
+                    multispace0,
+                    context(
+                        "right-operand",
+                        Self::parse_expr,
+                    ),
+                ),
             ),
         )
         .map(|(l, op, r)| Self::Op(Box::new(Operation::Binary(l, op, r))))

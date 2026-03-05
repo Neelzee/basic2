@@ -1,5 +1,5 @@
 use crate::{
-    common::{binop::BinOp, primitive::Primitive},
+    common::{B2Op, binop::BinOp, primitive::Primitive},
     lexer::{
         lex_expr::LexExpr,
         lex_stmt::LexStmt,
@@ -568,13 +568,36 @@ fn test_parse_block_statements(#[case] input: &str, #[case] expected: LexStmt) {
     assert_eq!(result.unwrap().1, expected);
 }
 
-#[test]
-fn test_parse_function_invocation() {
-    let input = r##"
-    INVOKE PRINT("HELLO");
-    "##;
-    let result = LexStmt::parse_function_invocation(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
+#[rstest]
+#[case(
+    r##"INVOKE PRINT("HELLO");"##,
+    LexStmt::FunctionInvocation {
+        identifier: "PRINT".to_string(),
+        arguments: vec![LexExpr::Literal(Primitive::Str("HELLO".to_string()))],
+    }
+)]
+#[case(
+    r##"INVOKE PRINT("Before: " + global);"##,
+    LexStmt::FunctionInvocation {
+        identifier: "PRINT".to_string(),
+        arguments: vec![
+            LexExpr::Op(Box::new(B2Op::Binary(
+                LexExpr::Literal(Primitive::Str("Before: ".to_string())),
+                BinOp::Add,
+                LexExpr::Variable("global".to_string())
+            )))
+        ],
+    }
+)]
+fn test_parse_function_invocation(#[case] input: &str, #[case] expected: LexStmt) {
+    let input = Span::new(input);
+    let result = LexStmt::parse_function_invocation(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
 }
 
 #[rstest]

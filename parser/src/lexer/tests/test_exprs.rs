@@ -1,6 +1,9 @@
 use crate::{
     common::{B2Op, binop::BinOp, primitive::Primitive, uniop::UniOp},
-    lexer::{lex_expr::LexExpr, utils::Span},
+    lexer::{
+        lex_expr::LexExpr,
+        utils::{Span, convert_error},
+    },
 };
 use nom::Parser;
 use rstest::rstest;
@@ -31,6 +34,14 @@ use rstest::rstest;
             ("age".to_string(), LexExpr::Literal(Primitive::Int(24))),
         ]
     }
+)]
+#[case(
+    r##""Before: " + global"##,
+    LexExpr::Op(Box::new(B2Op::Binary(
+        LexExpr::Literal(Primitive::Str("Before: ".to_string())),
+        BinOp::Add,
+        LexExpr::Variable("global".to_string())
+    )))
 )]
 fn test_expression_parser(#[case] input: &str, #[case] expected: LexExpr) {
     let result = LexExpr::parse_expr(Span::new(input));
@@ -227,9 +238,28 @@ fn test_struct_field_impl_parser(
 }
 
 #[rstest]
-#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo".to_string(), arguments: Vec::new(), })]
+#[case(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo".to_string(), arguments: Vec::new(), })]
+#[case(r##"PRINT("HELLO")"##, LexExpr::FunctionCall { identifier: "PRINT".to_string(), arguments: vec![LexExpr::Literal(Primitive::Str("HELLO".to_string()))], })]
+#[case(
+    r##"PRINT("Before: " + global)"##,
+    LexExpr::FunctionCall {
+        identifier: "PRINT".to_string(),
+        arguments: vec![
+            LexExpr::Op(Box::new(B2Op::Binary(
+                LexExpr::Literal(Primitive::Str("Before: ".to_string())),
+                BinOp::Add,
+                LexExpr::Variable("global".to_string())
+            )))
+        ],
+    }
+)]
 fn test_function_call_parser(#[case] input: &str, #[case] expected: LexExpr) {
-    let result = LexExpr::parse_function_call.parse(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
+    let input = Span::new(input);
+    let result = LexExpr::parse_function_call.parse(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
     assert_eq!(result.unwrap().1, expected);
 }
