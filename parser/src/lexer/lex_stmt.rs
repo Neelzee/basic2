@@ -15,7 +15,8 @@ use crate::{
                 IMPORT_MODULE_KW, RETURN_STMT_KW, STRUCT_DECL_KW, STRUCT_END_KW,
                 STRUCT_FIELD_DECL_KW, STRUCT_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
                 TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
-                WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
+                VARIABLE_TYPE_START, WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW,
+                WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
                 parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
@@ -162,7 +163,13 @@ impl LexStmt {
             preceded(multispace0, tag(VARIABLE_DECLARATION)),
             (
                 preceded(multispace0, parse_identifier.map(|s| s.to_string())),
-                preceded(multispace0, opt(LexType::parse_type)),
+                preceded(
+                    multispace0,
+                    opt(preceded(
+                        (tag(VARIABLE_TYPE_START), multispace0),
+                        LexType::parse_type,
+                    )),
+                ),
                 preceded(
                     (multispace0, tag(VARIABLE_REASIGNMENT)),
                     preceded(multispace0, LexExpr::parse_expr),

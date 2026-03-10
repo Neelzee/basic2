@@ -1,6 +1,6 @@
 BEGIN MODULE FizzBuzz
 DECL fizzbuzz(INT) : STR;
-IMPL fizzbuzz(n) DO
+IMPL fizzbuzz(n) DOES
   LET result: STR = "";
   IF (n % 3 == 0) THEN
     result = result + "Fizz";
@@ -20,7 +20,7 @@ WHILE (TRUE) DO
   IF (query == "Q") THEN
     BREAK;
   FI
-  LET fb = fizzbuzz(query AS INT);
+  LET fb = fizzbuzz(query);
   INVOKE PRINT(fb);
 END
 MODULE FizzBuzz END

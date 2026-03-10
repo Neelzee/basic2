@@ -3,7 +3,10 @@ use crate::lexer::{
     lex_stmt::LexStmt,
     utils::{
         B2Result, Span,
-        consts::{ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT, SINGLE_LINE_COMMENT_END},
+        consts::{
+            ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT,
+            SINGLE_LINE_COMMENT_END,
+        },
     },
 };
 use nom::{
@@ -85,10 +88,7 @@ pub fn parse_parameters(input: Span) -> B2Result<(String, Option<LexExpr>)> {
 pub fn parse_comments(input: Span) -> B2Result<Span> {
     context(
         "parse-comments",
-        alt((
-            parse_multi_comment,
-            parse_single_comment,
-        )),
+        alt((parse_multi_comment, parse_single_comment)),
     )
     .parse(input)
 }
@@ -99,9 +99,10 @@ pub fn parse_multi_comment(input: Span) -> B2Result<Span> {
         delimited(
             (tag(MULTI_LINE_COMMENT_START), multispace0),
             take_until(MULTI_LINE_COMMENT_END),
-    (tag(MULTI_LINE_COMMENT_END), multispace0)
-        )
-    ).parse(input)
+            (tag(MULTI_LINE_COMMENT_END), multispace0),
+        ),
+    )
+    .parse(input)
 }
 
 pub fn parse_single_comment(input: Span) -> B2Result<Span> {

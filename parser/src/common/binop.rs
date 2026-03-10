@@ -1,6 +1,9 @@
 use crate::lexer::utils::{
     B2Result, Span,
-    consts::{ADD_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LT_KW, MUL_KW, NEQ_KW, POW_KW, SUB_KW},
+    consts::{
+        ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW,
+        SUB_KW,
+    },
 };
 use nom::{
     Parser, branch::alt, bytes::complete::tag, character::complete::space0, sequence::preceded,
@@ -19,6 +22,9 @@ pub enum BinOp {
     Leq,
     Lt,
     Neq,
+    Mod,
+    And,
+    Or,
 }
 
 impl BinOp {
@@ -36,6 +42,9 @@ impl BinOp {
                 tag(GT_KW).map(|_| Self::Gt),
                 tag(LT_KW).map(|_| Self::Lt),
                 tag(NEQ_KW).map(|_| Self::Neq),
+                tag(MOD_KW).map(|_| Self::Mod),
+                tag(AND_KW).map(|_| Self::And),
+                tag(OR_KW).map(|_| Self::Or),
             )),
         )
         .parse(input)

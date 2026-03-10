@@ -5,6 +5,7 @@ pub const TUPLE_DELIMITER: &str = ",";
 pub const TUPLE_DELIMITER_CHAR: char = ',';
 
 pub const VARIABLE_DECLARATION: &str = "LET";
+pub const VARIABLE_TYPE_START: &str = ":";
 
 pub const GROUP_START: &str = "(";
 pub const GROUP_END: &str = ")";
@@ -79,6 +80,9 @@ pub const INCR_KW: &str = "++";
 pub const DECR_KW: &str = "--";
 pub const NEGATION_KW: &str = "!";
 
+pub const OR_KW: &str = "||";
+pub const AND_KW: &str = "&&";
+pub const MOD_KW: &str = "%";
 pub const NEQ_KW: &str = "!=";
 pub const LT_KW: &str = "<";
 pub const GT_KW: &str = ">";

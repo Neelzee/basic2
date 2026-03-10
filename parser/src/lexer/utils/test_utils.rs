@@ -7,8 +7,8 @@ use crate::{
         utils::{
             B2Result, Span, convert_error,
             helper_parsers::{
-                consume_comments_and_multispace, parse_comments, parse_identifier, parse_parameters,
-                parse_poly_list_with, parse_statements,
+                consume_comments_and_multispace, parse_comments, parse_identifier,
+                parse_parameters, parse_poly_list_with, parse_statements,
             },
         },
     },
@@ -136,11 +136,9 @@ fn test_parse_statements(#[case] input: &str, #[case] expected: Vec<LexStmt>) {
     assert_eq!(remainder.to_string(), String::new());
 }
 
-
 #[test]
 fn test_parse_multi_comment() {
-    const INPUT: &str =
-        r##"#-
+    const INPUT: &str = r##"#-
             Multi-line comment
             -#
         "##;

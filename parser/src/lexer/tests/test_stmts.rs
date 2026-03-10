@@ -731,3 +731,82 @@ fn test_function_unpacking() {
     );
     assert_eq!(result.unwrap().1, expected);
 }
+
+#[test]
+fn test_function_impl_fizzbuzz() {
+    const INPUT: &str = r##"IMPL fizzbuzz(n) DOES
+        LET result: STR = "";
+        IF (n % 3 == 0) THEN
+            result = result + "Fizz";
+        FI
+        IF (n % 5 == 0) THEN
+            result = result + "Buzz";
+        FI
+        RETURN result;
+        END
+        "##;
+    let input = Span::new(INPUT);
+    let expected = LexStmt::FunctionImplementation {
+        identifier: "fizzbuzz".to_string(),
+        parameters: vec![("n".to_string(), None)],
+        body: vec![
+            LexStmt::VariableDeclarationAssignment {
+                identifier: "result".to_string(),
+                variable_type: Some(LexType::Str),
+                value: LexExpr::Literal(Primitive::Str("".to_string())),
+            },
+            LexStmt::If {
+                condition: LexExpr::Group(Box::new(LexExpr::Op(Box::new(B2Op::Binary(
+                    LexExpr::Variable("n".to_string()),
+                    BinOp::Mod,
+                    LexExpr::Op(Box::new(B2Op::Binary(LexExpr::Literal(Primitive::Int(3)), BinOp::Eq, LexExpr::Literal(Primitive::Int(0))))),
+                ))))),
+                body: vec![LexStmt::VariableReassignment {
+                    identifier: "result".to_string(),
+                    reassignment: None,
+                    new_value: LexExpr::Op(Box::new(B2Op::Binary(LexExpr::Variable("result".to_string()), BinOp::Add, LexExpr::Literal(Primitive::Str("Fizz".to_string()))))),
+                }],
+            },
+            LexStmt::If {
+                condition: LexExpr::Group(Box::new(LexExpr::Op(Box::new(B2Op::Binary(
+                    LexExpr::Variable("n".to_string()),
+                    BinOp::Mod,
+                    LexExpr::Op(Box::new(B2Op::Binary(LexExpr::Literal(Primitive::Int(5)), BinOp::Eq, LexExpr::Literal(Primitive::Int(0)))))
+                ))))),
+                body: vec![LexStmt::VariableReassignment {
+                    identifier: "result".to_string(),
+                    reassignment: None,
+                    new_value: LexExpr::Op(Box::new(B2Op::Binary(LexExpr::Variable("result".to_string()), BinOp::Add, LexExpr::Literal(Primitive::Str("Buzz".to_string()))),))
+                }],
+            },
+            LexStmt::Return {
+                value: Some(LexExpr::Variable("result".to_string())),
+            },
+        ],
+    };
+    let result = LexStmt::parse_function_implementation(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
+fn test_variable_declaration_assignment_with_type() {
+    const INPUT: &str = r##"LET result: STR = "";"##;
+    let input = Span::new(INPUT);
+    let expected = LexStmt::VariableDeclarationAssignment {
+        identifier: "result".to_string(),
+        variable_type: Some(LexType::Str),
+        value: LexExpr::Literal(Primitive::Str(String::new())),
+    };
+    let result = LexStmt::parse_variable_declaration_assignment(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
