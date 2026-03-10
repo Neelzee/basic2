@@ -7,7 +7,7 @@ use crate::{
         utils::{
             B2Result, Span, convert_error,
             helper_parsers::{
-                consume_comments_and_multispace, parse_comment, parse_identifier, parse_parameters,
+                consume_comments_and_multispace, parse_comments, parse_identifier, parse_parameters,
                 parse_poly_list_with, parse_statements,
             },
         },
@@ -93,7 +93,7 @@ fn test_identifier_parser(#[case] ident: &str, #[case] is_ok: bool) {
 #[case("#daj\nfoo", true, "foo")]
 #[case("# Everything in a module body is in a block", true, "")]
 fn test_comment_parse(#[case] ident: &str, #[case] is_ok: bool, #[case] remainder: &str) {
-    let res = parse_comment(Span::new(ident));
+    let res = parse_comments(Span::new(ident));
     let ok = if is_ok { res.is_ok() } else { res.is_err() };
     assert!(ok, "{res:?}");
     if res.is_ok() {
@@ -110,7 +110,7 @@ fn test_parse_comments_only_consumes_single_line() {
     );
     let remainder = r##"
         "##;
-    let res = parse_comment(input);
+    let res = parse_comments(input);
     assert!(res.is_ok(), "{}", convert_error(input, res.unwrap_err()));
     assert_eq!(res.unwrap().0.to_string(), remainder.to_string());
 }
@@ -134,4 +134,18 @@ fn test_parse_statements(#[case] input: &str, #[case] expected: Vec<LexStmt>) {
     let (remainder, stmt) = res.unwrap();
     assert_eq!(stmt, expected);
     assert_eq!(remainder.to_string(), String::new());
+}
+
+
+#[test]
+fn test_parse_multi_comment() {
+    const INPUT: &str =
+        r##"#-
+            Multi-line comment
+            -#
+        "##;
+    let input = Span::new(INPUT);
+    let res = parse_comments(input);
+    assert!(res.is_ok(), "{}", convert_error(input, res.unwrap_err()));
+    assert_eq!(res.unwrap().0.to_string(), String::new());
 }

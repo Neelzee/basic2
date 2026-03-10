@@ -3,21 +3,19 @@ use crate::lexer::{
     lex_stmt::LexStmt,
     utils::{
         B2Result, Span,
-        consts::{ASSIGNMENT_KW, SINGLE_LINE_COMMENT, SINGLE_LINE_COMMENT_END},
+        consts::{ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT, SINGLE_LINE_COMMENT_END},
     },
 };
 use nom::{
-    Err::Error,
     Parser,
     branch::{alt, permutation},
-    bytes::complete::{tag, take_till},
+    bytes::complete::{tag, take_till, take_until, take_while},
     character::complete::{alpha1, alphanumeric0, multispace0, multispace1, space0},
     combinator::{eof, opt},
     error::{ErrorKind, ParseError, context},
     multi::{many0, many1, separated_list0},
-    sequence::{pair, preceded, terminated},
+    sequence::{delimited, pair, preceded, terminated},
 };
-use nom_language::error::VerboseError;
 
 pub fn parse_identifier(input: Span) -> B2Result<Span> {
     alt((tag("_"), alpha1))
@@ -84,9 +82,31 @@ pub fn parse_parameters(input: Span) -> B2Result<(String, Option<LexExpr>)> {
     .parse(input)
 }
 
-pub fn parse_comment(input: Span) -> B2Result<Span> {
+pub fn parse_comments(input: Span) -> B2Result<Span> {
     context(
-        "parse-comment",
+        "parse-comments",
+        alt((
+            parse_multi_comment,
+            parse_single_comment,
+        )),
+    )
+    .parse(input)
+}
+
+pub fn parse_multi_comment(input: Span) -> B2Result<Span> {
+    context(
+        "parse-multi-comment",
+        delimited(
+            (tag(MULTI_LINE_COMMENT_START), multispace0),
+            take_until(MULTI_LINE_COMMENT_END),
+    (tag(MULTI_LINE_COMMENT_END), multispace0)
+        )
+    ).parse(input)
+}
+
+pub fn parse_single_comment(input: Span) -> B2Result<Span> {
+    context(
+        "parse-single-comment",
         terminated(
             preceded(
                 space0,
@@ -116,7 +136,7 @@ pub fn parse_statements(input: Span) -> B2Result<Vec<LexStmt>> {
 pub fn consume_comments_and_multispace(input: Span) -> B2Result<()> {
     context(
         "consume-comments-multiline",
-        alt((multispace1, parse_comment)),
+        alt((multispace1, parse_comments)),
     )
     .map(|_| ())
     .parse(input)

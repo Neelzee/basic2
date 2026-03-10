@@ -4,6 +4,8 @@ pub const TUPLE_END_CHAR: char = ')';
 pub const TUPLE_DELIMITER: &str = ",";
 pub const TUPLE_DELIMITER_CHAR: char = ',';
 
+pub const VARIABLE_DECLARATION: &str = "LET";
+
 pub const GROUP_START: &str = "(";
 pub const GROUP_END: &str = ")";
 
@@ -94,6 +96,11 @@ pub const IMPORT_MODULE_KW: &str = "USE";
 
 pub const INDEX_START_KW: &str = "[";
 pub const INDEX_END_KW: &str = "]";
+
+pub const UNPACK_KW: &str = "><";
+
+pub const MULTI_LINE_COMMENT_START: &str = "#-";
+pub const MULTI_LINE_COMMENT_END: &str = "-#";
 
 #[cfg(test)]
 pub mod test_const {
