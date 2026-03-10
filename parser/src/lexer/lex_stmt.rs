@@ -13,11 +13,12 @@ use crate::{
                 FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START,
                 IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
                 IMPORT_MODULE_KW, RETURN_STMT_KW, STRUCT_DECL_KW, STRUCT_END_KW,
-                STRUCT_FIELD_DECL_KW, STRUCT_KW, TYPE_ALIAS_KW, VARIABLE_REASIGNMENT,
+                STRUCT_FIELD_DECL_KW, STRUCT_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+                TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
                 WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
-                parse_comment, parse_identifier, parse_parameters, parse_poly_list_with,
+                parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
                 parse_statements,
             },
         },
@@ -34,13 +35,15 @@ use nom::{
     sequence::{delimited, pair, preceded, terminated},
 };
 
-const VARIABLE_DECLARATION: &str = "LET";
-
 #[derive(Debug, PartialEq)]
 pub enum LexStmt {
     VariableDeclaration {
         identifier: String,
         variable_type: Option<LexType>,
+    },
+    VariableUnpacking {
+        identifiers: Vec<String>,
+        value: LexExpr,
     },
     VariableDeclarationAssignment {
         identifier: String,
@@ -100,6 +103,7 @@ impl LexStmt {
             "statements",
             alt((
                 Self::parse_type_alias,
+                Self::parse_variable_unpacking,
                 Self::parse_variable_declaration,
                 Self::parse_variable_declaration_assignment,
                 Self::parse_variable_reassignment,
@@ -125,10 +129,13 @@ impl LexStmt {
     }
 
     pub fn parse_return(input: Span) -> B2Result<Self> {
-        delimited(
-            preceded(multispace0, tag(RETURN_STMT_KW)),
-            opt(preceded(space0, LexExpr::parse_expr)),
-            tag(END_STMT_KW),
+        context(
+            "return",
+            delimited(
+                preceded(multispace0, context("return-kw", tag(RETURN_STMT_KW))),
+                context("return-value", opt(preceded(space0, LexExpr::parse_expr))),
+                tag(END_STMT_KW),
+            ),
         )
         .map(|value| Self::Return { value })
         .parse(input)
@@ -262,22 +269,28 @@ impl LexStmt {
         context(
             "function-implementation",
             delimited(
-                tag(FUNCTION_IMPLEMENTATION_KW).and(multispace0),
+                context("impl-kw", tag(FUNCTION_IMPLEMENTATION_KW)).and(multispace0),
                 (
-                    parse_identifier.map(|s| s.to_string()),
-                    parse_poly_list_with(
-                        FUNCTION_PARAMETERS_START,
-                        FUNCTION_PARAMETERS_DELIMITER,
-                        FUNCTION_PARAMETERS_END,
-                        parse_parameters,
+                    context(
+                        "function-identifier",
+                        parse_identifier.map(|s| s.to_string()),
+                    ),
+                    context(
+                        "parameterers",
+                        parse_poly_list_with(
+                            FUNCTION_PARAMETERS_START,
+                            FUNCTION_PARAMETERS_DELIMITER,
+                            FUNCTION_PARAMETERS_END,
+                            parse_parameters,
+                        ),
                     ),
                     preceded(
                         (
                             multispace0,
-                            tag(FUNCTION_IMPLEMENTATION_START_KW),
+                            context("start-kw", tag(FUNCTION_IMPLEMENTATION_START_KW)),
                             multispace0,
                         ),
-                        parse_statements,
+                        context("function-body", parse_statements),
                     ),
                 ),
                 (multispace0, tag(FUNCTION_BODY_END_KW)),
@@ -304,7 +317,7 @@ impl LexStmt {
                 context("block-inner-statements", parse_statements),
                 context(
                     "block-statement-end",
-                    many0(alt((multispace1, parse_comment))).and(tag(BLOCK_STATEMENT_END_KW)),
+                    many0(alt((multispace1, parse_comments))).and(tag(BLOCK_STATEMENT_END_KW)),
                 ),
             )
             .map(|body| Self::Block { body }),
@@ -412,6 +425,28 @@ impl LexStmt {
             ),
         )
         .map(|identifier| Self::ImportModule { identifier })
+        .parse(input)
+    }
+
+    pub fn parse_variable_unpacking(input: Span) -> B2Result<Self> {
+        context(
+            "variable-unpacking",
+            delimited(
+                (tag(VARIABLE_DECLARATION), multispace0),
+                (
+                    parse_poly_list_with(
+                        TUPLE_START,
+                        TUPLE_DELIMITER,
+                        TUPLE_END,
+                        parse_identifier.map(|s| s.to_string()),
+                    ),
+                    (multispace0, tag(UNPACK_KW), multispace0),
+                    LexExpr::parse_expr,
+                ),
+                (multispace0, tag(END_STMT_KW)),
+            ),
+        )
+        .map(|(identifiers, _, value)| Self::VariableUnpacking { identifiers, value })
         .parse(input)
     }
 }

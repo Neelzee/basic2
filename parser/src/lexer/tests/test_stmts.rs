@@ -1,5 +1,5 @@
 use crate::{
-    common::{B2Op, binop::BinOp, primitive::Primitive},
+    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive},
     lexer::{
         lex_expr::LexExpr,
         lex_stmt::LexStmt,
@@ -650,4 +650,84 @@ fn test_parse_stmts_fail_with_missing_end_stmt_kw(#[case] input: &str) {
         result.as_ref().unwrap().0.to_string(),
         result.unwrap().1
     );
+}
+
+#[test]
+fn test_return_with_nested_index() {
+    const INPUT: &str = r##"RETURN p[1][1][0];"##;
+    let input = Span::new(INPUT);
+    let expected = LexStmt::Return {
+        value: Some(LexExpr::Op(Box::new(B2Op::Postfix(
+            LexExpr::Op(Box::new(B2Op::Postfix(
+                LexExpr::Op(Box::new(B2Op::Postfix(
+                    LexExpr::Variable("p".to_string()),
+                    Postfix::Index(LexExpr::Literal(Primitive::Int(1))),
+                ))),
+                Postfix::Index(LexExpr::Literal(Primitive::Int(1))),
+            ))),
+            Postfix::Index(LexExpr::Literal(Primitive::Int(0))),
+        )))),
+    };
+    let result = LexStmt::parse_return(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
+fn test_function_impl_get_age() {
+    const INPUT: &str = r##"IMPL getAge(p) DOES
+                RETURN p[1][1][0];
+            END"##;
+    let input = Span::new(INPUT);
+    let expected = LexStmt::FunctionImplementation {
+        identifier: "getAge".to_string(),
+        parameters: vec![("p".to_string(), None)],
+        body: vec![LexStmt::Return {
+            value: Some(LexExpr::Op(Box::new(B2Op::Postfix(
+                LexExpr::Op(Box::new(B2Op::Postfix(
+                    LexExpr::Op(Box::new(B2Op::Postfix(
+                        LexExpr::Variable("p".to_string()),
+                        Postfix::Index(LexExpr::Literal(Primitive::Int(1))),
+                    ))),
+                    Postfix::Index(LexExpr::Literal(Primitive::Int(1))),
+                ))),
+                Postfix::Index(LexExpr::Literal(Primitive::Int(0))),
+            )))),
+        }],
+    };
+    let result = LexStmt::parse_function_implementation(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
+fn test_function_unpacking() {
+    const INPUT: &str = r##"LET (firstName, lastName, age, city, postCode, street) >< p;"##;
+    let input = Span::new(INPUT);
+    let expected = LexStmt::VariableUnpacking {
+        identifiers: vec![
+            "firstName".to_string(),
+            "lastName".to_string(),
+            "age".to_string(),
+            "city".to_string(),
+            "postCode".to_string(),
+            "street".to_string(),
+        ],
+        value: LexExpr::Variable("p".to_string()),
+    };
+    let result = LexStmt::parse_variable_unpacking(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
 }

@@ -20,7 +20,6 @@ use nom::{
     multi::{many0, many1, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
-use nom_language::{error::VerboseError, precedence::Operation};
 
 pub enum LexExpr {
     Literal(Primitive),
@@ -37,10 +36,6 @@ pub enum LexExpr {
         identifier: String,
         field_implementations: Vec<(String, Self)>,
     },
-    Index {
-        indexee: Box<Self>,
-        indexer: Box<Self>,
-    },
 }
 
 impl LexExpr {
@@ -53,9 +48,23 @@ impl LexExpr {
             Self::parse_tuple,
             Self::parse_list,
             Self::parse_struct,
-            Self::parse_variable,
-            Self::parse_index,
             Self::parse_postfix_operation,
+            Self::parse_variable,
+            Self::parse_unary_operation,
+        ))
+        .parse(input)
+    }
+
+    fn parse_expr_excl_postfix(input: Span) -> B2Result<Self> {
+        alt((
+            Self::parse_binary_operation,
+            Self::parse_literal,
+            Self::parse_function_call,
+            Self::parse_group,
+            Self::parse_tuple,
+            Self::parse_list,
+            Self::parse_struct,
+            Self::parse_variable,
             Self::parse_unary_operation,
         ))
         .parse(input)
@@ -70,7 +79,6 @@ impl LexExpr {
             Self::parse_list,
             Self::parse_struct,
             Self::parse_variable,
-            Self::parse_index,
             Self::parse_postfix_operation,
             Self::parse_unary_operation,
         ))
@@ -125,7 +133,7 @@ impl LexExpr {
         {
             // TODO: Figure out a better way to not allow keywords as identifiers
             (_, LexExpr::Variable(ident)) if matches!(ident.as_str(), STRUCT_KW) => {
-                Err(nom::Err::Error(VerboseError::from_external_error(
+                Err(nom::Err::Error(B2Error::from_external_error(
                     input,
                     ErrorKind::Fail,
                     "not valid identifier",
@@ -178,9 +186,12 @@ impl LexExpr {
     pub fn parse_postfix_operation(input: Span) -> B2Result<Self> {
         context(
             "postfix-expresion",
-            pair(Self::parse_expr, Postfix::parse_postfix),
+            pair(Self::parse_expr_excl_postfix, many1(Postfix::parse_postfix)),
         )
-        .map(|(val, op)| Self::Op(Box::new(Operation::Postfix(val, op))))
+        .map(|(val, ops)| {
+            ops.into_iter()
+                .fold(val, |acc, op| Self::Op(Box::new(B2Op::Postfix(acc, op))))
+        })
         .parse(input)
     }
 
@@ -211,16 +222,10 @@ impl LexExpr {
                     multispace0,
                     context("binary-operation-symbol", BinOp::parse_symbol),
                 ),
-                preceded(
-                    multispace0,
-                    context(
-                        "right-operand",
-                        Self::parse_expr,
-                    ),
-                ),
+                preceded(multispace0, context("right-operand", Self::parse_expr)),
             ),
         )
-        .map(|(l, op, r)| Self::Op(Box::new(Operation::Binary(l, op, r))))
+        .map(|(l, op, r)| Self::Op(Box::new(B2Op::Binary(l, op, r))))
         .parse(input)
     }
 
@@ -270,32 +275,6 @@ impl LexExpr {
         .map(|(f, _)| f)
         .parse(input)
     }
-
-    pub fn parse_index(input: Span) -> B2Result<Self> {
-        context(
-            "index",
-            (
-                context("indexee", Self::parse_expr),
-                context(
-                    "indexer",
-                    delimited(
-                        (multispace0, tag(INDEX_START_KW)),
-                        Self::parse_expr,
-                        (multispace0, tag(INDEX_END_KW)),
-                    ),
-                ),
-            ),
-        )
-        .map(|(indexee, indexer)| Self::Index {
-            indexee: Box::new(indexee),
-            indexer: Box::new(indexer),
-        })
-        .parse(input)
-    }
-
-    fn exclude_parser<'a>(excluded: &'static str, input: Span<'a>) -> B2Result<'a, Self> {
-        todo!()
-    }
 }
 
 impl std::fmt::Debug for LexExpr {
@@ -315,17 +294,17 @@ impl std::fmt::Debug for LexExpr {
                 .field("arguments", arguments)
                 .finish(),
             Self::Op(arg0) => match &**arg0 {
-                Operation::Prefix(op, val) => f
+                B2Op::Prefix(op, val) => f
                     .debug_tuple("Operation::Prefix")
                     .field(op)
                     .field(val)
                     .finish(),
-                Operation::Postfix(val, op) => f
+                B2Op::Postfix(val, op) => f
                     .debug_tuple("Operation::Postfix")
                     .field(val)
                     .field(op)
                     .finish(),
-                Operation::Binary(l, op, r) => f
+                B2Op::Binary(l, op, r) => f
                     .debug_tuple("Operation::Binary")
                     .field(l)
                     .field(op)
@@ -340,11 +319,6 @@ impl std::fmt::Debug for LexExpr {
                 .field("identifier", identifier)
                 .field("field_implementations", field_implementations)
                 .finish(),
-            LexExpr::Index { indexee, indexer } => f
-                .debug_struct("Index")
-                .field("indexee", indexee)
-                .field("indexer", indexer)
-                .finish(),
         }
     }
 }
@@ -358,16 +332,6 @@ impl PartialEq for LexExpr {
             (Self::Variable(l0), Self::Variable(r0)) => l0 == r0,
             (Self::Group(l0), Self::Group(r0)) => l0 == r0,
             (
-                Self::Index {
-                    indexee: l0,
-                    indexer: l1,
-                },
-                Self::Index {
-                    indexee: r0,
-                    indexer: r1,
-                },
-            ) => l0 == r0 && l1 == r1,
-            (
                 Self::FunctionCall {
                     identifier: l_identifier,
                     arguments: l_arguments,
@@ -378,13 +342,9 @@ impl PartialEq for LexExpr {
                 },
             ) => l_identifier == r_identifier && l_arguments == r_arguments,
             (Self::Op(l0), Self::Op(r0)) => match (&**l0, &**r0) {
-                (Operation::Prefix(lop, lval), Operation::Prefix(rop, rval)) => {
-                    lop == rop && lval == rval
-                }
-                (Operation::Postfix(lval, lop), Operation::Postfix(rval, rop)) => {
-                    lop == rop && lval == rval
-                }
-                (Operation::Binary(ll, lop, lr), Operation::Binary(rl, rop, rr)) => {
+                (B2Op::Prefix(lop, lval), B2Op::Prefix(rop, rval)) => lop == rop && lval == rval,
+                (B2Op::Postfix(lval, lop), B2Op::Postfix(rval, rop)) => lop == rop && lval == rval,
+                (B2Op::Binary(ll, lop, lr), B2Op::Binary(rl, rop, rr)) => {
                     lop == rop && ll == rl && lr == rr
                 }
                 _ => false,

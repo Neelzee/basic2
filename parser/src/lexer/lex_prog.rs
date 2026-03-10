@@ -3,7 +3,7 @@ use crate::lexer::{
     utils::{
         B2Result, Span,
         consts::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW, ONE_SPACE},
-        helper_parsers::{parse_comment, parse_identifier, parse_statements},
+        helper_parsers::{parse_comments, parse_identifier, parse_statements},
     },
 };
 use nom::{

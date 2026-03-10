@@ -1,5 +1,5 @@
 use crate::{
-    common::{B2Op, binop::BinOp, primitive::Primitive, uniop::UniOp},
+    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
     lexer::{
         lex_expr::LexExpr,
         utils::{Span, convert_error},
@@ -256,6 +256,27 @@ fn test_struct_field_impl_parser(
 fn test_function_call_parser(#[case] input: &str, #[case] expected: LexExpr) {
     let input = Span::new(input);
     let result = LexExpr::parse_function_call.parse(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case(
+    r##"var[1]"##,
+    LexExpr::Op(Box::new(B2Op::Postfix(LexExpr::Variable("var".to_string()),
+    Postfix::Index(LexExpr::Literal(Primitive::Int(1))))))
+)]
+#[case(
+    r##"var[1][0]"##,
+    LexExpr::Op(Box::new(B2Op::Postfix(LexExpr::Op(Box::new(B2Op::Postfix(LexExpr::Variable("var".to_string()), Postfix::Index(LexExpr::Literal(Primitive::Int(1)))))), Postfix::Index(LexExpr::Literal(Primitive::Int(0))))))
+)]
+fn test_post_fix_parser(#[case] input: &str, #[case] expected: LexExpr) {
+    let input = Span::new(input);
+    let result = LexExpr::parse_postfix_operation.parse(input);
     assert!(
         result.is_ok(),
         "{}",
