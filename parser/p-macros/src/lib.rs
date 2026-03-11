@@ -70,7 +70,7 @@ macro_rules! lvra {
     ) => {
         LexStmt::VariableReassignment {
             identifier: $ident.to_string(),
-            variable_assignment: None,
+            reassignment: None,
             new_value: $value.into(),
         }
     };
