@@ -7,7 +7,7 @@ use crate::{
         utils::{Span, convert_error},
     },
 };
-use p_macros::{lbop, lg, lif, lv, lvda, lvra};
+use p_macros::{lbop, lg, lv, lvda};
 use rstest::rstest;
 
 #[rstest]
@@ -861,7 +861,12 @@ fn test_variable_declaration_assignment_with_type() {
 #[test]
 fn test_list_reasignment() {
     let input = Span::new(r##"prime[i] = FALSE;"##);
-    let expected = LexStmt::ListReassignment { indexee: lv!("prime"), index: lv!("i"), reassignment: None, new_value: false.into() };
+    let expected = LexStmt::ListReassignment {
+        indexee: lv!("prime"),
+        index: lv!("i"),
+        reassignment: None,
+        new_value: false.into(),
+    };
     let result = LexStmt::parse_list_reassignment(input);
     assert!(
         result.is_ok(),

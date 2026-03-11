@@ -29,11 +29,7 @@ macro_rules! lbop {
         $op:expr,
         $r:expr
     ) => {
-        LexExpr::Op(Box::new(B2Op::Binary(
-            $l.into(),
-            $op,
-            $r.into()
-        )))
+        LexExpr::Op(Box::new(B2Op::Binary($l.into(), $op, $r.into())))
     };
 }
 
@@ -59,7 +55,7 @@ macro_rules! lvda {
             variable_type: None,
             value: $value.into(),
         }
-    }
+    };
 }
 
 #[macro_export]
@@ -74,7 +70,6 @@ macro_rules! lvra {
             new_value: $value.into(),
         }
     };
-    
 }
 
 #[macro_export]

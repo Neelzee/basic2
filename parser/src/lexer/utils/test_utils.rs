@@ -7,7 +7,7 @@ use crate::{
         utils::{
             B2Result, Span, convert_error,
             helper_parsers::{
-                consume_comments_and_multispace, parse_comments, parse_identifier,
+                parse_comments, parse_identifier,
                 parse_parameters, parse_poly_list_with, parse_statements,
             },
         },

@@ -8,11 +8,10 @@ use crate::lexer::utils::{
 };
 use nom::{
     Parser,
-    branch::{alt, permutation},
+    branch::alt,
     bytes::complete::tag,
     character::{complete::space0, streaming::multispace0},
     error::context,
-    multi::many0,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
 

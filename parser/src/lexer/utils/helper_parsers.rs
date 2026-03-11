@@ -12,11 +12,11 @@ use crate::lexer::{
 use nom::{
     Parser,
     branch::{alt, permutation},
-    bytes::complete::{tag, take_till, take_until, take_while},
+    bytes::complete::{tag, take_till, take_until},
     character::complete::{alpha1, alphanumeric0, multispace0, multispace1, space0},
     combinator::{eof, opt},
-    error::{ErrorKind, ParseError, context},
-    multi::{many0, many1, separated_list0},
+    error::context,
+    multi::{many0, separated_list0},
     sequence::{delimited, pair, preceded, terminated},
 };
 
