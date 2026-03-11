@@ -19,7 +19,7 @@ use rstest::rstest;
 #[case::parses_group(r##"("string")"##, LexExpr::Group(Box::new(LexExpr::Literal(Primitive::Str("string".to_string())))))]
 #[case::parses_tuple(r##"("string", 123)"##, LexExpr::Tuple(Box::new(LexExpr::Literal(Primitive::Str("string".to_string()))), Box::new(LexExpr::Literal(Primitive::Int(123)))))]
 #[case::parses_list(r##"["string", 123]"##, LexExpr::List(vec![LexExpr::Literal(Primitive::Str("string".to_string())), LexExpr::Literal(Primitive::Int(123))]))]
-#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo".to_string(), arguments: Vec::new(), })]
+#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: Span::new("foo"), arguments: Vec::new(), })]
 #[case::parses_struct_expr(
     r##"STRUCTURE Person WITH
         IMPL firstName = "Nils";
@@ -28,11 +28,11 @@ use rstest::rstest;
     END
     "##,
     LexExpr::Struct {
-        identifier: "Person".to_string(),
+        identifier: Span::new("Person"),
         field_implementations: vec![
-            ("firstName".to_string(), LexExpr::Literal(Primitive::Str("Nils".to_string()))),
-            ("lastName".to_string(), LexExpr::Literal(Primitive::Str("Fitjar".to_string()))),
-            ("age".to_string(), LexExpr::Literal(Primitive::Int(24))),
+            (Span::new("firstName"), LexExpr::Literal(Primitive::Str("Nils".to_string()))),
+            (Span::new("lastName"), LexExpr::Literal(Primitive::Str("Fitjar".to_string()))),
+            (Span::new("age"), LexExpr::Literal(Primitive::Int(24))),
         ]
     }
 )]
@@ -41,7 +41,7 @@ use rstest::rstest;
     LexExpr::Op(Box::new(B2Op::Binary(
         LexExpr::Literal(Primitive::Str("Before: ".to_string())),
         BinOp::Add,
-        LexExpr::Variable("global".to_string())
+        LexExpr::Variable(Span::new("global"))
     )))
 )]
 #[case(
@@ -189,7 +189,7 @@ fn test_binary_expr(#[case] input: &str, #[case] expected: LexExpr) {
 #[case(
     "STRUCTURE empty WITH END",
     LexExpr::Struct {
-        identifier: "empty".to_string(),
+        identifier: Span::new("empty"),
         field_implementations: Vec::new(),
     }
 )]
@@ -198,8 +198,8 @@ fn test_binary_expr(#[case] input: &str, #[case] expected: LexExpr) {
         IMPL bar = 10;
     END",
     LexExpr::Struct {
-        identifier: "FOO".to_string(),
-        field_implementations: vec![("bar".to_string(), LexExpr::Literal(Primitive::Int(10)))],
+        identifier: Span::new("FOO"),
+        field_implementations: vec![(Span::new("bar"), LexExpr::Literal(Primitive::Int(10)))],
     }
 )]
 #[case(
@@ -208,10 +208,10 @@ fn test_binary_expr(#[case] input: &str, #[case] expected: LexExpr) {
         IMPL foo = "";
     END"##,
     LexExpr::Struct {
-        identifier: "FOOBAR".to_string(),
+        identifier: Span::new("FOOBAR"),
         field_implementations: vec![
-            ("bar".to_string(), LexExpr::Literal(Primitive::Int(10))),
-            ("foo".to_string(), LexExpr::Literal(Primitive::Str(String::new())))
+            (Span::new("bar"), LexExpr::Literal(Primitive::Int(10))),
+            (Span::new("foo"), LexExpr::Literal(Primitive::Str(String::new())))
         ],
     }
 )]
@@ -238,22 +238,23 @@ fn test_struct_field_impl_parser(
     let result = LexExpr::parse_struct_field.parse(Span::new(input));
     assert!(result.is_ok(), "{result:?}");
     let result = result.unwrap();
-    assert_eq!(result.1, expected);
+    let (f, s) = result.1;
+    assert_eq!((f.to_string(), s), expected);
     assert_eq!(result.0.to_string(), remainder.to_string());
 }
 
 #[rstest]
-#[case(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo".to_string(), arguments: Vec::new(), })]
-#[case(r##"PRINT("HELLO")"##, LexExpr::FunctionCall { identifier: "PRINT".to_string(), arguments: vec![LexExpr::Literal(Primitive::Str("HELLO".to_string()))], })]
+#[case(r##"foo()"##, LexExpr::FunctionCall { identifier: Span::new("foo"), arguments: Vec::new(), })]
+#[case(r##"PRINT("HELLO")"##, LexExpr::FunctionCall { identifier: Span::new("PRINT"), arguments: vec![LexExpr::Literal(Primitive::Str("HELLO".to_string()))], })]
 #[case(
     r##"PRINT("Before: " + global)"##,
     LexExpr::FunctionCall {
-        identifier: "PRINT".to_string(),
+        identifier: Span::new("PRINT"),
         arguments: vec![
             LexExpr::Op(Box::new(B2Op::Binary(
                 LexExpr::Literal(Primitive::Str("Before: ".to_string())),
                 BinOp::Add,
-                LexExpr::Variable("global".to_string())
+                LexExpr::Variable(Span::new("global"))
             )))
         ],
     }
@@ -272,12 +273,20 @@ fn test_function_call_parser(#[case] input: &str, #[case] expected: LexExpr) {
 #[rstest]
 #[case(
     r##"var[1]"##,
-    LexExpr::Op(Box::new(B2Op::Postfix(LexExpr::Variable("var".to_string()),
-    Postfix::Index(LexExpr::Literal(Primitive::Int(1))))))
+    LexExpr::Op(Box::new(B2Op::Postfix(
+        LexExpr::Variable(Span::new("var")),
+        Postfix::Index(LexExpr::Literal(Primitive::Int(1)))
+    )))
 )]
 #[case(
     r##"var[1][0]"##,
-    LexExpr::Op(Box::new(B2Op::Postfix(LexExpr::Op(Box::new(B2Op::Postfix(LexExpr::Variable("var".to_string()), Postfix::Index(LexExpr::Literal(Primitive::Int(1)))))), Postfix::Index(LexExpr::Literal(Primitive::Int(0))))))
+    LexExpr::Op(Box::new(B2Op::Postfix(
+        LexExpr::Op(Box::new(B2Op::Postfix(
+            LexExpr::Variable(Span::new("var")),
+            Postfix::Index(LexExpr::Literal(Primitive::Int(1)))
+        ))),
+        Postfix::Index(LexExpr::Literal(Primitive::Int(0)))
+    )))
 )]
 #[case(
     "i++",

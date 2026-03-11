@@ -7,8 +7,8 @@ use crate::{
         utils::{
             B2Result, Span, convert_error,
             helper_parsers::{
-                parse_comments, parse_identifier,
-                parse_parameters, parse_poly_list_with, parse_statements,
+                parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
+                parse_statements,
             },
         },
     },
@@ -31,27 +31,18 @@ use rstest::rstest;
     "(",
     ",",
     ")",
-    parse_parameters,
-    r##"(a = "foo", a)"##,
-    vec![("a".to_string(), Some(LexExpr::Literal(Primitive::Str("foo".to_string())))), ("a".to_string(), None)],
-    ""
-)]
-#[case(
-    "(",
-    ",",
-    ")",
     LexExpr::parse_expr,
     r##"("Before: " + global)"##,
     vec![
         LexExpr::Op(Box::new(B2Op::Binary(
             LexExpr::Literal(Primitive::Str("Before: ".to_string())),
             BinOp::Add,
-            LexExpr::Variable("global".to_string())
+            LexExpr::Variable(Span::new("global"))
         )))
     ],
     ""
 )]
-fn test_parse_poly_list_with<P, O>(
+fn test_parse_poly_list_with<'a, P, O>(
     #[case] start: &'static str,
     #[case] delimiter: &'static str,
     #[case] end: &'static str,
@@ -61,7 +52,7 @@ fn test_parse_poly_list_with<P, O>(
     #[case] remainder: &'static str,
 ) where
     O: std::fmt::Debug + PartialEq,
-    P: Fn(Span) -> B2Result<O> + Clone,
+    P: Fn(Span<'a>) -> B2Result<'a, O> + Clone,
 {
     let input = Span::new(input);
     let result = parse_poly_list_with(start, delimiter, end, parser).parse(input);

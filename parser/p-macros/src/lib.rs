@@ -18,7 +18,7 @@ macro_rules! lv {
     (
         $ident:expr
     ) => {
-        LexExpr::Variable($ident.to_string())
+        LexExpr::Variable(Span::new($ident))
     };
 }
 
@@ -41,7 +41,7 @@ macro_rules! lvda {
         $value:expr
     ) => {
         LexStmt::VariableDeclarationAssignment {
-            identifier: $ident.to_string(),
+            identifier: Span::new($ident),
             variable_type: Some($type),
             value: $value.into(),
         }
@@ -51,7 +51,7 @@ macro_rules! lvda {
         $value:expr
     ) => {
         LexStmt::VariableDeclarationAssignment {
-            identifier: $ident.to_string(),
+            identifier: Span::new($ident),
             variable_type: None,
             value: $value.into(),
         }
@@ -65,7 +65,7 @@ macro_rules! lvra {
         $value:expr
     ) => {
         LexStmt::VariableReassignment {
-            identifier: $ident.to_string(),
+            identifier: Span::new($ident),
             reassignment: None,
             new_value: $value.into(),
         }

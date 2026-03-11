@@ -16,17 +16,17 @@ use nom::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LexType {
+pub enum LexType<'a> {
     Str,
     Int,
     Bool,
     Tuple { fst: Box<Self>, snd: Box<Self> },
     List(Box<Self>),
-    TypeAlias(String),
+    TypeAlias(Span<'a>),
 }
 
-impl LexType {
-    pub fn parse_type(input: Span) -> B2Result<Self> {
+impl<'a> LexType<'a> {
+    pub fn parse_type(input: Span<'a>) -> B2Result<'a, Self> {
         alt((
             tag(STR_TYPE_KW).map(|_| Self::Str),
             tag(INT_TYPE_KW).map(|_| Self::Int),
@@ -38,7 +38,7 @@ impl LexType {
         .parse(input)
     }
 
-    pub fn parse_tuple_type(input: Span) -> B2Result<Self> {
+    pub fn parse_tuple_type(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "tuple-type-parsing",
             separated_pair(
@@ -66,7 +66,7 @@ impl LexType {
         .parse(input)
     }
 
-    pub fn parse_list(input: Span) -> B2Result<Self> {
+    pub fn parse_list(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "list-type-parsing",
             delimited(
@@ -79,9 +79,9 @@ impl LexType {
         .parse(input)
     }
 
-    pub fn parse_type_alias(input: Span) -> B2Result<Self> {
+    pub fn parse_type_alias(input: Span<'a>) -> B2Result<'a, Self> {
         context("type-alias", parse_identifier)
-            .map(|s| Self::TypeAlias(s.to_string()))
+            .map(|s| Self::TypeAlias(s))
             .parse(input)
     }
 }

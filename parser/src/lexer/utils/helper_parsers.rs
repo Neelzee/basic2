@@ -62,14 +62,11 @@ where
     )
 }
 
-pub fn parse_parameters(input: Span) -> B2Result<(String, Option<LexExpr>)> {
+pub fn parse_parameters<'a>(input: Span<'a>) -> B2Result<'a, (Span<'a>, Option<LexExpr<'a>>)> {
     context(
         "parse-parameters",
         pair(
-            context(
-                "parse-parameter-identifier",
-                parse_identifier.map(|s| s.to_string()),
-            ),
+            context("parse-parameter-identifier", parse_identifier),
             context(
                 "parse-parameter-optional-default-argument",
                 opt(preceded(

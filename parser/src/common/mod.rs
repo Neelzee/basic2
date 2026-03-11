@@ -9,4 +9,4 @@ pub mod postfix;
 pub mod primitive;
 pub mod uniop;
 
-pub type B2Op = Operation<UniOp, Postfix, BinOp, LexExpr>;
+pub type B2Op<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;

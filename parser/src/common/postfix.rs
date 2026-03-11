@@ -11,14 +11,14 @@ use nom::{
 };
 
 #[derive(Debug, PartialEq)]
-pub enum Postfix {
+pub enum Postfix<'a> {
     Incr,
     Decr,
-    Index(LexExpr),
+    Index(LexExpr<'a>),
 }
 
-impl Postfix {
-    pub fn parse_postfix(input: Span) -> B2Result<Self> {
+impl<'a> Postfix<'a> {
+    pub fn parse_postfix(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "post-fix",
             alt((
@@ -30,7 +30,7 @@ impl Postfix {
         .parse(input)
     }
 
-    pub fn parse_index(input: Span) -> B2Result<Self> {
+    pub fn parse_index(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "post-fix-index",
             delimited(
