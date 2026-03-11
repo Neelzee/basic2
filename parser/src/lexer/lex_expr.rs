@@ -55,7 +55,7 @@ impl LexExpr {
         .parse(input)
     }
 
-    fn parse_expr_excl_postfix(input: Span) -> B2Result<Self> {
+    pub fn parse_expr_excl_postfix(input: Span) -> B2Result<Self> {
         alt((
             Self::parse_binary_operation,
             Self::parse_literal,
@@ -79,7 +79,6 @@ impl LexExpr {
             Self::parse_list,
             Self::parse_struct,
             Self::parse_variable,
-            Self::parse_postfix_operation,
             Self::parse_unary_operation,
         ))
         .parse(input)
@@ -186,7 +185,7 @@ impl LexExpr {
     pub fn parse_postfix_operation(input: Span) -> B2Result<Self> {
         context(
             "postfix-expresion",
-            pair(Self::parse_expr_excl_postfix, many1(Postfix::parse_postfix)),
+            pair(Self::parse_expr_no_inf_rec, many1(Postfix::parse_postfix)),
         )
         .map(|(val, ops)| {
             ops.into_iter()
@@ -361,5 +360,35 @@ impl PartialEq for LexExpr {
             ) => l_identifier == r_identifier && l_field_implementations == r_field_implementations,
             _ => false,
         }
+    }
+}
+
+impl From<&str> for LexExpr {
+    fn from(value: &str) -> Self {
+        LexExpr::Literal(value.into())
+    }
+}
+
+impl From<i32> for LexExpr {
+    fn from(value: i32) -> Self {
+        LexExpr::Literal(value.into())
+    }
+}
+
+impl From<bool> for LexExpr {
+    fn from(value: bool) -> Self {
+        LexExpr::Literal(value.into())
+    }
+}
+
+impl<T: Into<LexExpr>> From<Vec<T>> for LexExpr {
+    fn from(value: Vec<T>) -> Self {
+        Self::List(value.into_iter().map(|i| i.into()).collect())
+    }
+}
+
+impl<F: Into<LexExpr>, S: Into<LexExpr>> From<(F, S)> for LexExpr {
+    fn from((f, s): (F, S)) -> Self {
+        Self::Tuple(Box::new(f.into()), Box::new(s.into()))
     }
 }

@@ -6,11 +6,11 @@ use nom::{
     Parser,
     branch::alt,
     bytes::complete::{tag, take_till},
-    character::complete::{char, digit1, space0},
+    character::complete::{char, digit1},
     combinator::{map, opt, recognize},
     error::context,
     number::complete::float,
-    sequence::{delimited, pair, preceded},
+    sequence::{delimited, pair},
 };
 
 #[derive(Debug, PartialEq)]
@@ -83,4 +83,28 @@ fn is_negative(input: Span) -> B2Result<bool> {
     opt(alt((tag("+"), tag("-"))))
         .map(|o| o.is_some_and(|s: Span| s.to_string() == "-"))
         .parse(input)
+}
+
+impl From<i32> for Primitive {
+    fn from(value: i32) -> Self {
+        Self::Int(value)
+    }
+}
+
+impl From<&str> for Primitive {
+    fn from(value: &str) -> Self {
+        Self::Str(value.to_string())
+    }
+}
+
+impl From<String> for Primitive {
+    fn from(value: String) -> Self {
+        Self::Str(value)
+    }
+}
+
+impl From<bool> for Primitive {
+    fn from(value: bool) -> Self {
+        Self::Bool(value)
+    }
 }

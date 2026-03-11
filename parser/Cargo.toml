@@ -6,6 +6,7 @@ edition = "2024"
 [dev-dependencies]
 rstest = { workspace = true }
 anyhow = { workspace = true }
+p-macros = { workspace = true }
 
 [dependencies]
 nom = "8.0.0"

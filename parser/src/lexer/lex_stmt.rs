@@ -7,14 +7,15 @@ use crate::{
             B2Result, Span,
             consts::{
                 ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW,
-                END_STMT_KW, FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW,
+                END_STMT_KW, FOR_BODY_START_KW, FOR_CONDITION_END_KW, FOR_CONDITION_START_KW,
+                FOR_END_KW, FOR_START_KW, FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW,
                 FUNCTION_IMPLEMENTATION_KW, FUNCTION_IMPLEMENTATION_START_KW,
                 FUNCTION_INVOCATION_END, FUNCTION_INVOCATION_START_KW,
                 FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START,
                 IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
-                IMPORT_MODULE_KW, RETURN_STMT_KW, STRUCT_DECL_KW, STRUCT_END_KW,
-                STRUCT_FIELD_DECL_KW, STRUCT_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
-                TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
+                IMPORT_MODULE_KW, LIST_END, LIST_START, RETURN_STMT_KW, STRUCT_DECL_KW,
+                STRUCT_END_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW, TUPLE_DELIMITER, TUPLE_END,
+                TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
                 VARIABLE_TYPE_START, WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW,
                 WHILE_STATEMENT_START_KW,
             },
@@ -28,8 +29,8 @@ use crate::{
 use nom::{
     Parser,
     branch::alt,
-    bytes::complete::{tag, take, take_until},
-    character::complete::{multispace0, multispace1, space0, space1},
+    bytes::complete::tag,
+    character::complete::{multispace0, multispace1, space0},
     combinator::opt,
     error::context,
     multi::many0,
@@ -53,6 +54,12 @@ pub enum LexStmt {
     },
     VariableReassignment {
         identifier: String,
+        reassignment: Option<BinOp>,
+        new_value: LexExpr,
+    },
+    ListReassignment {
+        indexee: LexExpr,
+        index: LexExpr,
         reassignment: Option<BinOp>,
         new_value: LexExpr,
     },
@@ -96,6 +103,12 @@ pub enum LexStmt {
     ImportModule {
         identifier: String,
     },
+    For {
+        start_stmt: Box<Self>,
+        condition: LexExpr,
+        incrementer: LexExpr,
+        body: Vec<Self>,
+    },
 }
 
 impl LexStmt {
@@ -104,6 +117,7 @@ impl LexStmt {
             "statements",
             alt((
                 Self::parse_type_alias,
+                Self::parse_list_reassignment,
                 Self::parse_variable_unpacking,
                 Self::parse_variable_declaration,
                 Self::parse_variable_declaration_assignment,
@@ -118,6 +132,7 @@ impl LexStmt {
                 Self::parse_break,
                 Self::parse_return,
                 Self::parse_import_module,
+                Self::parse_for_statement,
             )),
         )
         .parse(input)
@@ -454,6 +469,75 @@ impl LexStmt {
             ),
         )
         .map(|(identifiers, _, value)| Self::VariableUnpacking { identifiers, value })
+        .parse(input)
+    }
+
+    pub fn parse_for_statement(input: Span) -> B2Result<Self> {
+        context(
+            "for",
+            terminated(
+                (
+                    delimited(
+                        (tag(FOR_START_KW), multispace0),
+                        delimited(
+                            (tag(FOR_CONDITION_START_KW), multispace0),
+                            (
+                                Self::parse_variable_declaration_assignment.map(|b| Box::new(b)),
+                                delimited(multispace0, LexExpr::parse_expr, tag(END_STMT_KW)),
+                                delimited(multispace0, LexExpr::parse_expr, tag(END_STMT_KW)),
+                            ),
+                            (multispace0, tag(FOR_CONDITION_END_KW)),
+                        ),
+                        (multispace0, tag(FOR_BODY_START_KW)),
+                    ),
+                    parse_statements,
+                ),
+                (multispace0, tag(FOR_END_KW)),
+            ),
+        )
+        .map(|((start_stmt, condition, incrementer), body)| Self::For {
+            start_stmt,
+            condition,
+            incrementer,
+            body,
+        })
+        .parse(input)
+    }
+
+    pub fn parse_list_reassignment(input: Span) -> B2Result<Self> {
+        context(
+            "list-reassignment",
+            (
+                context(
+                    "indexee",
+                    alt((LexExpr::parse_list, LexExpr::parse_variable)),
+                ),
+                context(
+                    "index",
+                    delimited(
+                        (tag(LIST_START), multispace0),
+                        LexExpr::parse_expr,
+                        (multispace0, tag(LIST_END)),
+                    ),
+                ),
+                context(
+                    "reassignment",
+                    delimited(multispace0, opt(BinOp::parse_symbol), tag(ASSIGNMENT_KW)),
+                ),
+                context(
+                    "new_value",
+                    delimited(multispace0, LexExpr::parse_expr, tag(END_STMT_KW)),
+                ),
+            ),
+        )
+        .map(
+            |(indexee, index, reassignment, new_value)| Self::ListReassignment {
+                indexee,
+                index,
+                reassignment,
+                new_value,
+            },
+        )
         .parse(input)
     }
 }

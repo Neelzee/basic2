@@ -87,6 +87,7 @@ pub const NEQ_KW: &str = "!=";
 pub const LT_KW: &str = "<";
 pub const GT_KW: &str = ">";
 pub const GEQ_KW: &str = ">=";
+pub const LEQ_KW: &str = "<=";
 pub const EQ_KW: &str = "==";
 pub const POW_KW: &str = "^";
 pub const DIV_KW: &str = "/";
@@ -105,6 +106,12 @@ pub const UNPACK_KW: &str = "><";
 
 pub const MULTI_LINE_COMMENT_START: &str = "#-";
 pub const MULTI_LINE_COMMENT_END: &str = "-#";
+
+pub const FOR_START_KW: &str = "FOR";
+pub const FOR_CONDITION_START_KW: &str = "(";
+pub const FOR_CONDITION_END_KW: &str = ")";
+pub const FOR_BODY_START_KW: &str = "THEN";
+pub const FOR_END_KW: &str = "END";
 
 #[cfg(test)]
 pub mod test_const {

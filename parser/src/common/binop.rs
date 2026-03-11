@@ -1,8 +1,8 @@
 use crate::lexer::utils::{
     B2Result, Span,
     consts::{
-        ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW,
-        SUB_KW,
+        ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LEQ_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW,
+        POW_KW, SUB_KW,
     },
 };
 use nom::{
@@ -39,6 +39,7 @@ impl BinOp {
                 tag(POW_KW).map(|_| Self::Pow),
                 tag(EQ_KW).map(|_| Self::Eq),
                 tag(GEQ_KW).map(|_| Self::Geq),
+                tag(LEQ_KW).map(|_| Self::Leq),
                 tag(GT_KW).map(|_| Self::Gt),
                 tag(LT_KW).map(|_| Self::Lt),
                 tag(NEQ_KW).map(|_| Self::Neq),

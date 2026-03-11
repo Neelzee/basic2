@@ -26,12 +26,12 @@ fn test_can_parse_empty_program() -> Result<()> {
 
 #[rstest]
 fn test_can_parse_basic_examples(
-    #[files("../assets/basic-examples/*.b2")] path: PathBuf,
+    #[base_dir = "../assets/basic-examples/"]
+    #[mode = str]
+    #[files("*.b2")]
+    content: &str,
 ) -> Result<()> {
-    let mut file = File::open(&path).with_context(|| format!("{path:?}"))?;
-    let mut buf = String::new();
-    file.read_to_string(&mut buf)?;
-    let input = Span::new(&buf);
+    let input = Span::new(content);
 
     let result = LexProgram::parse_program(input);
     assert!(
@@ -45,13 +45,12 @@ fn test_can_parse_basic_examples(
 
 #[rstest]
 fn test_can_parse_valid_examples(
-    #[files("../assets/valid-examples/*.b2")] path: PathBuf,
+    #[base_dir = "../assets/valid-examples/"]
+    #[mode = str]
+    #[files("*.b2")]
+    content: &str,
 ) -> Result<()> {
-    let mut file = File::open(&path).with_context(|| format!("{path:?}"))?;
-    let mut buf = String::new();
-    file.read_to_string(&mut buf)?;
-
-    let input = Span::new(&buf);
+    let input = Span::new(content);
     let result = LexProgram::parse_program(input);
 
     assert!(

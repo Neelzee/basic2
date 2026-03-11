@@ -6,6 +6,7 @@ use crate::{
     },
 };
 use nom::Parser;
+use p_macros::{lbop, lg, lv};
 use rstest::rstest;
 
 #[rstest]
@@ -42,6 +43,10 @@ use rstest::rstest;
         BinOp::Add,
         LexExpr::Variable("global".to_string())
     )))
+)]
+#[case(
+    "((p * p) <= n)",
+    lg!(lbop!(lg!(lbop!(lv!("p"), BinOp::Mul, lv!("p"))), BinOp::Leq, lv!("n")))
 )]
 fn test_expression_parser(#[case] input: &str, #[case] expected: LexExpr) {
     let result = LexExpr::parse_expr(Span::new(input));
@@ -274,9 +279,33 @@ fn test_function_call_parser(#[case] input: &str, #[case] expected: LexExpr) {
     r##"var[1][0]"##,
     LexExpr::Op(Box::new(B2Op::Postfix(LexExpr::Op(Box::new(B2Op::Postfix(LexExpr::Variable("var".to_string()), Postfix::Index(LexExpr::Literal(Primitive::Int(1)))))), Postfix::Index(LexExpr::Literal(Primitive::Int(0))))))
 )]
+#[case(
+    "i++",
+    LexExpr::Op(Box::new(B2Op::Postfix(lv!("i"), Postfix::Incr)))
+)]
 fn test_post_fix_parser(#[case] input: &str, #[case] expected: LexExpr) {
     let input = Span::new(input);
     let result = LexExpr::parse_postfix_operation.parse(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case(
+    "i <= (n + 1)",
+    lbop!(lv!("i"), BinOp::Leq, lg!(lbop!(lv!("n"), BinOp::Add, 1)))
+)]
+#[case(
+    "(p * p) <= n",
+    lbop!(lg!(lbop!(lv!("p"), BinOp::Mul, lv!("p"))), BinOp::Leq, lv!("n"))
+)]
+fn test_binop_eq(#[case] input: &str, #[case] expected: LexExpr) {
+    let input = Span::new(input);
+    let result = LexExpr::parse_binary_operation.parse(input);
     assert!(
         result.is_ok(),
         "{}",

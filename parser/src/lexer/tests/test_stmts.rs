@@ -7,6 +7,7 @@ use crate::{
         utils::{Span, convert_error},
     },
 };
+use p_macros::{lbop, lg, lif, lv, lvda, lvra};
 use rstest::rstest;
 
 #[rstest]
@@ -245,6 +246,15 @@ fn test_parse_if(#[case] input: &str, #[case] expected: LexStmt) {
             },
             LexStmt::Break,
         ]
+    }
+)]
+#[case(
+    r##"WHILE ((p * p) <= n) DO
+        END
+    "##,
+    LexStmt::While {
+        condition: lg!(lbop!(lg!(lbop!(lv!("p"), BinOp::Mul, lv!("p"))), BinOp::Leq, lv!("n"))),
+        body: Vec::new(),
     }
 )]
 fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
@@ -733,6 +743,27 @@ fn test_function_unpacking() {
 }
 
 #[test]
+fn test_for_loop() {
+    const INPUT: &str = r##"FOR (LET i = 2; i <= (n + 1); i++;) THEN
+            END
+        "##;
+    let input = Span::new(INPUT);
+    let expected = LexStmt::For {
+        start_stmt: Box::new(lvda!("i", 2)),
+        condition: lbop!(lv!("i"), BinOp::Leq, lg!(lbop!(lv!("n"), BinOp::Add, 1))),
+        incrementer: LexExpr::Op(Box::new(B2Op::Postfix(lv!("i"), Postfix::Incr))),
+        body: Vec::new(),
+    };
+    let result = LexStmt::parse_for_statement(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
 fn test_function_impl_fizzbuzz() {
     const INPUT: &str = r##"IMPL fizzbuzz(n) DOES
         LET result: STR = "";
@@ -759,24 +790,40 @@ fn test_function_impl_fizzbuzz() {
                 condition: LexExpr::Group(Box::new(LexExpr::Op(Box::new(B2Op::Binary(
                     LexExpr::Variable("n".to_string()),
                     BinOp::Mod,
-                    LexExpr::Op(Box::new(B2Op::Binary(LexExpr::Literal(Primitive::Int(3)), BinOp::Eq, LexExpr::Literal(Primitive::Int(0))))),
+                    LexExpr::Op(Box::new(B2Op::Binary(
+                        LexExpr::Literal(Primitive::Int(3)),
+                        BinOp::Eq,
+                        LexExpr::Literal(Primitive::Int(0)),
+                    ))),
                 ))))),
                 body: vec![LexStmt::VariableReassignment {
                     identifier: "result".to_string(),
                     reassignment: None,
-                    new_value: LexExpr::Op(Box::new(B2Op::Binary(LexExpr::Variable("result".to_string()), BinOp::Add, LexExpr::Literal(Primitive::Str("Fizz".to_string()))))),
+                    new_value: LexExpr::Op(Box::new(B2Op::Binary(
+                        LexExpr::Variable("result".to_string()),
+                        BinOp::Add,
+                        LexExpr::Literal(Primitive::Str("Fizz".to_string())),
+                    ))),
                 }],
             },
             LexStmt::If {
                 condition: LexExpr::Group(Box::new(LexExpr::Op(Box::new(B2Op::Binary(
                     LexExpr::Variable("n".to_string()),
                     BinOp::Mod,
-                    LexExpr::Op(Box::new(B2Op::Binary(LexExpr::Literal(Primitive::Int(5)), BinOp::Eq, LexExpr::Literal(Primitive::Int(0)))))
+                    LexExpr::Op(Box::new(B2Op::Binary(
+                        LexExpr::Literal(Primitive::Int(5)),
+                        BinOp::Eq,
+                        LexExpr::Literal(Primitive::Int(0)),
+                    ))),
                 ))))),
                 body: vec![LexStmt::VariableReassignment {
                     identifier: "result".to_string(),
                     reassignment: None,
-                    new_value: LexExpr::Op(Box::new(B2Op::Binary(LexExpr::Variable("result".to_string()), BinOp::Add, LexExpr::Literal(Primitive::Str("Buzz".to_string()))),))
+                    new_value: LexExpr::Op(Box::new(B2Op::Binary(
+                        LexExpr::Variable("result".to_string()),
+                        BinOp::Add,
+                        LexExpr::Literal(Primitive::Str("Buzz".to_string())),
+                    ))),
                 }],
             },
             LexStmt::Return {
@@ -803,6 +850,19 @@ fn test_variable_declaration_assignment_with_type() {
         value: LexExpr::Literal(Primitive::Str(String::new())),
     };
     let result = LexStmt::parse_variable_declaration_assignment(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
+fn test_list_reasignment() {
+    let input = Span::new(r##"prime[i] = FALSE;"##);
+    let expected = LexStmt::ListReassignment { indexee: lv!("prime"), index: lv!("i"), reassignment: None, new_value: false.into() };
+    let result = LexStmt::parse_list_reassignment(input);
     assert!(
         result.is_ok(),
         "{}",
