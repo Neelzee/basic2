@@ -139,6 +139,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "p-macros"
+version = "0.1.0"
+
+[[package]]
 name = "parser"
 version = "0.1.0"
 dependencies = [
@@ -146,6 +150,7 @@ dependencies = [
  "nom",
  "nom-language",
  "nom_locate",
+ "p-macros",
  "rstest",
 ]
 
