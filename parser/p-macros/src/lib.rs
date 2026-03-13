@@ -80,3 +80,13 @@ macro_rules! lg {
         LexExpr::Group(Box::new($expr.into()))
     };
 }
+
+#[macro_export]
+macro_rules! lai {
+    (
+        $indexee:expr,
+        $indexer:expr
+    ) => {
+        LexExpr::Op(Box::new(B2Op::Postfix($indexee.into(), Postfix::Index($indexer.into()))))
+    };
+}
