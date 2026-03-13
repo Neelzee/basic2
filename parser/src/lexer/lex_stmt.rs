@@ -4,20 +4,9 @@ use crate::{
         lex_expr::LexExpr,
         lex_type::LexType,
         utils::{
-            B2Result, Span,
+            B2Error, B2Result, Span,
             consts::{
-                ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW,
-                END_STMT_KW, FOR_BODY_START_KW, FOR_CONDITION_END_KW, FOR_CONDITION_START_KW,
-                FOR_END_KW, FOR_START_KW, FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW,
-                FUNCTION_IMPLEMENTATION_KW, FUNCTION_IMPLEMENTATION_START_KW,
-                FUNCTION_INVOCATION_END, FUNCTION_INVOCATION_START_KW,
-                FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START,
-                IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
-                IMPORT_MODULE_KW, LIST_END, LIST_START, RETURN_STMT_KW, STRUCT_DECL_KW,
-                STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW,
-                TUPLE_DELIMITER, TUPLE_END, TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW,
-                VARIABLE_DECLARATION, VARIABLE_REASIGNMENT, VARIABLE_TYPE_START,
-                WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
+                ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW, END_STMT_KW, ENUM_END_KW, ENUM_START_KW, FOR_BODY_START_KW, FOR_CONDITION_END_KW, FOR_CONDITION_START_KW, FOR_END_KW, FOR_START_KW, FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_IMPLEMENTATION_KW, FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END, FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW, IMPORT_MODULE_KW, LIST_DELIMITER, LIST_END, LIST_START, LIST_UNPACKING_KW, RETURN_STMT_KW, STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT, VARIABLE_TYPE_START, WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW
             },
             helper_parsers::{
                 parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
@@ -32,7 +21,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::{multispace0, multispace1, space0},
     combinator::opt,
-    error::context,
+    error::{ErrorKind, ParseError, context},
     multi::many0,
     sequence::{delimited, pair, preceded, terminated},
 };
@@ -43,8 +32,17 @@ pub enum LexStmt<'a> {
         identifier: Span<'a>,
         variable_type: Option<LexType<'a>>,
     },
-    VariableUnpacking {
+    TupleUnpacking {
         identifiers: Vec<Span<'a>>,
+        value: LexExpr<'a>,
+    },
+    StructUnpacking {
+        identifiers: Vec<Span<'a>>,
+        value: LexExpr<'a>,
+    },
+    ListUnpacking {
+        identifiers: Vec<Span<'a>>,
+        remainder: Option<Span<'a>>,
         value: LexExpr<'a>,
     },
     VariableDeclarationAssignment {
@@ -115,6 +113,10 @@ pub enum LexStmt<'a> {
         reassignment: Option<BinOp>,
         new_value: LexExpr<'a>,
     },
+    EnumDeclaration {
+        identifier: Span<'a>,
+        enumerations: Vec<Span<'a>>
+    }
 }
 
 impl<'a> LexStmt<'a> {
@@ -124,7 +126,9 @@ impl<'a> LexStmt<'a> {
             alt((
                 Self::parse_type_alias,
                 Self::parse_list_reassignment,
-                Self::parse_variable_unpacking,
+                Self::parse_tuple_unpacking,
+                Self::parse_list_unpacking,
+                Self::parse_struct_unpacking,
                 Self::parse_variable_declaration,
                 Self::parse_variable_declaration_assignment,
                 Self::parse_struct_field_reassignment,
@@ -140,6 +144,7 @@ impl<'a> LexStmt<'a> {
                 Self::parse_return,
                 Self::parse_import_module,
                 Self::parse_for_statement,
+                Self::parse_enum_declaration,
             )),
         )
         .parse(input)
@@ -478,9 +483,9 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_variable_unpacking(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_tuple_unpacking(input: Span<'a>) -> B2Result<'a, Self> {
         context(
-            "variable-unpacking",
+            "tuple-unpacking",
             delimited(
                 (tag(VARIABLE_DECLARATION), multispace0),
                 (
@@ -491,7 +496,65 @@ impl<'a> LexStmt<'a> {
                 (multispace0, tag(END_STMT_KW)),
             ),
         )
-        .map(|(identifiers, _, value)| Self::VariableUnpacking { identifiers, value })
+        .map(|(identifiers, _, value)| Self::TupleUnpacking { identifiers, value })
+        .parse(input)
+    }
+
+    pub fn parse_list_unpacking(input: Span<'a>) -> B2Result<'a, Self> {
+        let (rem, (idents, _, value)) = context(
+            "list-unpacking",
+            delimited(
+                (tag(VARIABLE_DECLARATION), multispace0),
+                (
+                    parse_poly_list_with(
+                        LIST_START,
+                        LIST_DELIMITER,
+                        LIST_END,
+                        alt((
+                            parse_identifier.map(|i| Ok(i)),
+                            preceded(tag(LIST_UNPACKING_KW), parse_identifier).map(|i| Err(i)),
+                        )),
+                    ),
+                    (multispace0, tag(UNPACK_KW), multispace0),
+                    LexExpr::parse_expr,
+                ),
+                (multispace0, tag(END_STMT_KW)),
+            ),
+        )
+        .parse(input)?;
+
+        let mut remainders = idents.iter().filter_map(|i| i.err()).collect::<Vec<_>>();
+        if remainders.len() >= 2 {
+            return Err(nom::Err::Error(B2Error::from_error_kind(
+                input,
+                ErrorKind::Fail,
+            )));
+        }
+        let remainder = remainders.pop();
+        Ok((
+            rem,
+            Self::ListUnpacking {
+                identifiers: idents.into_iter().filter_map(|i| i.ok()).collect(),
+                value,
+                remainder,
+            },
+        ))
+    }
+
+    pub fn parse_struct_unpacking(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "struct-unpacking",
+            delimited(
+                (tag(VARIABLE_DECLARATION), multispace0),
+                (
+                    parse_poly_list_with(LIST_START, LIST_DELIMITER, LIST_END, preceded(tag(STRUCT_FIELD_ACCESS_KW), parse_identifier)),
+                    (multispace0, tag(UNPACK_KW), multispace0),
+                    LexExpr::parse_expr,
+                ),
+                (multispace0, tag(END_STMT_KW)),
+            ),
+        )
+        .map(|(identifiers, _, value)| Self::StructUnpacking { identifiers, value })
         .parse(input)
     }
 
@@ -563,6 +626,25 @@ impl<'a> LexStmt<'a> {
         )
         .parse(input)
     }
+
+    pub fn parse_enum_declaration(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "enum-declaration",
+            delimited(
+                (tag(ENUM_START_KW), multispace0),
+                (
+                    parse_identifier,
+                    preceded(
+                        multispace0,
+                        many0(delimited(multispace0, parse_identifier, tag(END_STMT_KW)))
+                    )
+                ),
+                (multispace0, tag(ENUM_END_KW))
+            )
+        )
+        .map(|(identifier, enumerations)| Self::EnumDeclaration { identifier, enumerations })
+        .parse(input)
+    }
 }
 
 impl<'a> PartialEq for LexStmt<'a> {
@@ -582,11 +664,11 @@ impl<'a> PartialEq for LexStmt<'a> {
                     && l_variable_type == r_variable_type
             }
             (
-                Self::VariableUnpacking {
+                Self::TupleUnpacking {
                     identifiers: l_identifiers,
                     value: l_value,
                 },
-                Self::VariableUnpacking {
+                Self::TupleUnpacking {
                     identifiers: r_identifiers,
                     value: r_value,
                 },

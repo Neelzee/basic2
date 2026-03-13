@@ -22,7 +22,8 @@ pub enum LexType<'a> {
     Bool,
     Tuple { fst: Box<Self>, snd: Box<Self> },
     List(Box<Self>),
-    TypeAlias(Span<'a>),
+    /// Can be a Type alias, a generic, an enum, and a struct
+    TypeVar(Span<'a>),
 }
 
 impl<'a> LexType<'a> {
@@ -81,7 +82,7 @@ impl<'a> LexType<'a> {
 
     pub fn parse_type_alias(input: Span<'a>) -> B2Result<'a, Self> {
         context("type-alias", parse_identifier)
-            .map(|s| Self::TypeAlias(s))
+            .map(|s| Self::TypeVar(s))
             .parse(input)
     }
 }

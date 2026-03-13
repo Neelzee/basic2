@@ -15,6 +15,7 @@ pub const LIST_END: &str = "]";
 pub const LIST_END_CHAR: char = ']';
 pub const LIST_DELIMITER: &str = ",";
 pub const LIST_DELIMITER_CHAR: char = ',';
+pub const LIST_UNPACKING_KW: &str = "...";
 
 pub const FUNCTION_IMPLEMENTATION_KW: &str = "IMPL";
 pub const FUNCTION_IMPLEMENTATION_START_KW: &str = "DOES";
@@ -113,6 +114,10 @@ pub const FOR_CONDITION_START_KW: &str = "(";
 pub const FOR_CONDITION_END_KW: &str = ")";
 pub const FOR_BODY_START_KW: &str = "THEN";
 pub const FOR_END_KW: &str = "END";
+
+pub const ENUM_START_KW: &str = "ENUMS";
+pub const ENUM_END_KW: &str = "END";
+pub const ENUM_INDEXING: &str = ".";
 
 #[cfg(test)]
 pub mod test_const {

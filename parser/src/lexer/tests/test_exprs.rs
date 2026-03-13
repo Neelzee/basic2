@@ -339,6 +339,16 @@ fn test_precedence(#[case] input: &str, #[case] expected: LexExpr) {
 fn test_struct_field_access() {
     let input = Span::new("me::firstName");
     let result = LexExpr::parse_expr(input);
-    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
-    assert_eq!(result.unwrap().1, LexExpr::StructFieldAccessing { identifier: Span::new("me"), field: Span::new("firstName") });
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(
+        result.unwrap().1,
+        LexExpr::StructFieldAccessing {
+            identifier: Span::new("me"),
+            field: Span::new("firstName")
+        }
+    );
 }

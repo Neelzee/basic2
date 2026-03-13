@@ -3,12 +3,7 @@ use crate::{
     lexer::utils::{
         B2Error, B2Result, Span,
         consts::{
-            ADD_KW, AND_KW, DIV_KW, EQ_KW, FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END,
-            FUNCTION_CALL_START, GEQ_KW, GROUP_END, GROUP_START, GT_KW, LEQ_KW, LIST_DELIMITER,
-            LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW, STRUCT_END_KW,
-            STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END,
-            STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END,
-            TUPLE_START,
+            ADD_KW, AND_KW, DIV_KW, ENUM_INDEXING, EQ_KW, FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_START, GEQ_KW, GROUP_END, GROUP_START, GT_KW, LEQ_KW, LIST_DELIMITER, LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START
         },
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
@@ -44,11 +39,16 @@ pub enum LexExpr<'a> {
         identifier: Span<'a>,
         field: Span<'a>,
     },
+    Enum {
+        identifier: Span<'a>,
+        instance: Span<'a>,
+    }
 }
 
 impl<'a> LexExpr<'a> {
     pub fn parse_expr(input: Span<'a>) -> B2Result<'a, Self> {
         alt((
+            Self::parse_enum,
             Self::parse_struct_field_accessing,
             Self::parse_precedence,
             Self::parse_literal,
@@ -329,6 +329,15 @@ impl<'a> LexExpr<'a> {
         .map(|(f, _)| f)
         .parse(input)
     }
+
+    pub fn parse_enum(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "enum",
+            (parse_identifier, tag(ENUM_INDEXING), parse_identifier),
+        )
+        .map(|(identifier, _ , instance)| Self::Enum { identifier, instance })
+        .parse(input)
+    }
 }
 
 impl<'a> std::fmt::Debug for LexExpr<'a> {
@@ -373,10 +382,15 @@ impl<'a> std::fmt::Debug for LexExpr<'a> {
                 .field("identifier", identifier)
                 .field("field_implementations", field_implementations)
                 .finish(),
-            LexExpr::StructFieldAccessing { identifier, field } => f
+            Self::StructFieldAccessing { identifier, field } => f
                 .debug_struct("StructFieldAccessing")
                 .field("identifier", identifier)
                 .field("field", field)
+                .finish(),
+            Self::Enum { identifier, instance } => f
+                .debug_struct("Enum")
+                .field("identifier", identifier)
+                .field("instance", instance)
                 .finish(),
         }
     }

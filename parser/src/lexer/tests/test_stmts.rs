@@ -717,7 +717,7 @@ fn test_function_impl_get_age() {
 fn test_function_unpacking() {
     const INPUT: &str = r##"LET (firstName, lastName, age, city, postCode, street) >< p;"##;
     let input = Span::new(INPUT);
-    let expected = LexStmt::VariableUnpacking {
+    let expected = LexStmt::TupleUnpacking {
         identifiers: vec![
             Span::new("firstName"),
             Span::new("lastName"),
@@ -728,7 +728,7 @@ fn test_function_unpacking() {
         ],
         value: LexExpr::Variable(Span::new("p")),
     };
-    let result = LexStmt::parse_variable_unpacking(input);
+    let result = LexStmt::parse_tuple_unpacking(input);
     assert!(
         result.is_ok(),
         "{}",
@@ -786,6 +786,39 @@ fn test_list_reasignment() {
         new_value: false.into(),
     };
     let result = LexStmt::parse_list_reassignment(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
+fn test_list_unpacking() {
+    let input = Span::new(r##"LET [a, b, ...cd] >< list;"##);
+    let expected = LexStmt::ListUnpacking {
+        identifiers: vec![Span::new("a"), Span::new("b")],
+        remainder: Some(Span::new("cd")),
+        value: lv!("list")
+    };
+    let result = LexStmt::parse_list_unpacking(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
+fn test_struct_unpacking() {
+    let input = Span::new(r##"LET [::a, ::b] >< struct;"##);
+    let expected = LexStmt::StructUnpacking {
+        identifiers: vec![Span::new("a"), Span::new("b")],
+        value: lv!("struct")
+    };
+    let result = LexStmt::parse_struct_unpacking(input);
     assert!(
         result.is_ok(),
         "{}",
