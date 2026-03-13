@@ -2,12 +2,12 @@ use crate::{
     common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive},
     lexer::{
         lex_expr::LexExpr,
-        lex_stmt::LexStmt,
+        lex_stmt::{LexStmt, WhenMatch},
         lex_type::LexType,
         utils::{Span, convert_error},
     },
 };
-use p_macros::{lbop, lg, lv, lvda};
+use p_macros::{lbop, lfin, lfne, lg, lprt, lv, lvda};
 use rstest::rstest;
 
 #[rstest]
@@ -800,7 +800,7 @@ fn test_list_unpacking() {
     let expected = LexStmt::ListUnpacking {
         identifiers: vec![Span::new("a"), Span::new("b")],
         remainder: Some(Span::new("cd")),
-        value: lv!("list")
+        value: lv!("list"),
     };
     let result = LexStmt::parse_list_unpacking(input);
     assert!(
@@ -816,9 +816,93 @@ fn test_struct_unpacking() {
     let input = Span::new(r##"LET [::a, ::b] >< struct;"##);
     let expected = LexStmt::StructUnpacking {
         identifiers: vec![Span::new("a"), Span::new("b")],
-        value: lv!("struct")
+        value: lv!("struct"),
     };
     let result = LexStmt::parse_struct_unpacking(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
+fn test_when_branch_empty_list() {
+    let input = Span::new(
+        r##"[] FOLLOWS
+                        INVOKE PRINT("foo is empty");
+                    END
+                "##
+    );
+    let expected = (
+                WhenMatch::EmptyList { condition: None },
+                vec![lprt!("foo is empty")],
+            );
+    let result = WhenMatch::parse_empty_list(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+
+}
+
+#[test]
+fn test_when_stmt() {
+    let input = Span::new(
+        r##"WHEN foo THEN
+                        [] FOLLOWS
+                            INVOKE PRINT("foo is empty");
+                        END
+                        [x] FOLLOWS
+                            INVOKE PRINT("foo is a singleton with " + SHOW(x));
+                        END
+                        _ AND x == y FOLLOWS
+                            INVOKE PRINT("foo");
+                        END
+                        _ FOLLOWS
+                            INVOKE PRINT("");
+                        END
+                    END
+                "##,
+    );
+    let expected = LexStmt::WhenStatement {
+        identifier: Span::new("foo"),
+        branches: vec![
+            (
+                WhenMatch::EmptyList { condition: None },
+                vec![lprt!("foo is empty")],
+            ),
+            (
+                WhenMatch::Singleton {
+                    identifier: Span::new("x"),
+                    condition: None,
+                },
+                vec![lprt!(lbop!(
+                    "foo is a singleton with ",
+                    BinOp::Add,
+                    lfne!("SHOW", lv!("x"))
+                ))],
+            ),
+            (
+                WhenMatch::CatchAll {
+                    identifier: Span::new("_"),
+                    condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
+                },
+                vec![lprt!("foo")],
+            ),
+            (
+                WhenMatch::CatchAll {
+                    identifier: Span::new("_"),
+                    condition: None,
+                },
+                vec![lprt!("")],
+            ),
+        ],
+    };
+    let result = LexStmt::parse_when_statement(input);
     assert!(
         result.is_ok(),
         "{}",

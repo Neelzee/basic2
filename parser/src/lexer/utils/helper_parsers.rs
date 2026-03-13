@@ -26,7 +26,7 @@ pub fn parse_identifier(input: Span) -> B2Result<Span> {
         .parse(input)
 }
 
-/// Parses a list-like input, with a specified start, end and delimiter
+/// Parses a list-like input, with a specified start, end and delimiter. The delimiter includes multispace0
 /// ```rust
 /// use parser::lexer::{utils::{helper_parsers::parse_poly_list_with, Span}, lex_type::LexType};
 /// use nom::Parser;

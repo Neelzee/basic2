@@ -3,7 +3,12 @@ use crate::{
     lexer::utils::{
         B2Error, B2Result, Span,
         consts::{
-            ADD_KW, AND_KW, DIV_KW, ENUM_INDEXING, EQ_KW, FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_START, GEQ_KW, GROUP_END, GROUP_START, GT_KW, LEQ_KW, LIST_DELIMITER, LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START
+            ADD_KW, AND_KW, DIV_KW, ENUM_INDEXING, EQ_KW, FUNCTION_CALL_DELIMITER,
+            FUNCTION_CALL_END, FUNCTION_CALL_START, GEQ_KW, GROUP_END, GROUP_START, GT_KW, LEQ_KW,
+            LIST_DELIMITER, LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW,
+            STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END,
+            STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END,
+            TUPLE_START, WHEN_STATEMENT_CONDITION_END_KW,
         },
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
@@ -42,7 +47,7 @@ pub enum LexExpr<'a> {
     Enum {
         identifier: Span<'a>,
         instance: Span<'a>,
-    }
+    },
 }
 
 impl<'a> LexExpr<'a> {
@@ -180,7 +185,7 @@ impl<'a> LexExpr<'a> {
     pub fn parse_variable(input: Span<'a>) -> B2Result<'a, Self> {
         match parse_identifier.map(|s| Self::Variable(s)).parse(input)? {
             // TODO: Figure out a better way to not allow keywords as identifiers
-            (_, LexExpr::Variable(ident)) if ident == Span::new(STRUCT_KW) => Err(nom::Err::Error(
+            (_, LexExpr::Variable(ident)) if ident == Span::new(STRUCT_KW) && ident == Span::new(WHEN_STATEMENT_CONDITION_END_KW) => Err(nom::Err::Error(
                 B2Error::from_external_error(input, ErrorKind::Fail, "not valid identifier"),
             )),
             res @ (_, _) => Ok(res),
@@ -335,7 +340,10 @@ impl<'a> LexExpr<'a> {
             "enum",
             (parse_identifier, tag(ENUM_INDEXING), parse_identifier),
         )
-        .map(|(identifier, _ , instance)| Self::Enum { identifier, instance })
+        .map(|(identifier, _, instance)| Self::Enum {
+            identifier,
+            instance,
+        })
         .parse(input)
     }
 }
@@ -387,7 +395,10 @@ impl<'a> std::fmt::Debug for LexExpr<'a> {
                 .field("identifier", identifier)
                 .field("field", field)
                 .finish(),
-            Self::Enum { identifier, instance } => f
+            Self::Enum {
+                identifier,
+                instance,
+            } => f
                 .debug_struct("Enum")
                 .field("identifier", identifier)
                 .field("instance", instance)

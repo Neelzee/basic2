@@ -6,7 +6,23 @@ use crate::{
         utils::{
             B2Error, B2Result, Span,
             consts::{
-                ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW, END_STMT_KW, ENUM_END_KW, ENUM_START_KW, FOR_BODY_START_KW, FOR_CONDITION_END_KW, FOR_CONDITION_START_KW, FOR_END_KW, FOR_START_KW, FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_IMPLEMENTATION_KW, FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END, FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW, IMPORT_MODULE_KW, LIST_DELIMITER, LIST_END, LIST_START, LIST_UNPACKING_KW, RETURN_STMT_KW, STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT, VARIABLE_TYPE_START, WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW
+                ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW,
+                END_STMT_KW, ENUM_END_KW, ENUM_START_KW, FOR_BODY_START_KW, FOR_CONDITION_END_KW,
+                FOR_CONDITION_START_KW, FOR_END_KW, FOR_START_KW, FUNCTION_BODY_END_KW,
+                FUNCTION_DECLARATION_KW, FUNCTION_IMPLEMENTATION_KW,
+                FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END,
+                FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER,
+                FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, IF_STATEMENT_BODY_START_KW,
+                IF_STATEMENT_END_KW, IF_STATEMENT_START_KW, IMPORT_MODULE_KW, LIST_DELIMITER,
+                LIST_END, LIST_START, LIST_UNPACKING_KW, RETURN_STMT_KW, STRUCT_DECL_KW,
+                STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW,
+                TUPLE_DELIMITER, TUPLE_END, TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW,
+                VARIABLE_DECLARATION, VARIABLE_REASIGNMENT, VARIABLE_TYPE_START,
+                WHEN_STATEMENT_BODY_END_KW, WHEN_STATEMENT_BODY_START_KW,
+                WHEN_STATEMENT_BRANCH_END, WHEN_STATEMENT_CONDITION_END_KW,
+                WHEN_STATEMENT_CONDITION_START_KW, WHEN_STATEMENT_START_KW,
+                WHEN_STATEMENT_TYPE_START_KW, WHILE_STATEMENT_BODY_START_KW,
+                WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
                 parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
@@ -17,12 +33,12 @@ use crate::{
 };
 use nom::{
     Parser,
-    branch::alt,
+    branch::{alt, permutation},
     bytes::complete::tag,
     character::complete::{multispace0, multispace1, space0},
     combinator::opt,
     error::{ErrorKind, ParseError, context},
-    multi::many0,
+    multi::{many0, separated_list0},
     sequence::{delimited, pair, preceded, terminated},
 };
 
@@ -115,8 +131,12 @@ pub enum LexStmt<'a> {
     },
     EnumDeclaration {
         identifier: Span<'a>,
-        enumerations: Vec<Span<'a>>
-    }
+        enumerations: Vec<Span<'a>>,
+    },
+    WhenStatement {
+        identifier: Span<'a>,
+        branches: Vec<(WhenMatch<'a>, Vec<Self>)>,
+    },
 }
 
 impl<'a> LexStmt<'a> {
@@ -547,7 +567,12 @@ impl<'a> LexStmt<'a> {
             delimited(
                 (tag(VARIABLE_DECLARATION), multispace0),
                 (
-                    parse_poly_list_with(LIST_START, LIST_DELIMITER, LIST_END, preceded(tag(STRUCT_FIELD_ACCESS_KW), parse_identifier)),
+                    parse_poly_list_with(
+                        LIST_START,
+                        LIST_DELIMITER,
+                        LIST_END,
+                        preceded(tag(STRUCT_FIELD_ACCESS_KW), parse_identifier),
+                    ),
                     (multispace0, tag(UNPACK_KW), multispace0),
                     LexExpr::parse_expr,
                 ),
@@ -636,13 +661,38 @@ impl<'a> LexStmt<'a> {
                     parse_identifier,
                     preceded(
                         multispace0,
-                        many0(delimited(multispace0, parse_identifier, tag(END_STMT_KW)))
-                    )
+                        many0(delimited(multispace0, parse_identifier, tag(END_STMT_KW))),
+                    ),
                 ),
-                (multispace0, tag(ENUM_END_KW))
-            )
+                (multispace0, tag(ENUM_END_KW)),
+            ),
         )
-        .map(|(identifier, enumerations)| Self::EnumDeclaration { identifier, enumerations })
+        .map(|(identifier, enumerations)| Self::EnumDeclaration {
+            identifier,
+            enumerations,
+        })
+        .parse(input)
+    }
+
+    pub fn parse_when_statement(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "when-statement",
+            delimited(
+                (tag(WHEN_STATEMENT_START_KW), multispace0),
+                (
+                    terminated(
+                        parse_identifier,
+                        (multispace0, tag(WHEN_STATEMENT_BODY_START_KW), multispace0),
+                    ),
+                    many0(delimited(multispace0, WhenMatch::parse, multispace0)),
+                ),
+                (multispace0, tag(WHEN_STATEMENT_BODY_END_KW)),
+            ),
+        )
+        .map(|(identifier, branches)| Self::WhenStatement {
+            identifier,
+            branches,
+        })
         .parse(input)
     }
 }
@@ -884,6 +934,306 @@ impl<'a> PartialEq for LexStmt<'a> {
                     && lr == rr
             }
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum WhenMatch<'a> {
+    /// [ ]
+    EmptyList { condition: Option<LexExpr<'a>> },
+    /// [x]
+    Singleton {
+        identifier: Span<'a>,
+        condition: Option<LexExpr<'a>>,
+    },
+    /// [a, b, ...xs]
+    VariadicList {
+        identifiers: Vec<Span<'a>>,
+        remainder: Option<Span<'a>>,
+        condition: Option<LexExpr<'a>>,
+    },
+    /// x
+    CatchAll {
+        identifier: Span<'a>,
+        condition: Option<LexExpr<'a>>,
+    },
+    /// IS INT
+    /// Matches if the value is assignable to the specified type
+    Type {
+        b2_type: LexType<'a>,
+        condition: Option<LexExpr<'a>>,
+    },
+    // [::field_a, ::field_b] AND field_a < field_b FOLLOWS ...
+    StructField {
+        fields: Vec<Span<'a>>,
+        condition: Option<LexExpr<'a>>,
+    },
+}
+
+type WMResult<'a> = B2Result<'a, (WhenMatch<'a>, Vec<LexStmt<'a>>)>;
+
+impl<'a> WhenMatch<'a> {
+    pub fn parse(input: Span<'a>) -> WMResult<'a> {
+        context("when-match", alt((
+            Self::parse_empty_list,
+            Self::parse_singleton,
+            Self::parse_variadic_list,
+            Self::parse_catch_all,
+            Self::parse_type,
+            Self::parse_struct
+        ))).parse(input)
+    }
+
+    fn parse_condition_and_stmt(
+        input: Span<'a>,
+    ) -> B2Result<'a, (Option<LexExpr<'a>>, Vec<LexStmt<'a>>)> {
+        context(
+            "condtion-and-statements",
+            (
+                delimited(
+                    context(
+                        "multispace-and-multispace",
+(
+                        multispace0,
+                        opt(tag(WHEN_STATEMENT_CONDITION_START_KW)),
+                        multispace0,
+                    )
+                    ),
+                    context("optional-condition", opt(LexExpr::parse_expr)),
+                    context("multispace-follows-multispace", (multispace0, tag(WHEN_STATEMENT_CONDITION_END_KW))),
+                ),
+                parse_statements,
+            ),
+        )
+        .parse(input)
+    }
+
+    pub fn parse_empty_list(input: Span<'a>) -> WMResult<'a> {
+        context(
+            "empty-list-branch",
+            delimited(
+                (tag(LIST_START), multispace0, tag(LIST_END)),
+                Self::parse_condition_and_stmt,
+                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
+            ),
+        )
+        .map(|(condition, stmts)| (Self::EmptyList { condition }, stmts))
+        .parse(input)
+    }
+
+    pub fn parse_singleton(input: Span<'a>) -> WMResult<'a> {
+        context(
+            "singleton-branch",
+            terminated(
+                (
+                    delimited(
+                        (tag(LIST_START), multispace0),
+                        parse_identifier,
+                        (multispace0, tag(LIST_END)),
+                    ),
+                    Self::parse_condition_and_stmt,
+                ),
+                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
+            ),
+        )
+        .map(|(identifier, (condition, stmts))| {
+            (
+                Self::Singleton {
+                    identifier,
+                    condition,
+                },
+                stmts,
+            )
+        })
+        .parse(input)
+    }
+
+    pub fn parse_variadic_list(input: Span<'a>) -> WMResult<'a> {
+        context(
+            "variadic-list-branch",
+            terminated(
+                (
+                    (
+                        preceded(
+                            tag(LIST_START),
+                            separated_list0(
+                                permutation((multispace0, tag(LIST_DELIMITER), multispace0)),
+                                context("variadic-variables", parse_identifier),
+                            ),
+                        ),
+                        terminated(
+                            opt(preceded(tag(LIST_UNPACKING_KW), parse_identifier)),
+                            (multispace0, tag(LIST_END)),
+                        ),
+                    ),
+                    Self::parse_condition_and_stmt,
+                ),
+                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
+            ),
+        )
+        .map(|((identifiers, remainder), (condition, stmts))| {
+            (
+                Self::VariadicList {
+                    identifiers,
+                    remainder,
+                    condition,
+                },
+                stmts,
+            )
+        })
+        .parse(input)
+    }
+
+    pub fn parse_catch_all(input: Span<'a>) -> WMResult<'a> {
+        context(
+            "catch-all-branch",
+            terminated(
+                (
+                    preceded(multispace0, parse_identifier),
+                    Self::parse_condition_and_stmt,
+                ),
+                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
+            ),
+        )
+        .map(|(identifier, (condition, stmts))| {
+            (
+                Self::CatchAll {
+                    identifier,
+                    condition,
+                },
+                stmts,
+            )
+        })
+        .parse(input)
+    }
+
+    pub fn parse_type(input: Span<'a>) -> WMResult<'a> {
+        context(
+            "type-branch",
+            terminated(
+                (
+                    preceded(
+                        (multispace0, tag(WHEN_STATEMENT_TYPE_START_KW), multispace0),
+                        LexType::parse_type,
+                    ),
+                    Self::parse_condition_and_stmt,
+                ),
+                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
+            ),
+        )
+        .map(|(b2_type, (condition, stmts))| (Self::Type { b2_type, condition }, stmts))
+        .parse(input)
+    }
+
+    pub fn parse_struct(input: Span<'a>) -> WMResult<'a> {
+        context(
+            "struct-branch",
+            terminated(
+                (
+                    delimited(
+                        multispace0,
+                        parse_poly_list_with(
+                            LIST_START,
+                            LIST_DELIMITER,
+                            LIST_END,
+                            preceded(tag(STRUCT_FIELD_ACCESS_KW), parse_identifier),
+                        ),
+                        (tag(WHEN_STATEMENT_CONDITION_END_KW), multispace0),
+                    ),
+                    Self::parse_condition_and_stmt,
+                ),
+                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
+            ),
+        )
+        .map(|(fields, (condition, stmts))| (Self::StructField { fields, condition }, stmts))
+        .parse(input)
+    }
+}
+
+impl<'a> PartialEq for WhenMatch<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::EmptyList {
+                    condition: l_conditions,
+                },
+                Self::EmptyList {
+                    condition: r_conditions,
+                },
+            ) => l_conditions == r_conditions,
+            (
+                Self::Singleton {
+                    identifier: l_identifier,
+                    condition: l_conditions,
+                },
+                Self::Singleton {
+                    identifier: r_identifier,
+                    condition: r_conditions,
+                },
+            ) => {
+                l_identifier.to_string() == r_identifier.to_string() && l_conditions == r_conditions
+            }
+            (
+                Self::VariadicList {
+                    identifiers: l_identifiers,
+                    remainder: l_remainder,
+                    condition: l_conditions,
+                },
+                Self::VariadicList {
+                    identifiers: r_identifiers,
+                    remainder: r_remainder,
+                    condition: r_conditions,
+                },
+            ) => {
+                l_identifiers
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    == r_identifiers
+                        .iter()
+                        .map(|i| i.to_string())
+                        .collect::<Vec<_>>()
+                    && l_remainder == r_remainder
+                    && l_conditions == r_conditions
+            }
+            (
+                Self::CatchAll {
+                    identifier: l_identifier,
+                    condition: l_conditions,
+                },
+                Self::CatchAll {
+                    identifier: r_identifier,
+                    condition: r_conditions,
+                },
+            ) => {
+                l_identifier.to_string() == r_identifier.to_string() && l_conditions == r_conditions
+            }
+            (
+                Self::Type {
+                    b2_type: l_b2_type,
+                    condition: l_conditions,
+                },
+                Self::Type {
+                    b2_type: r_b2_type,
+                    condition: r_conditions,
+                },
+            ) => l_b2_type == r_b2_type && l_conditions == r_conditions,
+            (
+                Self::StructField {
+                    fields: l_fields,
+                    condition: l_conditions,
+                },
+                Self::StructField {
+                    fields: r_fields,
+                    condition: r_conditions,
+                },
+            ) => {
+                l_fields.iter().map(|i| i.to_string()).collect::<Vec<_>>()
+                    == r_fields.iter().map(|i| i.to_string()).collect::<Vec<_>>()
+                    && l_conditions == r_conditions
+            }
+            _ => false,
         }
     }
 }

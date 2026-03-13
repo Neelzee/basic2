@@ -20,7 +20,10 @@ pub enum LexType<'a> {
     Str,
     Int,
     Bool,
-    Tuple { fst: Box<Self>, snd: Box<Self> },
+    Tuple {
+        fst: Box<Self>,
+        snd: Box<Self>,
+    },
     List(Box<Self>),
     /// Can be a Type alias, a generic, an enum, and a struct
     TypeVar(Span<'a>),

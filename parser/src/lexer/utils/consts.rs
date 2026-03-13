@@ -119,6 +119,14 @@ pub const ENUM_START_KW: &str = "ENUMS";
 pub const ENUM_END_KW: &str = "END";
 pub const ENUM_INDEXING: &str = ".";
 
+pub const WHEN_STATEMENT_START_KW: &str = "WHEN";
+pub const WHEN_STATEMENT_BODY_START_KW: &str = "THEN";
+pub const WHEN_STATEMENT_BODY_END_KW: &str = "END";
+pub const WHEN_STATEMENT_CONDITION_START_KW: &str = "AND";
+pub const WHEN_STATEMENT_CONDITION_END_KW: &str = "FOLLOWS";
+pub const WHEN_STATEMENT_BRANCH_END: &str = "END";
+pub const WHEN_STATEMENT_TYPE_START_KW: &str = "IS";
+
 #[cfg(test)]
 pub mod test_const {
     pub const EMPTY_PROGRAM_PATH: &str = "../assets/basic-examples/EmptyExample.b2";

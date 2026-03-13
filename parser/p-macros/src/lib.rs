@@ -90,3 +90,37 @@ macro_rules! lai {
         LexExpr::Op(Box::new(B2Op::Postfix($indexee.into(), Postfix::Index($indexer.into()))))
     };
 }
+#[macro_export]
+macro_rules! lfne {
+    (
+        $ident:expr,
+        $($expr:expr),* 
+    ) => {
+        LexExpr::FunctionCall {
+            identifier: Span::new($ident),
+            arguments: vec![$($expr.into()),*],
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! lfin {
+    (
+        $ident:expr,
+        $($expr:expr),* 
+    ) => {
+        LexStmt::FunctionInvocation {
+            identifier: Span::new($ident),
+            arguments: vec![$($expr.into()),*],
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! lprt {
+    (
+        $($expr:expr),* 
+    ) => {
+        lfin!("PRINT", $($expr),*)
+    };
+}
