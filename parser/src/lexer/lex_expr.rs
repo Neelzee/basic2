@@ -6,8 +6,9 @@ use crate::{
             ADD_KW, AND_KW, DIV_KW, EQ_KW, FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END,
             FUNCTION_CALL_START, GEQ_KW, GROUP_END, GROUP_START, GT_KW, LEQ_KW, LIST_DELIMITER,
             LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW, STRUCT_END_KW,
-            STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW,
-            STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+            STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END,
+            STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END,
+            TUPLE_START,
         },
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
@@ -39,11 +40,16 @@ pub enum LexExpr<'a> {
         identifier: Span<'a>,
         field_implementations: Vec<(Span<'a>, Self)>,
     },
+    StructFieldAccessing {
+        identifier: Span<'a>,
+        field: Span<'a>,
+    },
 }
 
 impl<'a> LexExpr<'a> {
     pub fn parse_expr(input: Span<'a>) -> B2Result<'a, Self> {
         alt((
+            Self::parse_struct_field_accessing,
             Self::parse_precedence,
             Self::parse_literal,
             Self::parse_function_call,
@@ -290,6 +296,19 @@ impl<'a> LexExpr<'a> {
         ))
     }
 
+    pub fn parse_struct_field_accessing(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "struct-field-accessing",
+            (
+                parse_identifier,
+                tag(STRUCT_FIELD_ACCESS_KW),
+                parse_identifier,
+            ),
+        )
+        .map(|(identifier, _, field)| Self::StructFieldAccessing { identifier, field })
+        .parse(input)
+    }
+
     pub fn parse_struct_field(input: Span<'a>) -> B2Result<'a, (Span<'a>, Self)> {
         pair(
             pair(
@@ -354,6 +373,11 @@ impl<'a> std::fmt::Debug for LexExpr<'a> {
                 .field("identifier", identifier)
                 .field("field_implementations", field_implementations)
                 .finish(),
+            LexExpr::StructFieldAccessing { identifier, field } => f
+                .debug_struct("StructFieldAccessing")
+                .field("identifier", identifier)
+                .field("field", field)
+                .finish(),
         }
     }
 }
@@ -404,6 +428,16 @@ impl<'a> PartialEq for LexExpr<'a> {
                             .map(|(s, e)| (s.to_string(), e))
                             .collect::<Vec<_>>()
             }
+            (
+                Self::StructFieldAccessing {
+                    identifier: li,
+                    field: lf,
+                },
+                Self::StructFieldAccessing {
+                    identifier: ri,
+                    field: rf,
+                },
+            ) => li.to_string() == ri.to_string() && lf.to_string() == rf.to_string(),
             _ => false,
         }
     }

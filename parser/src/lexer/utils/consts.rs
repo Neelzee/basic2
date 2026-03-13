@@ -49,6 +49,7 @@ pub const STRUCT_FIELD_IMPL_KW: &str = "IMPL";
 pub const STRUCT_FIELD_ASSIGNMENT: &str = "=";
 pub const STRUCT_END_KW: &str = "END";
 pub const STRUCT_FIELD_END: &str = ";";
+pub const STRUCT_FIELD_ACCESS_KW: &str = "::";
 
 pub const IF_STATEMENT_START_KW: &str = "IF";
 pub const IF_STATEMENT_BODY_START_KW: &str = "THEN";

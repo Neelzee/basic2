@@ -14,10 +14,10 @@ use crate::{
                 FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START,
                 IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
                 IMPORT_MODULE_KW, LIST_END, LIST_START, RETURN_STMT_KW, STRUCT_DECL_KW,
-                STRUCT_END_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW, TUPLE_DELIMITER, TUPLE_END,
-                TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
-                VARIABLE_TYPE_START, WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW,
-                WHILE_STATEMENT_START_KW,
+                STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW,
+                TUPLE_DELIMITER, TUPLE_END, TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW,
+                VARIABLE_DECLARATION, VARIABLE_REASIGNMENT, VARIABLE_TYPE_START,
+                WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
                 parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
@@ -109,6 +109,12 @@ pub enum LexStmt<'a> {
         incrementer: LexExpr<'a>,
         body: Vec<Self>,
     },
+    StructFieldReassignment {
+        identifier: Span<'a>,
+        field: Span<'a>,
+        reassignment: Option<BinOp>,
+        new_value: LexExpr<'a>,
+    },
 }
 
 impl<'a> LexStmt<'a> {
@@ -121,6 +127,7 @@ impl<'a> LexStmt<'a> {
                 Self::parse_variable_unpacking,
                 Self::parse_variable_declaration,
                 Self::parse_variable_declaration_assignment,
+                Self::parse_struct_field_reassignment,
                 Self::parse_variable_reassignment,
                 Self::parse_if_statement,
                 Self::parse_while_statement,
@@ -202,6 +209,39 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
+    pub fn parse_struct_field_reassignment(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "struct-field-accessing",
+            (
+                parse_identifier,
+                tag(STRUCT_FIELD_ACCESS_KW),
+                parse_identifier,
+                Self::parse_reasignment,
+                delimited(multispace0, LexExpr::parse_expr, tag(END_STMT_KW)),
+            ),
+        )
+        .map(
+            |(identifier, _, field, reassignment, new_value)| Self::StructFieldReassignment {
+                identifier,
+                field,
+                reassignment,
+                new_value,
+            },
+        )
+        .parse(input)
+    }
+
+    fn parse_reasignment(input: Span<'a>) -> B2Result<'a, Option<BinOp>> {
+        context(
+            "reassignment",
+            terminated(
+                preceded(space0, opt(BinOp::parse_symbol)),
+                tag(VARIABLE_REASIGNMENT),
+            ),
+        )
+        .parse(input)
+    }
+
     pub fn parse_variable_reassignment(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "parse-variable-reassignment",
@@ -210,10 +250,7 @@ impl<'a> LexStmt<'a> {
                 terminated(
                     (
                         parse_identifier,
-                        terminated(
-                            preceded(space0, opt(BinOp::parse_symbol)),
-                            tag(VARIABLE_REASIGNMENT),
-                        ),
+                        Self::parse_reasignment,
                         preceded(space0, LexExpr::parse_expr),
                     ),
                     tag(END_STMT_KW),
@@ -744,6 +781,25 @@ impl<'a> PartialEq for LexStmt<'a> {
                     && l_condition == r_condition
                     && l_incrementer == r_incrementer
                     && l_body == r_body
+            }
+            (
+                Self::StructFieldReassignment {
+                    identifier: li,
+                    field: lf,
+                    reassignment: lr,
+                    new_value: lv,
+                },
+                Self::StructFieldReassignment {
+                    identifier: ri,
+                    field: rf,
+                    reassignment: rr,
+                    new_value: rv,
+                },
+            ) => {
+                li.to_string() == ri.to_string()
+                    && lf.to_string() == rf.to_string()
+                    && lv == rv
+                    && lr == rr
             }
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
