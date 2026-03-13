@@ -594,6 +594,10 @@ fn test_parse_block_statements(#[case] input: &str, #[case] expected: LexStmt) {
         ],
     }
 )]
+#[case(
+    r##"INVOKE PRINT("foo is empty");"##,
+    lprt!("foo is empty")
+)]
 fn test_parse_function_invocation(#[case] input: &str, #[case] expected: LexStmt) {
     let input = Span::new(input);
     let result = LexStmt::parse_function_invocation(input);
@@ -833,12 +837,12 @@ fn test_when_branch_empty_list() {
         r##"[] FOLLOWS
                         INVOKE PRINT("foo is empty");
                     END
-                "##
+                "##,
     );
     let expected = (
-                WhenMatch::EmptyList { condition: None },
-                vec![lprt!("foo is empty")],
-            );
+        WhenMatch::EmptyList { condition: None },
+        vec![lprt!("foo is empty")],
+    );
     let result = WhenMatch::parse_empty_list(input);
     assert!(
         result.is_ok(),
@@ -846,7 +850,6 @@ fn test_when_branch_empty_list() {
         convert_error(input, result.unwrap_err())
     );
     assert_eq!(result.unwrap().1, expected);
-
 }
 
 #[test]
@@ -863,6 +866,9 @@ fn test_when_stmt() {
                             INVOKE PRINT("foo");
                         END
                         _ FOLLOWS
+                            INVOKE PRINT("");
+                        END
+                        [x, y, ...xs] FOLLOWS
                             INVOKE PRINT("");
                         END
                     END
@@ -900,9 +906,42 @@ fn test_when_stmt() {
                 },
                 vec![lprt!("")],
             ),
+            (
+                WhenMatch::VariadicList {
+                    identifiers: vec![Span::new("x"), Span::new("y")],
+                    remainder: Some(Span::new("xs")),
+                    condition: None,
+                },
+                vec![lprt!((""))],
+            ),
         ],
     };
     let result = LexStmt::parse_when_statement(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[test]
+fn test_variadic_list_branch() {
+    let input = Span::new(
+        r##"[x, y, ...xs] AND x == y FOLLOWS
+                        INVOKE PRINT("");
+                    END
+                "##,
+    );
+    let expected = (
+        WhenMatch::VariadicList {
+            identifiers: vec![Span::new("x"), Span::new("y")],
+            remainder: Some(Span::new("xs")),
+            condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
+        },
+        vec![lprt!("")],
+    );
+    let result = WhenMatch::parse_variadic_list(input);
     assert!(
         result.is_ok(),
         "{}",

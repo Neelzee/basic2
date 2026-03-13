@@ -352,3 +352,10 @@ fn test_struct_field_access() {
         }
     );
 }
+
+#[test]
+fn test_parse_expr_does_not_parse_when_branch() {
+    let input = Span::new("FOLLOWS");
+    let result = LexExpr::parse_expr.parse(input);
+    assert!(result.is_err(), "{result:?}");
+}

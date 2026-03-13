@@ -185,9 +185,18 @@ impl<'a> LexExpr<'a> {
     pub fn parse_variable(input: Span<'a>) -> B2Result<'a, Self> {
         match parse_identifier.map(|s| Self::Variable(s)).parse(input)? {
             // TODO: Figure out a better way to not allow keywords as identifiers
-            (_, LexExpr::Variable(ident)) if ident == Span::new(STRUCT_KW) && ident == Span::new(WHEN_STATEMENT_CONDITION_END_KW) => Err(nom::Err::Error(
-                B2Error::from_external_error(input, ErrorKind::Fail, "not valid identifier"),
-            )),
+            (_, LexExpr::Variable(ident))
+                if matches!(
+                    ident.to_string().as_str(),
+                    STRUCT_KW | WHEN_STATEMENT_CONDITION_END_KW
+                ) =>
+            {
+                Err(nom::Err::Error(B2Error::from_external_error(
+                    input,
+                    ErrorKind::Fail,
+                    "not valid identifier",
+                )))
+            }
             res @ (_, _) => Ok(res),
         }
     }

@@ -975,14 +975,18 @@ type WMResult<'a> = B2Result<'a, (WhenMatch<'a>, Vec<LexStmt<'a>>)>;
 
 impl<'a> WhenMatch<'a> {
     pub fn parse(input: Span<'a>) -> WMResult<'a> {
-        context("when-match", alt((
-            Self::parse_empty_list,
-            Self::parse_singleton,
-            Self::parse_variadic_list,
-            Self::parse_catch_all,
-            Self::parse_type,
-            Self::parse_struct
-        ))).parse(input)
+        context(
+            "when-match",
+            alt((
+                Self::parse_empty_list,
+                Self::parse_singleton,
+                Self::parse_variadic_list,
+                Self::parse_catch_all,
+                Self::parse_type,
+                Self::parse_struct,
+            )),
+        )
+        .parse(input)
     }
 
     fn parse_condition_and_stmt(
@@ -992,16 +996,19 @@ impl<'a> WhenMatch<'a> {
             "condtion-and-statements",
             (
                 delimited(
+                    opt((
+                        multispace0,
+                        tag(WHEN_STATEMENT_CONDITION_START_KW),
+                        multispace0,
+                    )),
                     context(
-                        "multispace-and-multispace",
-(
-                        multispace0,
-                        opt(tag(WHEN_STATEMENT_CONDITION_START_KW)),
-                        multispace0,
-                    )
+                        "optional-condition",
+                        opt(preceded(multispace0, LexExpr::parse_expr)),
                     ),
-                    context("optional-condition", opt(LexExpr::parse_expr)),
-                    context("multispace-follows-multispace", (multispace0, tag(WHEN_STATEMENT_CONDITION_END_KW))),
+                    context(
+                        "multispace-follows-multispace",
+                        (multispace0, tag(WHEN_STATEMENT_CONDITION_END_KW)),
+                    ),
                 ),
                 parse_statements,
             ),
@@ -1055,16 +1062,25 @@ impl<'a> WhenMatch<'a> {
             terminated(
                 (
                     (
-                        preceded(
-                            tag(LIST_START),
-                            separated_list0(
-                                permutation((multispace0, tag(LIST_DELIMITER), multispace0)),
-                                context("variadic-variables", parse_identifier),
+                        context(
+                            "single-variables",
+                            preceded(
+                                tag(LIST_START),
+                                separated_list0(
+                                    permutation((multispace0, tag(LIST_DELIMITER), multispace0)),
+                                    context("variadic-variables", parse_identifier),
+                                ),
                             ),
                         ),
-                        terminated(
-                            opt(preceded(tag(LIST_UNPACKING_KW), parse_identifier)),
-                            (multispace0, tag(LIST_END)),
+                        context(
+                            "optional-variadic-variable",
+                            terminated(
+                                opt(preceded(
+                                    (multispace0, tag(LIST_DELIMITER), multispace0, tag(LIST_UNPACKING_KW)),
+                                    parse_identifier,
+                                )),
+                                (multispace0, tag(LIST_END)),
+                            ),
                         ),
                     ),
                     Self::parse_condition_and_stmt,
