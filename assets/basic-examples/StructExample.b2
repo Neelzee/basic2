@@ -1,12 +1,15 @@
 BEGIN MODULE BlockExample
 STRUCTURE Person WHERE
-DECL firstName : STR;
-DECL lastName : STR;
-DECL age : INT;
+  DECL firstName : STR;
+  DECL lastName : STR;
+  DECL age : INT;
 END
 LET me = STRUCTURE Person WITH
-    IMPL firstName = "Nils";
-    IMPL lastName = "Fitjar";
-    IMPL age = 24;
+  IMPL firstName = "Nils";
+  IMPL lastName = "Fitjar";
+  IMPL age = 24;
 END;
+INVOKE PRINT(me::firstName);
+me::firstName = "Nils Michael";
+INVOKE PRINT(me::firstName);
 MODULE BlockExample END
