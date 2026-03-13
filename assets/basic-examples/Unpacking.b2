@@ -1,0 +1,15 @@
+BEGIN MODULE Unpacking
+LET (foo, bar) >< (1, 2);
+LET [a, b, ...cd] >< [1, 2, 3, 4];
+STRUCTURE Person WHERE
+  DECL firstName : STR;
+  DECL lastName : STR;
+  DECL age : INT;
+END
+LET me = STRUCTURE Person WITH
+  IMPL firstName = "Nils";
+  IMPL lastName = "Fitjar";
+  IMPL age = 24;
+END;
+LET [::firstName, ::lastName] >< me;
+MODULE Unpacking END

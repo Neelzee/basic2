@@ -1,0 +1,12 @@
+BEGIN MODULE EnumExample
+ENUMS Days
+  Monday;
+  Tuesday;
+  Wednsday;
+  Thursday;
+  Friday;
+  Saturday;
+  Sunday;
+END
+LET smallSaturday = Days.Wednsday;
+MODULE EnumExample END

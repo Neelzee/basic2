@@ -1,0 +1,19 @@
+BEGIN MODULE WhenExample
+LET foo = ["bar"];
+
+WHEN foo THEN
+  [] FOLLOWS
+    INVOKE PRINT("foo is empty");
+  END
+  [x] FOLLOWS
+    INVOKE PRINT("foo is a singleton with " + SHOW(x));
+  END
+  [x, y, ...xs] FOLLOWS
+    INVOKE PRINT("foo contains atleast two elements, and " + SHOW(LEN(xs)) + " more elements");
+  END
+  [x, y, ...xs] AND x == y FOLLOWS
+    INVOKE PRINT("foo contains atleast two elements, both of which are equal, and " + SHOW(LEN(xs)) + " more elements");
+  END
+END
+
+MODULE WhenExample END
