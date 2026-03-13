@@ -3,14 +3,16 @@ use crate::{
     lexer::utils::{
         B2Error, B2Result, Span,
         consts::{
-            FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_START, GROUP_END,
-            GROUP_START, LIST_DELIMITER, LIST_END, LIST_START, STRUCT_END_KW,
+            ADD_KW, AND_KW, DIV_KW, EQ_KW, FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END,
+            FUNCTION_CALL_START, GEQ_KW, GROUP_END, GROUP_START, GT_KW, LEQ_KW, LIST_DELIMITER,
+            LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW, STRUCT_END_KW,
             STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW,
-            STRUCT_START_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+            STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
         },
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
 };
+use anyhow::Result;
 use nom::{
     Parser,
     branch::{alt, permutation},
@@ -20,6 +22,7 @@ use nom::{
     multi::{many0, many1, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
+use nom_language::precedence::{Assoc, binary_op, precedence, unary_op};
 
 pub enum LexExpr<'a> {
     Literal(Primitive),
@@ -41,18 +44,61 @@ pub enum LexExpr<'a> {
 impl<'a> LexExpr<'a> {
     pub fn parse_expr(input: Span<'a>) -> B2Result<'a, Self> {
         alt((
-            Self::parse_binary_operation,
+            Self::parse_precedence,
             Self::parse_literal,
             Self::parse_function_call,
             Self::parse_group,
             Self::parse_tuple,
             Self::parse_list,
             Self::parse_struct,
-            Self::parse_postfix_operation,
             Self::parse_variable,
-            Self::parse_unary_operation,
         ))
         .parse(input)
+    }
+
+    pub fn parse_precedence(i: Span<'a>) -> B2Result<'a, Self> {
+        let expr_parser = alt((
+            LexExpr::parse_literal,
+            LexExpr::parse_function_call,
+            LexExpr::parse_group,
+            LexExpr::parse_tuple,
+            LexExpr::parse_list,
+            LexExpr::parse_struct,
+            LexExpr::parse_variable,
+        ));
+
+        context(
+            "precedence",
+            precedence(
+                preceded(
+                    multispace0,
+                    unary_op(1, UniOp::parse_unary_operation_symbol),
+                ),
+                preceded(multispace0, unary_op(1, Postfix::parse_postfix)),
+                preceded(
+                    multispace0,
+                    alt((
+                        binary_op(3, Assoc::Left, tag(ADD_KW).map(|_| BinOp::Add)),
+                        binary_op(2, Assoc::Left, tag(MUL_KW).map(|_| BinOp::Mul)),
+                        binary_op(3, Assoc::Left, tag(SUB_KW).map(|_| BinOp::Sub)),
+                        binary_op(2, Assoc::Left, tag(DIV_KW).map(|_| BinOp::Div)),
+                        binary_op(1, Assoc::Left, tag(POW_KW).map(|_| BinOp::Pow)),
+                        binary_op(4, Assoc::Left, tag(EQ_KW).map(|_| BinOp::Eq)),
+                        binary_op(4, Assoc::Left, tag(GEQ_KW).map(|_| BinOp::Geq)),
+                        binary_op(4, Assoc::Left, tag(LEQ_KW).map(|_| BinOp::Leq)),
+                        binary_op(4, Assoc::Left, tag(GT_KW).map(|_| BinOp::Gt)),
+                        binary_op(4, Assoc::Left, tag(LT_KW).map(|_| BinOp::Lt)),
+                        binary_op(4, Assoc::Left, tag(NEQ_KW).map(|_| BinOp::Neq)),
+                        binary_op(3, Assoc::Left, tag(MOD_KW).map(|_| BinOp::Mod)),
+                        binary_op(5, Assoc::Left, tag(AND_KW).map(|_| BinOp::And)),
+                        binary_op(5, Assoc::Left, tag(OR_KW).map(|_| BinOp::Or)),
+                    )),
+                ),
+                preceded(multispace0, expr_parser),
+                |op| -> Result<Self> { Ok(Self::Op(Box::new(op))) },
+            ),
+        )
+        .parse(i)
     }
 
     pub fn parse_expr_excl_postfix(input: Span<'a>) -> B2Result<'a, Self> {

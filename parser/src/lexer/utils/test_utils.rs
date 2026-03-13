@@ -1,5 +1,5 @@
 use crate::{
-    common::{B2Op, binop::BinOp, primitive::Primitive},
+    common::{B2Op, binop::BinOp},
     lexer::{
         lex_expr::LexExpr,
         lex_stmt::LexStmt,
@@ -7,13 +7,13 @@ use crate::{
         utils::{
             B2Result, Span, convert_error,
             helper_parsers::{
-                parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
-                parse_statements,
+                parse_comments, parse_identifier, parse_poly_list_with, parse_statements,
             },
         },
     },
 };
 use nom::Parser;
+use p_macros::{lbop, lv};
 use rstest::rstest;
 
 #[rstest]
@@ -34,11 +34,7 @@ use rstest::rstest;
     LexExpr::parse_expr,
     r##"("Before: " + global)"##,
     vec![
-        LexExpr::Op(Box::new(B2Op::Binary(
-            LexExpr::Literal(Primitive::Str("Before: ".to_string())),
-            BinOp::Add,
-            LexExpr::Variable(Span::new("global"))
-        )))
+        lbop!("Before: ", BinOp::Add, lv!("global"))
     ],
     ""
 )]

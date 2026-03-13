@@ -6,7 +6,7 @@ use crate::{
     },
 };
 use nom::Parser;
-use p_macros::{lbop, lg, lv};
+use p_macros::{lai, lbop, lg, lv};
 use rstest::rstest;
 
 #[rstest]
@@ -165,19 +165,7 @@ fn test_unary_expr(#[case] input: &str, #[case] expected: LexExpr) {
 )]
 #[case(
     "1 + 1 + 1 + 1",
-    LexExpr::Op(Box::new(B2Op::Binary(
-        LexExpr::Literal(Primitive::Int(1)),
-        BinOp::Add,
-        LexExpr::Op(Box::new(B2Op::Binary(
-            LexExpr::Literal(Primitive::Int(1)),
-            BinOp::Add,
-            LexExpr::Op(Box::new(B2Op::Binary(
-                LexExpr::Literal(Primitive::Int(1)),
-                BinOp::Add,
-                LexExpr::Literal(Primitive::Int(1))
-            )))
-        )))
-    )))
+    lbop!(1, BinOp::Add, lbop!(lbop!(1, BinOp::Add, 1), BinOp::Add, 1))
 )]
 fn test_binary_expr(#[case] input: &str, #[case] expected: LexExpr) {
     let result = LexExpr::parse_binary_operation.parse(Span::new(input));
@@ -315,6 +303,30 @@ fn test_post_fix_parser(#[case] input: &str, #[case] expected: LexExpr) {
 fn test_binop_eq(#[case] input: &str, #[case] expected: LexExpr) {
     let input = Span::new(input);
     let result = LexExpr::parse_binary_operation.parse(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case(
+    "8-2*4",
+    lbop!(8, BinOp::Sub, lbop!(2, BinOp::Mul, 4))
+)]
+#[case(
+    "p[0] - 2*4",
+    lbop!(lai!(lv!("p"), 0), BinOp::Sub, lbop!(2, BinOp::Mul, 4))
+)]
+#[case(
+    "p[0]",
+    lai!(lv!("p"), 0)
+)]
+fn test_precedence(#[case] input: &str, #[case] expected: LexExpr) {
+    let input = Span::new(input);
+    let result = LexExpr::parse_precedence(input);
     assert!(
         result.is_ok(),
         "{}",
