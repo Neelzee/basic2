@@ -1,16 +1,8 @@
 use crate::lexer::utils::{
-    B2Result, Span,
-    consts::{STRING_CHAR, STRING_KW},
+    B2Error, B2Result, Span, consts::{STRING_CHAR, STRING_KW}
 };
 use nom::{
-    Parser,
-    branch::alt,
-    bytes::complete::{tag, take_till},
-    character::complete::{char, digit1},
-    combinator::{map, opt, recognize},
-    error::context,
-    number::complete::float,
-    sequence::{delimited, pair},
+    Parser, branch::alt, bytes::complete::{tag, take_till}, character::complete::{char, digit1}, combinator::{map, opt, recognize}, error::{ErrorKind, ParseError, context}, number::complete::float, sequence::{delimited, pair}
 };
 
 #[derive(Debug, PartialEq)]
@@ -45,7 +37,7 @@ impl Primitive {
         digit1
             .map(|i: Span| {
                 Self::Int(
-                    i.parse::<i32>()
+                    i.to_string().parse::<i32>()
                         .expect(&format!("Couldnt parse i32 of: {i}"))
                         * if negative { -1 } else { 1 },
                 )
@@ -53,16 +45,17 @@ impl Primitive {
             .parse(i)
     }
 
-    pub fn parse_float(input: Span) -> B2Result<Self> {
-        let (i, negative) = is_negative(input)?;
-
-        recognize(alt((
-            map((digit1, pair(char('.'), opt(digit1))), |_| ()),
+    pub fn parse_float<'a>(input: Span<'a>) -> B2Result<'a, Self> {
+        let (i, negative): (Span<'a>, bool) = is_negative(input)?;
+        let (rem, float_span): (Span<'a>, Span<'a>) = recognize(alt((
+            map((digit1::<Span, _>, pair(char('.'), opt(digit1))), |_| ()),
             map((char('.'), digit1), |_| ()),
-        )))
-        .and_then(float)
-        .map(|f| Self::Float(f * if negative { -1f32 } else { 1f32 }))
-        .parse(i)
+        ))).parse(i)?;
+         match float_span.to_string().parse::<f32>() {
+            Ok(f) => Ok((rem, Self::Float(f * if negative { -1f32 } else { 1f32 }))),
+            Err(_) => Err(nom::Err::Error(B2Error::from_error_kind(input, ErrorKind::Float))),
+         }
+        
     }
 
     pub fn parse_str(input: Span) -> B2Result<Self> {

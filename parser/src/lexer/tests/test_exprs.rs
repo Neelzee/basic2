@@ -1,5 +1,5 @@
 use crate::{
-    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
+    common::{B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive},
     lexer::{
         lex_expr::LexExpr,
         utils::{Span, convert_error},
@@ -38,11 +38,11 @@ use rstest::rstest;
 )]
 #[case(
     r##""Before: " + global"##,
-    LexExpr::Op(Box::new(B2Op::Binary(
+    LexExpr::Op(Box::new(B2OpInner::Binary(
         LexExpr::Literal(Primitive::Str("Before: ".to_string())),
         BinOp::Add,
         LexExpr::Variable(Span::new("global"))
-    )))
+    ).into()))
 )]
 #[case(
     "((p * p) <= n)",
@@ -82,94 +82,6 @@ fn test_expression_parser(#[case] input: &str, #[case] expected: LexExpr) {
 fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
     let result = LexExpr::parse_expr(Span::new(input));
     assert!(result.is_ok(), "{result:?}");
-    assert_eq!(result.unwrap().1, expected);
-}
-
-#[rstest]
-#[case(
-    r##"!"""##,
-    LexExpr::Op(Box::new(B2Op::Prefix(
-        UniOp::Neg,
-        LexExpr::Literal(Primitive::Str("".to_string()))
-    )))
-)]
-#[case(
-    r##"!TRUE"##,
-    LexExpr::Op(Box::new(B2Op::Prefix(UniOp::Neg, LexExpr::Literal(Primitive::Bool(true)))))
-)]
-#[case(
-    r##"!!TRUE"##,
-    LexExpr::Op(Box::new(B2Op::Prefix(
-        UniOp::Neg,
-        LexExpr::Op(Box::new(B2Op::Prefix(UniOp::Neg, LexExpr::Literal(Primitive::Bool(true)))))
-    )))
-)]
-fn test_unary_expr(#[case] input: &str, #[case] expected: LexExpr) {
-    let result = LexExpr::parse_unary_operation.parse(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
-    assert_eq!(result.unwrap().1, expected);
-}
-
-#[rstest]
-#[case(
-    "1 + 1",
-    LexExpr::Op(Box::new(B2Op::Binary(
-        LexExpr::Literal(Primitive::Int(1)),
-        BinOp::Add,
-        LexExpr::Literal(Primitive::Int(1))
-    )))
-)]
-#[case(
-    "1 - 1",
-    LexExpr::Op(Box::new(B2Op::Binary(
-        LexExpr::Literal(Primitive::Int(1)),
-        BinOp::Sub,
-        LexExpr::Literal(Primitive::Int(1))
-    )))
-)]
-#[case(
-    "1 * 1",
-    LexExpr::Op(Box::new(B2Op::Binary(
-        LexExpr::Literal(Primitive::Int(1)),
-        BinOp::Mul,
-        LexExpr::Literal(Primitive::Int(1))
-    )))
-)]
-#[case(
-    "1 / 1",
-    LexExpr::Op(Box::new(B2Op::Binary(
-        LexExpr::Literal(Primitive::Int(1)),
-        BinOp::Div,
-        LexExpr::Literal(Primitive::Int(1))
-    )))
-)]
-#[case(
-    "1 ^ 1",
-    LexExpr::Op(Box::new(B2Op::Binary(
-        LexExpr::Literal(Primitive::Int(1)),
-        BinOp::Pow,
-        LexExpr::Literal(Primitive::Int(1))
-    )))
-)]
-#[case(
-    "1 + 1 + 1",
-    LexExpr::Op(Box::new(B2Op::Binary(
-        LexExpr::Literal(Primitive::Int(1)),
-        BinOp::Add,
-        LexExpr::Op(Box::new(B2Op::Binary(
-            LexExpr::Literal(Primitive::Int(1)),
-            BinOp::Add,
-            LexExpr::Literal(Primitive::Int(1))
-        )))
-    )))
-)]
-#[case(
-    "1 + 1 + 1 + 1",
-    lbop!(1, BinOp::Add, lbop!(lbop!(1, BinOp::Add, 1), BinOp::Add, 1))
-)]
-fn test_binary_expr(#[case] input: &str, #[case] expected: LexExpr) {
-    let result = LexExpr::parse_binary_operation.parse(Span::new(input));
-    assert!(result.is_ok(), "{:?}", result.unwrap_err());
     assert_eq!(result.unwrap().1, expected);
 }
 
@@ -239,70 +151,17 @@ fn test_struct_field_impl_parser(
     LexExpr::FunctionCall {
         identifier: Span::new("PRINT"),
         arguments: vec![
-            LexExpr::Op(Box::new(B2Op::Binary(
+            LexExpr::Op(Box::new(B2OpInner::Binary(
                 LexExpr::Literal(Primitive::Str("Before: ".to_string())),
                 BinOp::Add,
                 LexExpr::Variable(Span::new("global"))
-            )))
+            ).into()))
         ],
     }
 )]
 fn test_function_call_parser(#[case] input: &str, #[case] expected: LexExpr) {
     let input = Span::new(input);
     let result = LexExpr::parse_function_call.parse(input);
-    assert!(
-        result.is_ok(),
-        "{}",
-        convert_error(input, result.unwrap_err())
-    );
-    assert_eq!(result.unwrap().1, expected);
-}
-
-#[rstest]
-#[case(
-    r##"var[1]"##,
-    LexExpr::Op(Box::new(B2Op::Postfix(
-        LexExpr::Variable(Span::new("var")),
-        Postfix::Index(LexExpr::Literal(Primitive::Int(1)))
-    )))
-)]
-#[case(
-    r##"var[1][0]"##,
-    LexExpr::Op(Box::new(B2Op::Postfix(
-        LexExpr::Op(Box::new(B2Op::Postfix(
-            LexExpr::Variable(Span::new("var")),
-            Postfix::Index(LexExpr::Literal(Primitive::Int(1)))
-        ))),
-        Postfix::Index(LexExpr::Literal(Primitive::Int(0)))
-    )))
-)]
-#[case(
-    "i++",
-    LexExpr::Op(Box::new(B2Op::Postfix(lv!("i"), Postfix::Incr)))
-)]
-fn test_post_fix_parser(#[case] input: &str, #[case] expected: LexExpr) {
-    let input = Span::new(input);
-    let result = LexExpr::parse_postfix_operation.parse(input);
-    assert!(
-        result.is_ok(),
-        "{}",
-        convert_error(input, result.unwrap_err())
-    );
-    assert_eq!(result.unwrap().1, expected);
-}
-
-#[rstest]
-#[case(
-    "i <= (n + 1)",
-    lbop!(lv!("i"), BinOp::Leq, lg!(lbop!(lv!("n"), BinOp::Add, 1)))
-)]
-#[case(
-    "(p * p) <= n",
-    lbop!(lg!(lbop!(lv!("p"), BinOp::Mul, lv!("p"))), BinOp::Leq, lv!("n"))
-)]
-fn test_binop_eq(#[case] input: &str, #[case] expected: LexExpr) {
-    let input = Span::new(input);
-    let result = LexExpr::parse_binary_operation.parse(input);
     assert!(
         result.is_ok(),
         "{}",

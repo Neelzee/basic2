@@ -1,5 +1,5 @@
 use crate::{
-    common::{B2Op, binop::BinOp},
+    common::{B2OpInner, binop::BinOp},
     lexer::{
         lex_expr::LexExpr,
         lex_stmt::LexStmt,
