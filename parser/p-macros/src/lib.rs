@@ -29,7 +29,7 @@ macro_rules! lbop {
         $op:expr,
         $r:expr
     ) => {
-        LexExpr::Op(Box::new(B2OpInner::Binary($l.into(), $op, $r.into()).into()))
+        LexExpr::Op(Box::new(B2Op::binary($l.into(), $op, $r.into()).into()))
     };
 }
 
@@ -87,7 +87,7 @@ macro_rules! lai {
         $indexee:expr,
         $indexer:expr
     ) => {
-        LexExpr::Op(Box::new(B2OpInner::Postfix($indexee.into(), Postfix::Index($indexer.into())).into()))
+        LexExpr::Op(Box::new(B2Op::postfix($indexee.into(), Postfix::Index($indexer.into())).into()))
     };
 }
 #[macro_export]

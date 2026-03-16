@@ -9,9 +9,23 @@ pub mod postfix;
 pub mod primitive;
 pub mod uniop;
 
-pub type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;
+type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;
 
 pub struct B2Op<'a>(B2OpInner<'a>);
+
+impl<'a> B2Op<'a> {
+    pub fn prefix(op: UniOp, expr: LexExpr<'a>) -> Self {
+        Self(B2OpInner::Prefix(op, expr))
+    }
+
+    pub fn postfix(expr: LexExpr<'a>, op: Postfix<'a>) -> Self {
+        Self(B2OpInner::Postfix(expr, op))
+    }
+
+    pub fn binary(l: LexExpr<'a>, op: BinOp, r: LexExpr<'a>) -> Self {
+        Self(B2OpInner::Binary(l, op, r))
+    }
+}
 
 impl<'a> Into<B2OpInner<'a>> for B2Op<'a> {
     fn into(self) -> B2OpInner<'a> {

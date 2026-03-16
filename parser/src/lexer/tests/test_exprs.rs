@@ -1,5 +1,5 @@
 use crate::{
-    common::{B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive},
+    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive},
     lexer::{
         lex_expr::LexExpr,
         utils::{Span, convert_error},
@@ -38,7 +38,7 @@ use rstest::rstest;
 )]
 #[case(
     r##""Before: " + global"##,
-    LexExpr::Op(Box::new(B2OpInner::Binary(
+    LexExpr::Op(Box::new(B2Op::binary(
         LexExpr::Literal(Primitive::Str("Before: ".to_string())),
         BinOp::Add,
         LexExpr::Variable(Span::new("global"))
@@ -151,7 +151,7 @@ fn test_struct_field_impl_parser(
     LexExpr::FunctionCall {
         identifier: Span::new("PRINT"),
         arguments: vec![
-            LexExpr::Op(Box::new(B2OpInner::Binary(
+            LexExpr::Op(Box::new(B2Op::binary(
                 LexExpr::Literal(Primitive::Str("Before: ".to_string())),
                 BinOp::Add,
                 LexExpr::Variable(Span::new("global"))

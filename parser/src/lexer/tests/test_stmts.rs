@@ -1,5 +1,5 @@
 use crate::{
-    common::{B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive},
+    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive},
     lexer::{
         lex_expr::LexExpr,
         lex_stmt::{LexStmt, WhenMatch},
@@ -586,7 +586,7 @@ fn test_parse_block_statements(#[case] input: &str, #[case] expected: LexStmt) {
     LexStmt::FunctionInvocation {
         identifier: Span::new("PRINT"),
         arguments: vec![
-            LexExpr::Op(Box::new(B2OpInner::Binary(
+            LexExpr::Op(Box::new(B2Op::binary(
                 LexExpr::Literal(Primitive::Str("Before: ".to_string())),
                 BinOp::Add,
                 LexExpr::Variable(Span::new("global"))
@@ -667,11 +667,11 @@ fn test_return_with_nested_index() {
     let input = Span::new(INPUT);
     let expected = LexStmt::Return {
         value: Some(LexExpr::Op(Box::new(
-            B2OpInner::Postfix(
+            B2Op::postfix(
                 LexExpr::Op(Box::new(
-                    B2OpInner::Postfix(
+                    B2Op::postfix(
                         LexExpr::Op(Box::new(
-                            B2OpInner::Postfix(
+                            B2Op::postfix(
                                 LexExpr::Variable(Span::new("p")),
                                 Postfix::Index(LexExpr::Literal(Primitive::Int(1))),
                             )
@@ -706,11 +706,11 @@ fn test_function_impl_get_age() {
         parameters: vec![(Span::new("p"), None)],
         body: vec![LexStmt::Return {
             value: Some(LexExpr::Op(Box::new(
-                B2OpInner::Postfix(
+                B2Op::postfix(
                     LexExpr::Op(Box::new(
-                        B2OpInner::Postfix(
+                        B2Op::postfix(
                             LexExpr::Op(Box::new(
-                                B2OpInner::Postfix(
+                                B2Op::postfix(
                                     LexExpr::Variable(Span::new("p")),
                                     Postfix::Index(LexExpr::Literal(Primitive::Int(1))),
                                 )
@@ -768,7 +768,7 @@ fn test_for_loop() {
     let expected = LexStmt::For {
         start_stmt: Box::new(lvda!("i", 2)),
         condition: lbop!(lv!("i"), BinOp::Leq, lg!(lbop!(lv!("n"), BinOp::Add, 1))),
-        incrementer: LexExpr::Op(Box::new(B2OpInner::Postfix(lv!("i"), Postfix::Incr).into())),
+        incrementer: LexExpr::Op(Box::new(B2Op::postfix(lv!("i"), Postfix::Incr).into())),
         body: Vec::new(),
     };
     let result = LexStmt::parse_for_statement(input);
