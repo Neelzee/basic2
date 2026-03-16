@@ -1,7 +1,7 @@
-use nom::{AsBytes, Compare, FindSubstring, IResult, Input, Offset, ParseTo};
+use nom::{AsBytes, IResult, Offset};
 use nom_language::error::{VerboseError, VerboseErrorKind};
 use nom_locate::LocatedSpan;
-use std::{fmt::Write, str::FromStr};
+use std::fmt::Write;
 
 pub mod consts;
 pub mod helper_parsers;

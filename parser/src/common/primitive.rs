@@ -1,11 +1,18 @@
 use std::ops::Neg;
 
-use crate::lexer::utils::{
-    B2Error, B2Result, Span,
+use crate::{common::ToB2, lexer::utils::{
+    B2Result, Span,
     consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
-};
+}};
 use nom::{
-    Parser, branch::alt, bytes::complete::{tag, take_till}, character::complete::{char, digit1}, combinator::{map, opt, recognize}, error::{ErrorKind, ParseError, context}, number::complete::float, sequence::{delimited, pair, terminated}
+    Parser,
+    branch::alt,
+    bytes::complete::{tag, take_till},
+    character::complete::digit1,
+    combinator::{opt, recognize},
+    error::context,
+    number::complete::float,
+    sequence::{delimited, terminated},
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -57,27 +64,16 @@ impl<'a> Primitive<'a> {
                 recognize(alt((
                     terminated(digit1, tag(FLOAT_KW)),
                     delimited(tag(FLOAT_DOT_KW), digit1, opt(tag(FLOAT_KW))),
-                    terminated(recognize((digit1, tag(FLOAT_DOT_KW), digit1)), opt(tag(FLOAT_KW))),
+                    terminated(
+                        recognize((digit1, tag(FLOAT_DOT_KW), digit1)),
+                        opt(tag(FLOAT_KW)),
+                    ),
                 )))
-                .and_then(float)
-            )
+                .and_then(float),
+            ),
         )
         .map(|(negative, val)| Self::Float(if negative { val.neg() } else { val }))
         .parse(input)
-    }
-
-    fn foo(input: Span<'a>) -> B2Result<'a, Self> {
-        let (i, negative) = is_negative(input)?;
-        dbg!(i);
-        let (i, r) = recognize(alt((
-                    terminated(digit1, tag(FLOAT_KW)),
-                    delimited(tag(FLOAT_DOT_KW), digit1, opt(tag(FLOAT_KW))),
-                    terminated(recognize((digit1, tag(FLOAT_DOT_KW), digit1)), opt(tag(FLOAT_KW))),
-                ))).parse(i)?;
-        dbg!(i, r);
-        let (rem, val) = float.parse(r)?;
-        dbg!(rem);
-        Ok((rem, Self::Float(if negative { val.neg() } else { val })))
     }
 
     pub fn parse_str(input: Span<'a>) -> B2Result<'a, Self> {
@@ -91,6 +87,18 @@ impl<'a> Primitive<'a> {
         )
         .map(|s: Span<'a>| Self::Str(&s))
         .parse(input)
+    }
+}
+
+impl<'a> ToB2 for Primitive<'a> {
+    fn to_b2(&self) -> String {
+        match self {
+            Primitive::Int(i) => i.to_string(),
+            Primitive::Float(i) => i.to_string(),
+            Primitive::Str(i) => format!("\"{i}\""),
+            Primitive::Bool(i) if !i => "FALSE".to_string(),
+            Primitive::Bool(_) => "TRUE".to_string(),
+        }
     }
 }
 

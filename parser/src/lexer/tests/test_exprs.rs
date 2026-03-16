@@ -1,12 +1,9 @@
-use crate::{
-    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive},
-    lexer::{
+use crate::{common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive}, lexer::{
         lex_expr::LexExpr,
         utils::{Span, convert_error},
-    },
-};
+    }};
 use nom::Parser;
-use p_macros::{lai, lbop, lg, lv};
+use p_macros::{lai, lbop, lfne, lg, lv};
 use rstest::rstest;
 
 #[rstest]
@@ -16,8 +13,17 @@ use rstest::rstest;
 #[case::parses_float_with_0("0.123", LexExpr::Literal(Primitive::Float(0.123)))]
 #[case::parses_string(r##""string""##, LexExpr::Literal(Primitive::Str("string")))]
 #[case::parses_empty_string(r##""""##, LexExpr::Literal(Primitive::Str("")))]
-#[case::parses_group(r##"("string")"##, LexExpr::Group(Box::new(LexExpr::Literal(Primitive::Str("string")))))]
-#[case::parses_tuple(r##"("string", 123)"##, LexExpr::Tuple(Box::new(LexExpr::Literal(Primitive::Str("string"))), Box::new(LexExpr::Literal(Primitive::Int(123)))))]
+#[case::parses_group(
+    r##"("string")"##,
+    LexExpr::Group(Box::new(LexExpr::Literal(Primitive::Str("string"))))
+)]
+#[case::parses_tuple(
+    r##"("string", 123)"##,
+    LexExpr::Tuple(
+        Box::new(LexExpr::Literal(Primitive::Str("string"))),
+        Box::new(LexExpr::Literal(Primitive::Int(123)))
+    )
+)]
 #[case::parses_list(r##"["string", 123]"##, LexExpr::List(vec![LexExpr::Literal(Primitive::Str("string")), LexExpr::Literal(Primitive::Int(123))]))]
 #[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo", arguments: Vec::new(), })]
 #[case::parses_struct_expr(
@@ -183,6 +189,10 @@ fn test_function_call_parser(#[case] input: &str, #[case] expected: LexExpr) {
     "p[0]",
     lai!(lv!("p"), 0)
 )]
+#[case(
+    r##""foo contains atleast two elements, both of which are equal, and " + SHOW(LEN(xs)) + " more elements""##,
+    lbop!(lbop!("foo contains atleast two elements, both of which are equal, and ", BinOp::Add, lfne!("SHOW", lfne!("LEN", lv!("xs")))), BinOp::Add, " more elements")
+)]
 fn test_precedence(#[case] input: &str, #[case] expected: LexExpr) {
     let input = Span::new(input);
     let result = LexExpr::parse_precedence(input);
@@ -191,7 +201,8 @@ fn test_precedence(#[case] input: &str, #[case] expected: LexExpr) {
         "{}",
         convert_error(input, result.unwrap_err())
     );
-    assert_eq!(result.unwrap().1, expected);
+    let result = result.unwrap().1;
+    assert_eq!(result, expected, "{} != {}", result.to_b2(), expected.to_b2());
 }
 
 #[test]
@@ -217,4 +228,16 @@ fn test_parse_expr_does_not_parse_when_branch() {
     let input = Span::new("FOLLOWS");
     let result = LexExpr::parse_expr.parse(input);
     assert!(result.is_err(), "{result:?}");
+}
+
+#[test]
+fn test_binary_expression() {
+    let input = Span::new("x == y");
+    let result = LexExpr::parse_expr(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, lbop!(lv!("x"), BinOp::Eq, lv!("y")));
 }

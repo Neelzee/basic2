@@ -1,10 +1,10 @@
-use crate::lexer::{
+use crate::{common::ToB2, lexer::{
     lex_expr::LexExpr,
     utils::{
         B2Result, Span,
         consts::{DECR_KW, INCR_KW, LIST_END, LIST_START},
     },
-};
+}};
 use nom::{
     Parser, branch::alt, bytes::complete::tag, character::complete::multispace0, error::context,
     sequence::delimited,
@@ -41,5 +41,15 @@ impl<'a> Postfix<'a> {
         )
         .map(|expr| Self::Index(expr))
         .parse(input)
+    }
+}
+
+impl<'a> ToB2 for Postfix<'a> {
+    fn to_b2(&self) -> String {
+        match self {
+            Postfix::Incr => INCR_KW.to_string(),
+            Postfix::Decr => DECR_KW.to_string(),
+            Postfix::Index(lex_expr) => format!("{}{}{}", LIST_START, lex_expr.to_b2(), LIST_END),
+        }
     }
 }

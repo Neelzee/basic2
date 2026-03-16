@@ -4,7 +4,8 @@ use crate::lexer::{
     utils::{
         B2Result, Span,
         consts::{
-            ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT, SINGLE_LINE_COMMENT_END, UNUSED_IDENTIFIER, UNUSED_IDENTIFIER_CHAR
+            ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT,
+            SINGLE_LINE_COMMENT_END, UNUSED_IDENTIFIER,
         },
     },
 };
@@ -24,15 +25,10 @@ pub fn parse_identifier<'a>(input: Span<'a>) -> B2Result<'a, &'a str> {
         "identifier",
         recognize((
             alt((tag(UNUSED_IDENTIFIER), alpha1)),
-            many0(alt((
-                alphanumeric1,
-                tag(UNUSED_IDENTIFIER)
-            )))
-        ))
+            many0(alt((alphanumeric1, tag(UNUSED_IDENTIFIER)))),
+        )),
     )
-    .map(|s: Span<'a>| -> &'a str {
-        &s
-    })
+    .map(|s: Span<'a>| -> &'a str { &s })
     .parse(input)
 }
 

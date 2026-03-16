@@ -1,5 +1,5 @@
 use crate::{
-    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
+    common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
     lexer::utils::{
         B2Error, B2Result, Span,
         consts::{
@@ -282,6 +282,57 @@ impl<'a> LexExpr<'a> {
             instance,
         })
         .parse(input)
+    }
+}
+
+impl<'a> ToB2 for LexExpr<'a> {
+    fn to_b2(&self) -> String {
+        match self {
+            LexExpr::Literal(primitive) => primitive.to_b2(),
+            LexExpr::Tuple(fst, snd) => format!(
+                "{}{}{}{}{}",
+                TUPLE_START,
+                fst.to_b2(),
+                TUPLE_DELIMITER,
+                snd.to_b2(),
+                TUPLE_END
+            ),
+            LexExpr::List(xs) => format!(
+                "{}{}{}",
+                LIST_START,
+                xs.iter()
+                    .map(|x| x.to_b2())
+                    .collect::<Vec<_>>()
+                    .join(LIST_DELIMITER),
+                LIST_END
+            ),
+            LexExpr::Variable(xs) => xs.to_string(),
+            LexExpr::Group(x) => format!("{}{}{}", GROUP_START, x.to_b2(), GROUP_END),
+            LexExpr::FunctionCall {
+                identifier,
+                arguments,
+            } => format!(
+                "{}{}{}{}",
+                identifier,
+                FUNCTION_CALL_START,
+                arguments
+                    .iter()
+                    .map(|a| a.to_b2())
+                    .collect::<Vec<_>>()
+                    .join(FUNCTION_CALL_DELIMITER),
+                FUNCTION_CALL_END
+            ),
+            LexExpr::Op(op) => op.to_b2(),
+            LexExpr::Struct {
+                identifier,
+                field_implementations,
+            } => format!("{STRUCT_KW} {identifier} {STRUCT_START_KW} {} {STRUCT_END_KW}", field_implementations.iter().map(|(f, v)| format!("{STRUCT_FIELD_IMPL_KW} {f} {}", v.to_b2())).collect::<Vec<_>>().join(STRUCT_FIELD_END)),
+            LexExpr::StructFieldAccessing { identifier, field } => format!("{identifier}{STRUCT_FIELD_ACCESS_KW}{field}"),
+            LexExpr::Enum {
+                identifier,
+                instance,
+            } => format!("{identifier}{ENUM_INDEXING}{instance}"),
+        }
     }
 }
 

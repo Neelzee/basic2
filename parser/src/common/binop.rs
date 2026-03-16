@@ -1,10 +1,10 @@
-use crate::lexer::utils::{
+use crate::{common::ToB2, lexer::utils::{
     B2Result, Span,
     consts::{
         ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LEQ_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW,
         POW_KW, SUB_KW,
     },
-};
+}};
 use nom::{
     Parser, branch::alt, bytes::complete::tag, character::complete::space0, sequence::preceded,
 };
@@ -49,5 +49,26 @@ impl BinOp {
             )),
         )
         .parse(input)
+    }
+}
+
+impl ToB2 for BinOp {
+    fn to_b2(&self) -> String {
+        match self {
+            BinOp::Add => ADD_KW.to_string(),
+            BinOp::Mul => MUL_KW.to_string(),
+            BinOp::Sub => SUB_KW.to_string(),
+            BinOp::Div => DIV_KW.to_string(),
+            BinOp::Pow => POW_KW.to_string(),
+            BinOp::Eq => EQ_KW.to_string(),
+            BinOp::Geq => GEQ_KW.to_string(),
+            BinOp::Gt => GT_KW.to_string(),
+            BinOp::Leq => LEQ_KW.to_string(),
+            BinOp::Lt => LT_KW.to_string(),
+            BinOp::Neq => NEQ_KW.to_string(),
+            BinOp::Mod => MOD_KW.to_string(),
+            BinOp::And => AND_KW.to_string(),
+            BinOp::Or => OR_KW.to_string(),
+        }
     }
 }

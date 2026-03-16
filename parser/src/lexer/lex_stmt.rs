@@ -143,7 +143,7 @@ impl<'a> LexStmt<'a> {
     pub fn parse_statement(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "statements",
-            alt((
+            alt([
                 Self::parse_type_alias,
                 Self::parse_list_reassignment,
                 Self::parse_tuple_unpacking,
@@ -155,6 +155,7 @@ impl<'a> LexStmt<'a> {
                 Self::parse_variable_reassignment,
                 Self::parse_if_statement,
                 Self::parse_while_statement,
+                Self::parse_when_statement,
                 Self::parse_function_declaration,
                 Self::parse_function_implementation,
                 Self::parse_block_statement,
@@ -165,12 +166,12 @@ impl<'a> LexStmt<'a> {
                 Self::parse_import_module,
                 Self::parse_for_statement,
                 Self::parse_enum_declaration,
-            )),
+            ]),
         )
         .parse(input)
     }
 
-    pub fn parse_break(input: Span) -> B2Result<Self> {
+    pub fn parse_break(input: Span<'a>) -> B2Result<'a, Self> {
         delimited(multispace0, tag(BREAK_STMT_KW), tag(END_STMT_KW))
             .map(|_| Self::Break)
             .parse(input)
@@ -445,7 +446,7 @@ impl<'a> LexStmt<'a> {
         Ok((rem, Self::StructDeclaration { identifier, fields }))
     }
 
-    pub fn parse_struct_field_statement(input: Span<'a>) -> B2Result<'a, (&'a str, LexType)> {
+    pub fn parse_struct_field_statement(input: Span<'a>) -> B2Result<'a, (&'a str, LexType<'a>)> {
         pair(
             pair(
                 preceded(
@@ -752,7 +753,7 @@ impl<'a> WhenMatch<'a> {
         input: Span<'a>,
     ) -> B2Result<'a, (Option<LexExpr<'a>>, Vec<LexStmt<'a>>)> {
         context(
-            "condtion-and-statements",
+            "condition-and-statements",
             (
                 delimited(
                     opt((

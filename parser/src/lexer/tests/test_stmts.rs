@@ -740,14 +740,7 @@ fn test_function_unpacking() {
     const INPUT: &str = r##"LET (firstName, lastName, age, city, postCode, street) >< p;"##;
     let input = Span::new(INPUT);
     let expected = LexStmt::TupleUnpacking {
-        identifiers: vec![
-            "firstName",
-            "lastName",
-            "age",
-            "city",
-            "postCode",
-            "street",
-        ],
+        identifiers: vec!["firstName", "lastName", "age", "city", "postCode", "street"],
         value: LexExpr::Variable("p"),
     };
     let result = LexStmt::parse_tuple_unpacking(input);
@@ -889,6 +882,8 @@ fn test_when_stmt() {
                         [x, y, ...xs] FOLLOWS
                             INVOKE PRINT("");
                         END
+                        [x, y, ...xs] AND x == y FOLLOWS
+                        END
                     END
                 "##,
     );
@@ -932,6 +927,14 @@ fn test_when_stmt() {
                 },
                 vec![lprt!((""))],
             ),
+            (
+                WhenMatch::VariadicList {
+                    identifiers: vec!["x", "y"],
+                    remainder: Some("xs"),
+                    condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
+                },
+                vec![],
+            ),
         ],
     };
     let result = LexStmt::parse_when_statement(input);
@@ -966,4 +969,124 @@ fn test_variadic_list_branch() {
         convert_error(input, result.unwrap_err())
     );
     assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+#[case(
+    r##"[] FOLLOWS
+        INVOKE PRINT("foo is empty");
+    END"##,
+    (
+        WhenMatch::EmptyList { condition: None },
+        vec![lprt!("foo is empty")],
+    )
+)]
+#[case(
+    r##"[x] FOLLOWS
+        INVOKE PRINT("foo is a singleton with " + SHOW(x));
+    END"##,
+    (
+        WhenMatch::Singleton {
+            identifier: "x",
+            condition: None,
+        },
+        vec![lprt!(lbop!(
+            "foo is a singleton with ",
+            BinOp::Add,
+            lfne!("SHOW", lv!("x"))
+        ))],
+    )
+)]
+#[case(
+    r##"[x, y, ...xs] AND x == y FOLLOWS
+    END"##,
+    (
+        WhenMatch::VariadicList {
+            identifiers: vec!["x", "y"],
+            remainder: Some("xs"),
+            condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
+        },
+        vec![],
+    )
+)]
+#[case(
+    r##"[x, y, ...xs] FOLLOWS
+        INVOKE PRINT("");
+    END"##,
+    (
+        WhenMatch::VariadicList {
+            identifiers: vec!["x", "y"],
+            remainder: Some("xs"),
+            condition: None,
+        },
+        vec![lprt!((""))],
+    ),
+)]
+#[case(
+    r##"_ FOLLOWS
+        INVOKE PRINT("");
+    END"##,
+    (
+        WhenMatch::CatchAll {
+            identifier: "_",
+            condition: None,
+        },
+        vec![lprt!("")],
+    ),
+)]
+#[case(
+    r##"_ AND x == y FOLLOWS
+        INVOKE PRINT("");
+    END"##,
+    (
+        WhenMatch::CatchAll {
+            identifier: "_",
+            condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
+        },
+        vec![lprt!("")],
+    ),
+)]
+#[case(
+    r##"_ AND x == y FOLLOWS
+    END"##,
+    (
+        WhenMatch::CatchAll {
+            identifier: "_",
+            condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
+        },
+        vec![],
+    ),
+)]
+fn test_parse_list_branch(#[case] input: &str, #[case] expected: (WhenMatch, Vec<LexStmt>)) {
+    let input = Span::new(input);
+    let result = WhenMatch::parse(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, expected);
+}
+
+#[rstest]
+fn test_when_statement_example() {
+    let input = Span::new(
+        r##"WHEN foo THEN
+            [] FOLLOWS
+                INVOKE PRINT("foo is empty");
+            END
+            [x] FOLLOWS
+                INVOKE PRINT("foo is a singleton with " + SHOW(x));
+            END
+            [x, y, ...xs] FOLLOWS
+                INVOKE PRINT("foo contains atleast two elements, and " + SHOW(LEN(xs)) + " more elements");
+            END
+            [x, y, ...xs] AND x == y FOLLOWS
+                INVOKE PRINT("foo contains atleast two elements, both of which are equal, and " + SHOW(LEN(xs)) + " more elements");
+            END
+            END
+        "##
+    );
+    let result = LexStmt::parse_statement(input);
+    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
 }

@@ -9,6 +9,10 @@ pub mod postfix;
 pub mod primitive;
 pub mod uniop;
 
+pub trait ToB2 {
+    fn to_b2(&self) -> String;
+}
+
 type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;
 
 pub struct B2Op<'a>(B2OpInner<'a>);
@@ -27,12 +31,24 @@ impl<'a> B2Op<'a> {
     }
 }
 
+impl<'a> ToB2 for B2Op<'a> {
+    fn to_b2(&self) -> String {
+        match &self.0 {
+            Operation::Prefix(op, val) => format!("({}{})", op.to_b2(), val.to_b2()),
+            Operation::Postfix(val, op) => format!("({}{})", val.to_b2(), op.to_b2()),
+            Operation::Binary(l, op, r) => format!("({}{}{})", l.to_b2(), op.to_b2(), r.to_b2()),
+        }
+    }
+}
+
 impl<'a> Clone for B2Op<'a> {
     fn clone(&self) -> Self {
         match &self.0 {
             B2OpInner::Prefix(arg0, arg1) => Self(B2OpInner::Prefix(arg0.clone(), arg1.clone())),
             B2OpInner::Postfix(arg0, arg1) => Self(B2OpInner::Postfix(arg0.clone(), arg1.clone())),
-            B2OpInner::Binary(arg0, arg1, arg2) => Self(B2OpInner::Binary(arg0.clone(), arg1.clone(), arg2.clone())),
+            B2OpInner::Binary(arg0, arg1, arg2) => {
+                Self(B2OpInner::Binary(arg0.clone(), arg1.clone(), arg2.clone()))
+            }
         }
     }
 }
