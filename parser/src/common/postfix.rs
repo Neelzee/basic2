@@ -10,7 +10,7 @@ use nom::{
     sequence::delimited,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Postfix<'a> {
     Incr,
     Decr,

@@ -4,8 +4,7 @@ use crate::lexer::{
     utils::{
         B2Result, Span,
         consts::{
-            ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT,
-            SINGLE_LINE_COMMENT_END,
+            ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT, SINGLE_LINE_COMMENT_END, UNUSED_IDENTIFIER, UNUSED_IDENTIFIER_CHAR
         },
     },
 };
@@ -13,17 +12,28 @@ use nom::{
     Parser,
     branch::{alt, permutation},
     bytes::complete::{tag, take_till, take_until},
-    character::complete::{alpha1, alphanumeric0, multispace0, multispace1, space0},
-    combinator::{eof, opt},
+    character::complete::{alpha1, alphanumeric1, multispace0, multispace1, space0},
+    combinator::{eof, opt, recognize},
     error::context,
     multi::{many0, separated_list0},
     sequence::{delimited, pair, preceded, terminated},
 };
 
-pub fn parse_identifier(input: Span) -> B2Result<Span> {
-    alt((tag("_"), alpha1))
-        .and_then(alt((alphanumeric0, tag("_"))))
-        .parse(input)
+pub fn parse_identifier<'a>(input: Span<'a>) -> B2Result<'a, &'a str> {
+    context(
+        "identifier",
+        recognize((
+            alt((tag(UNUSED_IDENTIFIER), alpha1)),
+            many0(alt((
+                alphanumeric1,
+                tag(UNUSED_IDENTIFIER)
+            )))
+        ))
+    )
+    .map(|s: Span<'a>| -> &'a str {
+        &s
+    })
+    .parse(input)
 }
 
 /// Parses a list-like input, with a specified start, end and delimiter. The delimiter includes multispace0
@@ -62,7 +72,7 @@ where
     )
 }
 
-pub fn parse_parameters<'a>(input: Span<'a>) -> B2Result<'a, (Span<'a>, Option<LexExpr<'a>>)> {
+pub fn parse_parameters<'a>(input: Span<'a>) -> B2Result<'a, (&'a str, Option<LexExpr<'a>>)> {
     context(
         "parse-parameters",
         pair(

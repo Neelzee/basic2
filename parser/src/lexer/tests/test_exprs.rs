@@ -14,12 +14,12 @@ use rstest::rstest;
 #[case::parses_negative_int("-123", LexExpr::Literal(Primitive::Int(-123)))]
 #[case::parses_float_with_dot(".123", LexExpr::Literal(Primitive::Float(0.123)))]
 #[case::parses_float_with_0("0.123", LexExpr::Literal(Primitive::Float(0.123)))]
-#[case::parses_string(r##""string""##, LexExpr::Literal(Primitive::Str("string".to_string())))]
-#[case::parses_empty_string(r##""""##, LexExpr::Literal(Primitive::Str("".to_string())))]
-#[case::parses_group(r##"("string")"##, LexExpr::Group(Box::new(LexExpr::Literal(Primitive::Str("string".to_string())))))]
-#[case::parses_tuple(r##"("string", 123)"##, LexExpr::Tuple(Box::new(LexExpr::Literal(Primitive::Str("string".to_string()))), Box::new(LexExpr::Literal(Primitive::Int(123)))))]
-#[case::parses_list(r##"["string", 123]"##, LexExpr::List(vec![LexExpr::Literal(Primitive::Str("string".to_string())), LexExpr::Literal(Primitive::Int(123))]))]
-#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: Span::new("foo"), arguments: Vec::new(), })]
+#[case::parses_string(r##""string""##, LexExpr::Literal(Primitive::Str("string")))]
+#[case::parses_empty_string(r##""""##, LexExpr::Literal(Primitive::Str("")))]
+#[case::parses_group(r##"("string")"##, LexExpr::Group(Box::new(LexExpr::Literal(Primitive::Str("string")))))]
+#[case::parses_tuple(r##"("string", 123)"##, LexExpr::Tuple(Box::new(LexExpr::Literal(Primitive::Str("string"))), Box::new(LexExpr::Literal(Primitive::Int(123)))))]
+#[case::parses_list(r##"["string", 123]"##, LexExpr::List(vec![LexExpr::Literal(Primitive::Str("string")), LexExpr::Literal(Primitive::Int(123))]))]
+#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo", arguments: Vec::new(), })]
 #[case::parses_struct_expr(
     r##"STRUCTURE Person WITH
         IMPL firstName = "Nils";
@@ -28,20 +28,20 @@ use rstest::rstest;
     END
     "##,
     LexExpr::Struct {
-        identifier: Span::new("Person"),
+        identifier: "Person",
         field_implementations: vec![
-            (Span::new("firstName"), LexExpr::Literal(Primitive::Str("Nils".to_string()))),
-            (Span::new("lastName"), LexExpr::Literal(Primitive::Str("Fitjar".to_string()))),
-            (Span::new("age"), LexExpr::Literal(Primitive::Int(24))),
+            ("firstName", LexExpr::Literal(Primitive::Str("Nils"))),
+            ("lastName", LexExpr::Literal(Primitive::Str("Fitjar"))),
+            ("age", LexExpr::Literal(Primitive::Int(24))),
         ]
     }
 )]
 #[case(
     r##""Before: " + global"##,
     LexExpr::Op(Box::new(B2Op::binary(
-        LexExpr::Literal(Primitive::Str("Before: ".to_string())),
+        LexExpr::Literal(Primitive::Str("Before: ")),
         BinOp::Add,
-        LexExpr::Variable(Span::new("global"))
+        LexExpr::Variable("global")
     ).into()))
 )]
 #[case(
@@ -89,7 +89,7 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
 #[case(
     "STRUCTURE empty WITH END",
     LexExpr::Struct {
-        identifier: Span::new("empty"),
+        identifier: "empty",
         field_implementations: Vec::new(),
     }
 )]
@@ -98,8 +98,8 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
         IMPL bar = 10;
     END",
     LexExpr::Struct {
-        identifier: Span::new("FOO"),
-        field_implementations: vec![(Span::new("bar"), LexExpr::Literal(Primitive::Int(10)))],
+        identifier: "FOO",
+        field_implementations: vec![("bar", LexExpr::Literal(Primitive::Int(10)))],
     }
 )]
 #[case(
@@ -108,10 +108,10 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
         IMPL foo = "";
     END"##,
     LexExpr::Struct {
-        identifier: Span::new("FOOBAR"),
+        identifier: "FOOBAR",
         field_implementations: vec![
-            (Span::new("bar"), LexExpr::Literal(Primitive::Int(10))),
-            (Span::new("foo"), LexExpr::Literal(Primitive::Str(String::new())))
+            ("bar", LexExpr::Literal(Primitive::Int(10))),
+            ("foo", LexExpr::Literal(Primitive::Str("")))
         ],
     }
 )]
@@ -125,36 +125,36 @@ fn test_struct_expr(#[case] input: &str, #[case] expected: LexExpr) {
 #[case(
     "IMPL bar = 10;\nIMPL foo = 10;",
     (
-        "bar".to_string(),
+        "bar",
         LexExpr::Literal(Primitive::Int(10))
     ),
     "\nIMPL foo = 10;"
 )]
 fn test_struct_field_impl_parser(
     #[case] input: &str,
-    #[case] expected: (String, LexExpr),
+    #[case] expected: (&str, LexExpr),
     #[case] remainder: &str,
 ) {
     let result = LexExpr::parse_struct_field.parse(Span::new(input));
     assert!(result.is_ok(), "{result:?}");
     let result = result.unwrap();
     let (f, s) = result.1;
-    assert_eq!((f.to_string(), s), expected);
-    assert_eq!(result.0.to_string(), remainder.to_string());
+    assert_eq!((f, s), expected);
+    assert_eq!(result.0.to_string(), remainder);
 }
 
 #[rstest]
-#[case(r##"foo()"##, LexExpr::FunctionCall { identifier: Span::new("foo"), arguments: Vec::new(), })]
-#[case(r##"PRINT("HELLO")"##, LexExpr::FunctionCall { identifier: Span::new("PRINT"), arguments: vec![LexExpr::Literal(Primitive::Str("HELLO".to_string()))], })]
+#[case(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo", arguments: Vec::new(), })]
+#[case(r##"PRINT("HELLO")"##, LexExpr::FunctionCall { identifier: "PRINT", arguments: vec![LexExpr::Literal(Primitive::Str("HELLO"))], })]
 #[case(
     r##"PRINT("Before: " + global)"##,
     LexExpr::FunctionCall {
-        identifier: Span::new("PRINT"),
+        identifier: "PRINT",
         arguments: vec![
             LexExpr::Op(Box::new(B2Op::binary(
-                LexExpr::Literal(Primitive::Str("Before: ".to_string())),
+                LexExpr::Literal(Primitive::Str("Before: ")),
                 BinOp::Add,
-                LexExpr::Variable(Span::new("global"))
+                LexExpr::Variable("global")
             ).into()))
         ],
     }
@@ -206,8 +206,8 @@ fn test_struct_field_access() {
     assert_eq!(
         result.unwrap().1,
         LexExpr::StructFieldAccessing {
-            identifier: Span::new("me"),
-            field: Span::new("firstName")
+            identifier: "me",
+            field: "firstName"
         }
     );
 }

@@ -25,29 +25,29 @@ use nom::{
 };
 use nom_language::precedence::{Assoc, binary_op, precedence, unary_op};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LexExpr<'a> {
-    Literal(Primitive),
+    Literal(Primitive<'a>),
     Tuple(Box<Self>, Box<Self>),
     List(Vec<Self>),
-    Variable(Span<'a>),
+    Variable(&'a str),
     Group(Box<Self>),
     FunctionCall {
-        identifier: Span<'a>,
+        identifier: &'a str,
         arguments: Vec<Self>,
     },
     Op(Box<B2Op<'a>>),
     Struct {
-        identifier: Span<'a>,
-        field_implementations: Vec<(Span<'a>, Self)>,
+        identifier: &'a str,
+        field_implementations: Vec<(&'a str, Self)>,
     },
     StructFieldAccessing {
-        identifier: Span<'a>,
-        field: Span<'a>,
+        identifier: &'a str,
+        field: &'a str,
     },
     Enum {
-        identifier: Span<'a>,
-        instance: Span<'a>,
+        identifier: &'a str,
+        instance: &'a str,
     },
 }
 
@@ -113,8 +113,10 @@ impl<'a> LexExpr<'a> {
         .parse(i)
     }
 
-    pub fn parse_literal(input: Span) -> B2Result<Self> {
-        Primitive::parse_primitive(input).map(|(rem, p)| (rem, Self::Literal(p)))
+    pub fn parse_literal(input: Span<'a>) -> B2Result<'a, Self> {
+        Primitive::parse_primitive
+            .map(|p| Self::Literal(p))
+            .parse(input)
     }
 
     pub fn parse_tuple(input: Span<'a>) -> B2Result<'a, Self> {
@@ -155,9 +157,9 @@ impl<'a> LexExpr<'a> {
     }
 
     pub fn parse_variable(input: Span<'a>) -> B2Result<'a, Self> {
-        match parse_identifier.map(|s| Self::Variable(s)).parse(input)? {
+        match parse_identifier.parse(input)? {
             // TODO: Figure out a better way to not allow keywords as identifiers
-            (_, LexExpr::Variable(ident))
+            (_, ident)
                 if matches!(
                     ident.to_string().as_str(),
                     STRUCT_KW | WHEN_STATEMENT_CONDITION_END_KW
@@ -169,7 +171,7 @@ impl<'a> LexExpr<'a> {
                     "not valid identifier",
                 )))
             }
-            res @ (_, _) => Ok(res),
+            (rem, ident) => Ok((rem, Self::Variable(ident))),
         }
     }
 
@@ -206,15 +208,15 @@ impl<'a> LexExpr<'a> {
                 ),
             ),
         )
-        .map(|(identifier, arguments)| Self::FunctionCall {
-            identifier,
+        .map(|(ident, arguments)| Self::FunctionCall {
+            identifier: &ident,
             arguments,
         })
         .parse(input)
     }
 
     pub fn parse_struct(input: Span<'a>) -> B2Result<'a, Self> {
-        let (i, identifier) =
+        let (i, ident) =
             preceded(tag(STRUCT_KW), preceded(space0, parse_identifier)).parse(input)?;
         let (rem, field_implementations) = terminated(
             preceded(
@@ -230,7 +232,7 @@ impl<'a> LexExpr<'a> {
         Ok((
             rem,
             Self::Struct {
-                identifier,
+                identifier: &ident,
                 field_implementations,
             },
         ))
@@ -249,7 +251,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_struct_field(input: Span<'a>) -> B2Result<'a, (Span<'a>, Self)> {
+    pub fn parse_struct_field(input: Span<'a>) -> B2Result<'a, (&'a str, Self)> {
         pair(
             pair(
                 preceded(
@@ -283,8 +285,8 @@ impl<'a> LexExpr<'a> {
     }
 }
 
-impl<'a> From<&str> for LexExpr<'a> {
-    fn from(value: &str) -> Self {
+impl<'a> From<&'a str> for LexExpr<'a> {
+    fn from(value: &'a str) -> Self {
         LexExpr::Literal(value.into())
     }
 }

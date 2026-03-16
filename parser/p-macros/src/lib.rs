@@ -18,7 +18,7 @@ macro_rules! lv {
     (
         $ident:expr
     ) => {
-        LexExpr::Variable(Span::new($ident))
+        LexExpr::Variable($ident)
     };
 }
 
@@ -41,7 +41,7 @@ macro_rules! lvda {
         $value:expr
     ) => {
         LexStmt::VariableDeclarationAssignment {
-            identifier: Span::new($ident),
+            identifier: $ident,
             variable_type: Some($type),
             value: $value.into(),
         }
@@ -51,7 +51,7 @@ macro_rules! lvda {
         $value:expr
     ) => {
         LexStmt::VariableDeclarationAssignment {
-            identifier: Span::new($ident),
+            identifier: $ident,
             variable_type: None,
             value: $value.into(),
         }
@@ -65,7 +65,7 @@ macro_rules! lvra {
         $value:expr
     ) => {
         LexStmt::VariableReassignment {
-            identifier: Span::new($ident),
+            identifier: $ident,
             reassignment: None,
             new_value: $value.into(),
         }
@@ -97,7 +97,7 @@ macro_rules! lfne {
         $($expr:expr),* 
     ) => {
         LexExpr::FunctionCall {
-            identifier: Span::new($ident),
+            identifier: $ident,
             arguments: vec![$($expr.into()),*],
         }
     };
@@ -110,7 +110,7 @@ macro_rules! lfin {
         $($expr:expr),* 
     ) => {
         LexStmt::FunctionInvocation {
-            identifier: Span::new($ident),
+            identifier: $ident,
             arguments: vec![$($expr.into()),*],
         }
     };

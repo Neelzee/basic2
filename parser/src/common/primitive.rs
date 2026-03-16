@@ -1,28 +1,23 @@
+use std::ops::Neg;
+
 use crate::lexer::utils::{
     B2Error, B2Result, Span,
-    consts::{STRING_CHAR, STRING_KW},
+    consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
 };
 use nom::{
-    Parser,
-    branch::alt,
-    bytes::complete::{tag, take_till},
-    character::complete::{char, digit1},
-    combinator::{map, opt, recognize},
-    error::{ErrorKind, ParseError, context},
-    number::complete::float,
-    sequence::{delimited, pair},
+    Parser, branch::alt, bytes::complete::{tag, take_till}, character::complete::{char, digit1}, combinator::{map, opt, recognize}, error::{ErrorKind, ParseError, context}, number::complete::float, sequence::{delimited, pair, terminated}
 };
 
-#[derive(Debug, PartialEq)]
-pub enum Primitive {
+#[derive(Debug, PartialEq, Clone)]
+pub enum Primitive<'a> {
     Int(i32),
     Float(f32),
-    Str(String),
+    Str(&'a str),
     Bool(bool),
 }
 
-impl Primitive {
-    pub fn parse_primitive(input: Span) -> B2Result<Self> {
+impl<'a> Primitive<'a> {
+    pub fn parse_primitive(input: Span<'a>) -> B2Result<'a, Self> {
         alt((
             Self::parse_str,
             Self::parse_float,
@@ -54,23 +49,38 @@ impl Primitive {
             .parse(i)
     }
 
-    pub fn parse_float<'a>(input: Span<'a>) -> B2Result<'a, Self> {
-        let (i, negative): (Span<'a>, bool) = is_negative(input)?;
-        let (rem, float_span): (Span<'a>, Span<'a>) = recognize(alt((
-            map((digit1::<Span, _>, pair(char('.'), opt(digit1))), |_| ()),
-            map((char('.'), digit1), |_| ()),
-        )))
-        .parse(i)?;
-        match float_span.to_string().parse::<f32>() {
-            Ok(f) => Ok((rem, Self::Float(f * if negative { -1f32 } else { 1f32 }))),
-            Err(_) => Err(nom::Err::Error(B2Error::from_error_kind(
-                input,
-                ErrorKind::Float,
-            ))),
-        }
+    pub fn parse_float(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "primitive-float",
+            (
+                is_negative,
+                recognize(alt((
+                    terminated(digit1, tag(FLOAT_KW)),
+                    delimited(tag(FLOAT_DOT_KW), digit1, opt(tag(FLOAT_KW))),
+                    terminated(recognize((digit1, tag(FLOAT_DOT_KW), digit1)), opt(tag(FLOAT_KW))),
+                )))
+                .and_then(float)
+            )
+        )
+        .map(|(negative, val)| Self::Float(if negative { val.neg() } else { val }))
+        .parse(input)
     }
 
-    pub fn parse_str(input: Span) -> B2Result<Self> {
+    fn foo(input: Span<'a>) -> B2Result<'a, Self> {
+        let (i, negative) = is_negative(input)?;
+        dbg!(i);
+        let (i, r) = recognize(alt((
+                    terminated(digit1, tag(FLOAT_KW)),
+                    delimited(tag(FLOAT_DOT_KW), digit1, opt(tag(FLOAT_KW))),
+                    terminated(recognize((digit1, tag(FLOAT_DOT_KW), digit1)), opt(tag(FLOAT_KW))),
+                ))).parse(i)?;
+        dbg!(i, r);
+        let (rem, val) = float.parse(r)?;
+        dbg!(rem);
+        Ok((rem, Self::Float(if negative { val.neg() } else { val })))
+    }
+
+    pub fn parse_str(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "string-primitive",
             delimited(
@@ -79,7 +89,7 @@ impl Primitive {
                 context("string-end", tag(STRING_KW)),
             ),
         )
-        .map(|s: Span| Self::Str(s.to_string()))
+        .map(|s: Span<'a>| Self::Str(&s))
         .parse(input)
     }
 }
@@ -90,25 +100,19 @@ fn is_negative(input: Span) -> B2Result<bool> {
         .parse(input)
 }
 
-impl From<i32> for Primitive {
+impl<'a> From<i32> for Primitive<'a> {
     fn from(value: i32) -> Self {
         Self::Int(value)
     }
 }
 
-impl From<&str> for Primitive {
-    fn from(value: &str) -> Self {
-        Self::Str(value.to_string())
-    }
-}
-
-impl From<String> for Primitive {
-    fn from(value: String) -> Self {
+impl<'a> From<&'a str> for Primitive<'a> {
+    fn from(value: &'a str) -> Self {
         Self::Str(value)
     }
 }
 
-impl From<bool> for Primitive {
+impl<'a> From<bool> for Primitive<'a> {
     fn from(value: bool) -> Self {
         Self::Bool(value)
     }

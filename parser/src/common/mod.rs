@@ -27,6 +27,15 @@ impl<'a> B2Op<'a> {
     }
 }
 
+impl<'a> Clone for B2Op<'a> {
+    fn clone(&self) -> Self {
+        match &self.0 {
+            B2OpInner::Prefix(arg0, arg1) => Self(B2OpInner::Prefix(arg0.clone(), arg1.clone())),
+            B2OpInner::Postfix(arg0, arg1) => Self(B2OpInner::Postfix(arg0.clone(), arg1.clone())),
+            B2OpInner::Binary(arg0, arg1, arg2) => Self(B2OpInner::Binary(arg0.clone(), arg1.clone(), arg2.clone())),
+        }
+    }
+}
 impl<'a> Into<B2OpInner<'a>> for B2Op<'a> {
     fn into(self) -> B2OpInner<'a> {
         self.0

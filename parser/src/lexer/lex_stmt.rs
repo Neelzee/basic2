@@ -42,32 +42,32 @@ use nom::{
     sequence::{delimited, pair, preceded, terminated},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LexStmt<'a> {
     VariableDeclaration {
-        identifier: Span<'a>,
+        identifier: &'a str,
         variable_type: Option<LexType<'a>>,
     },
     TupleUnpacking {
-        identifiers: Vec<Span<'a>>,
+        identifiers: Vec<&'a str>,
         value: LexExpr<'a>,
     },
     StructUnpacking {
-        identifiers: Vec<Span<'a>>,
+        identifiers: Vec<&'a str>,
         value: LexExpr<'a>,
     },
     ListUnpacking {
-        identifiers: Vec<Span<'a>>,
-        remainder: Option<Span<'a>>,
+        identifiers: Vec<&'a str>,
+        remainder: Option<&'a str>,
         value: LexExpr<'a>,
     },
     VariableDeclarationAssignment {
-        identifier: Span<'a>,
+        identifier: &'a str,
         variable_type: Option<LexType<'a>>,
         value: LexExpr<'a>,
     },
     VariableReassignment {
-        identifier: Span<'a>,
+        identifier: &'a str,
         reassignment: Option<BinOp>,
         new_value: LexExpr<'a>,
     },
@@ -86,24 +86,24 @@ pub enum LexStmt<'a> {
         body: Vec<Self>,
     },
     FunctionDeclaration {
-        identifier: Span<'a>,
+        identifier: &'a str,
         parameters: Vec<LexType<'a>>,
         return_type: Option<LexType<'a>>,
     },
     FunctionImplementation {
-        identifier: Span<'a>,
-        parameters: Vec<(Span<'a>, Option<LexExpr<'a>>)>,
+        identifier: &'a str,
+        parameters: Vec<(&'a str, Option<LexExpr<'a>>)>,
         body: Vec<Self>,
     },
     StructDeclaration {
-        identifier: Span<'a>,
-        fields: Vec<(Span<'a>, LexType<'a>)>,
+        identifier: &'a str,
+        fields: Vec<(&'a str, LexType<'a>)>,
     },
     Block {
         body: Vec<Self>,
     },
     FunctionInvocation {
-        identifier: Span<'a>,
+        identifier: &'a str,
         arguments: Vec<LexExpr<'a>>,
     },
     Break,
@@ -111,11 +111,11 @@ pub enum LexStmt<'a> {
         value: Option<LexExpr<'a>>,
     },
     TypeAlias {
-        identifier: Span<'a>,
+        identifier: &'a str,
         b2_type: LexType<'a>,
     },
     ImportModule {
-        identifier: Span<'a>,
+        identifier: &'a str,
     },
     For {
         start_stmt: Box<Self>,
@@ -124,17 +124,17 @@ pub enum LexStmt<'a> {
         body: Vec<Self>,
     },
     StructFieldReassignment {
-        identifier: Span<'a>,
-        field: Span<'a>,
+        identifier: &'a str,
+        field: &'a str,
         reassignment: Option<BinOp>,
         new_value: LexExpr<'a>,
     },
     EnumDeclaration {
-        identifier: Span<'a>,
-        enumerations: Vec<Span<'a>>,
+        identifier: &'a str,
+        enumerations: Vec<&'a str>,
     },
     WhenStatement {
-        identifier: Span<'a>,
+        identifier: &'a str,
         branches: Vec<(WhenMatch<'a>, Vec<Self>)>,
     },
 }
@@ -445,7 +445,7 @@ impl<'a> LexStmt<'a> {
         Ok((rem, Self::StructDeclaration { identifier, fields }))
     }
 
-    pub fn parse_struct_field_statement(input: Span) -> B2Result<(Span, LexType)> {
+    pub fn parse_struct_field_statement(input: Span<'a>) -> B2Result<'a, (&'a str, LexType)> {
         pair(
             pair(
                 preceded(
@@ -697,24 +697,24 @@ impl<'a> LexStmt<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum WhenMatch<'a> {
     /// [ ]
     EmptyList { condition: Option<LexExpr<'a>> },
     /// [x]
     Singleton {
-        identifier: Span<'a>,
+        identifier: &'a str,
         condition: Option<LexExpr<'a>>,
     },
     /// [a, b, ...xs]
     VariadicList {
-        identifiers: Vec<Span<'a>>,
-        remainder: Option<Span<'a>>,
+        identifiers: Vec<&'a str>,
+        remainder: Option<&'a str>,
         condition: Option<LexExpr<'a>>,
     },
     /// x
     CatchAll {
-        identifier: Span<'a>,
+        identifier: &'a str,
         condition: Option<LexExpr<'a>>,
     },
     /// IS INT
@@ -725,7 +725,7 @@ pub enum WhenMatch<'a> {
     },
     // [::field_a, ::field_b] AND field_a < field_b FOLLOWS ...
     StructField {
-        fields: Vec<Span<'a>>,
+        fields: Vec<&'a str>,
         condition: Option<LexExpr<'a>>,
     },
 }
