@@ -1,7 +1,7 @@
 BEGIN MODULE FunctionImplementation
-DECL g();
+DECL g(): FLOAT;
 IMPL g() DOES
 END
-DECL h();
+DECL h(): NIL;
 IMPL h() RETURN;
 MODULE FunctionImplementation END

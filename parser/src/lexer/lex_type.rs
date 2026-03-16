@@ -1,8 +1,9 @@
 use crate::lexer::utils::{
     B2Error, B2Result, Span,
     consts::{
-        BOOL_TYPE_KW, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END, FUNCTION_TYPE_START, INT_TYPE_KW,
-        LIST_END, LIST_START, STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+        BOOL_TYPE_KW, FLOAT_TYPE_KW, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END,
+        FUNCTION_TYPE_START, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW, STR_TYPE_KW,
+        TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
     },
     helper_parsers::{parse_identifier, parse_poly_list_with},
 };
@@ -17,8 +18,10 @@ use nom::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LexType<'a> {
+    Nil,
     Str,
     Int,
+    Float,
     Bool,
     Tuple {
         fst: Box<Self>,
@@ -40,8 +43,10 @@ impl<'a> LexType<'a> {
 
     pub fn parse_type_excl_fn(input: Span<'a>) -> B2Result<'a, Self> {
         alt((
+            tag(NIL_TYPE_KW).map(|_| Self::Nil),
             tag(STR_TYPE_KW).map(|_| Self::Str),
             tag(INT_TYPE_KW).map(|_| Self::Int),
+            tag(FLOAT_TYPE_KW).map(|_| Self::Float),
             tag(BOOL_TYPE_KW).map(|_| Self::Bool),
             Self::parse_tuple_type,
             Self::parse_list,

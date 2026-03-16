@@ -38,9 +38,11 @@ pub const MODULE_KW: &str = "MODULE";
 pub const END_MODULE_KW: &str = "END";
 pub const ONE_SPACE: &str = " ";
 
+pub const NIL_TYPE_KW: &str = "NIL";
 pub const STR_TYPE_KW: &str = "STR";
 pub const INT_TYPE_KW: &str = "INT";
 pub const BOOL_TYPE_KW: &str = "BOOL";
+pub const FLOAT_TYPE_KW: &str = "FLOAT";
 
 pub const STRUCT_KW: &str = "STRUCTURE";
 pub const STRUCT_DECL_KW: &str = "WHERE";
