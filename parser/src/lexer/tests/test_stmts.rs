@@ -7,7 +7,7 @@ use crate::{
         utils::{Span, convert_error},
     },
 };
-use p_macros::{lbop, lfin, lfne, lg, lprt, lv, lvda};
+use p_macros::{lbop, leel, lfin, lfne, lg, lprt, lv, lvda, rt};
 use rstest::rstest;
 
 #[rstest]
@@ -301,9 +301,22 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
         return_type: Some(LexType::Str)
     }
 )]
+#[case(
+    "DECL map([INT], {INT => INT}): [INT];",
+    LexStmt::FunctionDeclaration {
+        identifier: "map",
+        parameters: vec![LexType::List(Box::new(LexType::Int)), LexType::FnType { input: Box::new(LexType::Int), output: Box::new(LexType::Int) }],
+        return_type: Some(LexType::List(Box::new(LexType::Int)))
+    }
+)]
 fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStmt) {
-    let result = LexStmt::parse_function_declaration(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
+    let input = Span::new(input);
+    let result = LexStmt::parse_function_declaration(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
     assert_eq!(result.unwrap().1, expected);
 }
 
@@ -407,6 +420,41 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
                 ))
             ))
         }]
+    }
+)]
+#[case::map_for_int(
+    r##"IMPL map(xs, f) DOES
+            WHEN xs THEN
+                [] FOLLOWS
+                    RETURN [];
+                END
+                [y, ...ys] FOLLOWS
+                    RETURN ADD(f(y), map(ys, f));
+                END
+            END
+        END"##,
+    LexStmt::FunctionImplementation {
+        identifier: "map", 
+        parameters: vec![("xs", None), ("f", None)],
+        body: vec![
+            LexStmt::WhenStatement {
+                identifier: "xs",
+                branches: vec![
+                    (
+                        WhenMatch::EmptyList { condition: None },
+                        vec![rt!(leel!())]
+                    ),
+                    (
+                        WhenMatch::VariadicList {
+                            identifiers: vec!["y"],
+                            remainder: Some("ys"),
+                            condition: None
+                        },
+                        vec![rt!(lfne!("ADD", lfne!("f", lv!("y")), lfne!("map", lv!("ys"), lv!("f"))))]
+                    )
+                ]
+            }
+        ]
     }
 )]
 fn test_parse_function_implementation(#[case] input: &str, #[case] expected: LexStmt) {
@@ -1085,8 +1133,12 @@ fn test_when_statement_example() {
                 INVOKE PRINT("foo contains atleast two elements, both of which are equal, and " + SHOW(LEN(xs)) + " more elements");
             END
             END
-        "##
+        "##,
     );
     let result = LexStmt::parse_statement(input);
-    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
 }

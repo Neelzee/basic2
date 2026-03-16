@@ -17,7 +17,7 @@ pub type B2Result<'a, O> = IResult<Span<'a>, O, B2Error<'a>>;
 
 pub fn convert_error(input: Span, e: nom::Err<B2Error>) -> String {
     match e {
-        err @ nom::Err::Incomplete(_) => format!("non-verbose-error: {err:?}"),
+        err @ nom::Err::Incomplete(_) => format!("non-verbose-error: {err:?}, Input: {input:?}"),
         nom::Err::Error(e) | nom::Err::Failure(e) => _convert_error(input, e),
     }
 }

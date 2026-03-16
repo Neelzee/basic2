@@ -1,9 +1,12 @@
 use std::ops::Neg;
 
-use crate::{common::ToB2, lexer::utils::{
-    B2Result, Span,
-    consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
-}};
+use crate::{
+    common::ToB2,
+    lexer::utils::{
+        B2Result, Span,
+        consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
+    },
+};
 use nom::{
     Parser,
     branch::alt,

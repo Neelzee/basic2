@@ -1,7 +1,10 @@
-use crate::{common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive}, lexer::{
+use crate::{
+    common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive},
+    lexer::{
         lex_expr::LexExpr,
         utils::{Span, convert_error},
-    }};
+    },
+};
 use nom::Parser;
 use p_macros::{lai, lbop, lfne, lg, lv};
 use rstest::rstest;
@@ -202,7 +205,13 @@ fn test_precedence(#[case] input: &str, #[case] expected: LexExpr) {
         convert_error(input, result.unwrap_err())
     );
     let result = result.unwrap().1;
-    assert_eq!(result, expected, "{} != {}", result.to_b2(), expected.to_b2());
+    assert_eq!(
+        result,
+        expected,
+        "{} != {}",
+        result.to_b2(),
+        expected.to_b2()
+    );
 }
 
 #[test]

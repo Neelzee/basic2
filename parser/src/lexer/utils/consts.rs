@@ -133,6 +133,10 @@ pub const FLOAT_DOT_KW: &str = ".";
 pub const UNUSED_IDENTIFIER: &str = "_";
 pub const UNUSED_IDENTIFIER_CHAR: char = '_';
 
+pub const FUNCTION_TYPE_ARROW_KW: &str = "=>";
+pub const FUNCTION_TYPE_START: &str = "{";
+pub const FUNCTION_TYPE_END: &str = "}";
+
 #[cfg(test)]
 pub mod test_const {
     pub const EMPTY_PROGRAM_PATH: &str = "../assets/basic-examples/EmptyExample.b2";

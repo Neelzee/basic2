@@ -1,4 +1,7 @@
-use crate::{common::ToB2, lexer::utils::{B2Result, Span, consts::NEGATION_KW}};
+use crate::{
+    common::ToB2,
+    lexer::utils::{B2Result, Span, consts::NEGATION_KW},
+};
 use nom::{Parser, bytes::complete::tag};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

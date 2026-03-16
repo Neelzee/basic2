@@ -124,3 +124,78 @@ macro_rules! lprt {
         lfin!("PRINT", $($expr),*)
     };
 }
+
+#[macro_export]
+macro_rules! rt {
+    () => {
+        LexStmt::Return { value: None }
+    };
+    (
+        $expr:expr
+    ) => {
+        LexStmt::Return { value: Some($expr.into()) }
+    };
+}
+
+#[macro_export]
+macro_rules! leel {
+    () => {
+        LexExpr::List(Vec::new())
+    };
+}
+
+#[macro_export]
+macro_rules! lfnt {
+    (
+        $input:expr,
+        $output:expr
+    ) => {
+        LexType::FnType {
+            input: Box::new($input),
+            output: Box::new($output)
+        }
+    };
+    (
+        $input:expr,
+        $($rem:expr),*
+    ) => {
+        LexType::FnType {
+            input: Box::new($input),
+            output: Box::new(lfnt!($($rem),*)) 
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! ltype {
+    (
+        STR
+    ) => {
+        LexType::Str
+    };
+    (
+        INT
+    ) => {
+        LexType::Int
+    };
+    (
+        BOOL
+    ) => {
+        LexType::Bool
+    };
+    ($i:ident => $o:ident) => {
+        LexType::FnType {
+            input: Box::new(ltype!($i)),
+            output: Box::new(ltype!($o)),
+        }
+    };
+    (
+        $i:ident =>
+        $($o:ident)=>*
+    ) => {
+        LexType::FnType {
+            input: Box::new(ltype!($i)),
+            output: Box::new(ltype!($($o)=>*)),
+        }
+    };
+}

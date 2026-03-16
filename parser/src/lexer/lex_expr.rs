@@ -326,8 +326,17 @@ impl<'a> ToB2 for LexExpr<'a> {
             LexExpr::Struct {
                 identifier,
                 field_implementations,
-            } => format!("{STRUCT_KW} {identifier} {STRUCT_START_KW} {} {STRUCT_END_KW}", field_implementations.iter().map(|(f, v)| format!("{STRUCT_FIELD_IMPL_KW} {f} {}", v.to_b2())).collect::<Vec<_>>().join(STRUCT_FIELD_END)),
-            LexExpr::StructFieldAccessing { identifier, field } => format!("{identifier}{STRUCT_FIELD_ACCESS_KW}{field}"),
+            } => format!(
+                "{STRUCT_KW} {identifier} {STRUCT_START_KW} {} {STRUCT_END_KW}",
+                field_implementations
+                    .iter()
+                    .map(|(f, v)| format!("{STRUCT_FIELD_IMPL_KW} {f} {}", v.to_b2()))
+                    .collect::<Vec<_>>()
+                    .join(STRUCT_FIELD_END)
+            ),
+            LexExpr::StructFieldAccessing { identifier, field } => {
+                format!("{identifier}{STRUCT_FIELD_ACCESS_KW}{field}")
+            }
             LexExpr::Enum {
                 identifier,
                 instance,

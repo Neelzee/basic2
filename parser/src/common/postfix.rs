@@ -1,10 +1,13 @@
-use crate::{common::ToB2, lexer::{
-    lex_expr::LexExpr,
-    utils::{
-        B2Result, Span,
-        consts::{DECR_KW, INCR_KW, LIST_END, LIST_START},
+use crate::{
+    common::ToB2,
+    lexer::{
+        lex_expr::LexExpr,
+        utils::{
+            B2Result, Span,
+            consts::{DECR_KW, INCR_KW, LIST_END, LIST_START},
+        },
     },
-}};
+};
 use nom::{
     Parser, branch::alt, bytes::complete::tag, character::complete::multispace0, error::context,
     sequence::delimited,
