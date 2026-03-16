@@ -353,30 +353,58 @@ impl<'a> LexStmt<'a> {
     pub fn parse_function_implementation(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "function-implementation",
-            delimited(
-                context("impl-kw", tag(FUNCTION_IMPLEMENTATION_KW)).and(multispace0),
-                (
-                    context("function-identifier", parse_identifier),
-                    context(
-                        "parameterers",
-                        parse_poly_list_with(
-                            FUNCTION_PARAMETERS_START,
-                            FUNCTION_PARAMETERS_DELIMITER,
-                            FUNCTION_PARAMETERS_END,
-                            parse_parameters,
-                        ),
-                    ),
-                    preceded(
+            alt((
+                context(
+                    "function-impl-body",
+                    delimited(
+                        context("impl-kw", tag(FUNCTION_IMPLEMENTATION_KW)).and(multispace0),
                         (
-                            multispace0,
-                            context("start-kw", tag(FUNCTION_IMPLEMENTATION_START_KW)),
-                            multispace0,
+                            context("function-identifier", parse_identifier),
+                            context(
+                                "parameterers",
+                                parse_poly_list_with(
+                                    FUNCTION_PARAMETERS_START,
+                                    FUNCTION_PARAMETERS_DELIMITER,
+                                    FUNCTION_PARAMETERS_END,
+                                    parse_parameters,
+                                ),
+                            ),
+                            preceded(
+                                (
+                                    multispace0,
+                                    context("does-kw", tag(FUNCTION_IMPLEMENTATION_START_KW)),
+                                    multispace0,
+                                ),
+                                context("function-body", parse_statements),
+                            ),
                         ),
-                        context("function-body", parse_statements),
+                        (multispace0, tag(FUNCTION_BODY_END_KW)),
                     ),
                 ),
-                (multispace0, tag(FUNCTION_BODY_END_KW)),
-            ),
+                context(
+                    "function-impl-single-stmt",
+                    preceded(
+                        context("impl-kw", (tag(FUNCTION_IMPLEMENTATION_KW), multispace0)),
+                        (
+                            context("function-identifier", parse_identifier),
+                            context(
+                                "parameterers",
+                                parse_poly_list_with(
+                                    FUNCTION_PARAMETERS_START,
+                                    FUNCTION_PARAMETERS_DELIMITER,
+                                    FUNCTION_PARAMETERS_END,
+                                    parse_parameters,
+                                ),
+                            ),
+                            context(
+                                "single-statement",
+                                preceded(multispace0, Self::parse_statement),
+                            )
+                            .map(|x| vec![x]),
+                        ),
+                    ),
+                ),
+            )),
         )
         .map(
             |(identifier, parameters, body)| Self::FunctionImplementation {

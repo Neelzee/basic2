@@ -2,4 +2,6 @@ BEGIN MODULE FunctionImplementation
 DECL g();
 IMPL g() DOES
 END
+DECL h();
+IMPL h() RETURN;
 MODULE FunctionImplementation END

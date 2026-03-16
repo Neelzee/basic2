@@ -2,7 +2,7 @@ use crate::lexer::{
     lex_type::LexType,
     utils::{Span, convert_error},
 };
-use p_macros::{lfnt, ltype};
+use p_macros::ltype;
 use rstest::rstest;
 
 #[rstest]
