@@ -1,0 +1,13 @@
+BEGIN MODULE FnAsValue
+DECL map([INT], {INT => INT}): [INT];
+IMPL map(xs, f) DOES
+  WHEN xs THEN
+    [] FOLLOWS
+      RETURN [];
+    END
+    [y, ...ys] FOLLOWS
+      RETURN ADD(f(y), map(ys, f));
+    END
+  END
+END
+MODULE FnAsValue END
