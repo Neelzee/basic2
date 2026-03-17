@@ -98,3 +98,15 @@ fn test_parse_multi_function_type(#[case] input: &str, #[case] expected: LexType
     );
     assert_eq!(result.unwrap().1, expected);
 }
+
+#[test]
+fn test_parse_enum() {
+    let input = Span::new("Days.Saturday");
+    let result = LexType::parse_type(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(result.unwrap().1, LexType::EnumVariant("Days", "Saturday"));
+}

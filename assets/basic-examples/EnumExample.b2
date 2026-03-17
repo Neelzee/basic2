@@ -9,4 +9,7 @@ ENUMS Days
   Sunday;
 END
 LET smallSaturday = Days.Wednsday;
+DECL EveryDayIsSaturday() : Days.Saturday;
+IMPL EveryDayIsSaturday()
+  RETURN Days.Saturday;
 MODULE EnumExample END
