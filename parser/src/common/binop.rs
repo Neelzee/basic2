@@ -1,7 +1,7 @@
 use crate::{
     common::ToB2,
     lexer::utils::{
-        B2Result, Span,
+        B2LexResult, Span,
         consts::{
             ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LEQ_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW,
             OR_KW, POW_KW, SUB_KW,
@@ -31,7 +31,7 @@ pub enum BinOp {
 }
 
 impl BinOp {
-    pub fn parse_symbol(input: Span) -> B2Result<Self> {
+    pub fn parse_symbol(input: Span) -> B2LexResult<Self> {
         preceded(
             space0,
             alt((

@@ -11,11 +11,11 @@ mod test_utils;
 
 pub type Span<'a> = LocatedSpan<&'a str>;
 
-pub type B2Error<'a> = VerboseError<Span<'a>>;
+pub type B2LexError<'a> = VerboseError<Span<'a>>;
 
-pub type B2Result<'a, O> = IResult<Span<'a>, O, B2Error<'a>>;
+pub type B2LexResult<'a, O> = IResult<Span<'a>, O, B2LexError<'a>>;
 
-pub fn convert_error(input: Span, e: nom::Err<B2Error>) -> String {
+pub fn convert_error(input: Span, e: nom::Err<B2LexError>) -> String {
     match e {
         err @ nom::Err::Incomplete(_) => format!("non-verbose-error: {err:?}, Input: {input:?}"),
         nom::Err::Error(e) | nom::Err::Failure(e) => _convert_error(input, e),
@@ -23,7 +23,7 @@ pub fn convert_error(input: Span, e: nom::Err<B2Error>) -> String {
 }
 
 /// Inlined convert_error
-fn _convert_error(input: Span, e: B2Error) -> String {
+fn _convert_error(input: Span, e: B2LexError) -> String {
     let mut result = String::new();
 
     for (i, (substring, kind)) in e.errors.iter().enumerate() {

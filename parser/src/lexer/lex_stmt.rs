@@ -4,7 +4,7 @@ use crate::{
         lex_expr::LexExpr,
         lex_type::LexType,
         utils::{
-            B2Error, B2Result, Span,
+            B2LexError, B2LexResult, Span,
             consts::{
                 ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW,
                 CONTINUE_STMT_KW, END_STMT_KW, ENUM_END_KW, ENUM_START_KW, FOR_BODY_START_KW,
@@ -169,7 +169,7 @@ type FunDeclComps<'a> = (
 );
 
 impl<'a> LexStmt<'a> {
-    pub fn parse_statement(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_statement(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "statements",
             alt([
@@ -203,19 +203,19 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_break(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_break(input: Span<'a>) -> B2LexResult<'a, Self> {
         delimited(multispace0, tag(BREAK_STMT_KW), tag(END_STMT_KW))
             .map(|_| Self::Break)
             .parse(input)
     }
 
-    pub fn parse_continue(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_continue(input: Span<'a>) -> B2LexResult<'a, Self> {
         delimited(multispace0, tag(CONTINUE_STMT_KW), tag(END_STMT_KW))
             .map(|_| Self::Continue)
             .parse(input)
     }
 
-    pub fn parse_return(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_return(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "return",
             delimited(
@@ -228,7 +228,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_variable_declaration(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_variable_declaration(input: Span<'a>) -> B2LexResult<'a, Self> {
         delimited(
             preceded(multispace0, tag(VARIABLE_DECLARATION)),
             (
@@ -244,7 +244,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_variable_declaration_assignment(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_variable_declaration_assignment(input: Span<'a>) -> B2LexResult<'a, Self> {
         delimited(
             preceded(multispace0, tag(VARIABLE_DECLARATION)),
             (
@@ -273,7 +273,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_struct_field_reassignment(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_struct_field_reassignment(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "struct-field-accessing",
             (
@@ -295,7 +295,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    fn parse_reasignment(input: Span<'a>) -> B2Result<'a, Option<BinOp>> {
+    fn parse_reasignment(input: Span<'a>) -> B2LexResult<'a, Option<BinOp>> {
         context(
             "reassignment",
             terminated(
@@ -306,7 +306,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_variable_reassignment(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_variable_reassignment(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "parse-variable-reassignment",
             preceded(
@@ -331,7 +331,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_if_statement(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_if_statement(input: Span<'a>) -> B2LexResult<'a, Self> {
         let (i, _whitespace) = multispace0.parse(input)?;
         let (i, condition) = preceded(
             tag(IF_STATEMENT_START_KW),
@@ -344,7 +344,7 @@ impl<'a> LexStmt<'a> {
         Ok((rem, Self::If { condition, body }))
     }
 
-    pub fn parse_while_statement(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_while_statement(input: Span<'a>) -> B2LexResult<'a, Self> {
         let (i, _whitespace) = multispace0.parse(input)?;
         let (i, condition) = preceded(
             tag(WHILE_STATEMENT_START_KW),
@@ -357,7 +357,7 @@ impl<'a> LexStmt<'a> {
         Ok((rem, Self::While { condition, body }))
     }
 
-    pub fn parse_function_declaration(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_function_declaration(input: Span<'a>) -> B2LexResult<'a, Self> {
         context("function-declaration", Self::parse_function_decl_comps)
             .map(
                 |(identifier, generics, parameters, return_type)| Self::FunctionDeclaration {
@@ -370,7 +370,7 @@ impl<'a> LexStmt<'a> {
             .parse(input)
     }
 
-    fn parse_function_decl_comps(input: Span<'a>) -> B2Result<'a, FunDeclComps<'a>> {
+    fn parse_function_decl_comps(input: Span<'a>) -> B2LexResult<'a, FunDeclComps<'a>> {
         delimited(
             tag(FUNCTION_DECLARATION_KW).and(multispace0),
             (
@@ -411,7 +411,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_function_implementation(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_function_implementation(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "function-implementation",
             Self::parse_function_impl_components,
@@ -426,7 +426,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    fn parse_function_impl_components(input: Span<'a>) -> B2Result<'a, FunImplComps<'a>> {
+    fn parse_function_impl_components(input: Span<'a>) -> B2LexResult<'a, FunImplComps<'a>> {
         alt((
             context(
                 "function-impl-body",
@@ -482,7 +482,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_block_statement(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_block_statement(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "block-statement",
             delimited(
@@ -501,7 +501,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_function_invocation(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_function_invocation(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "function-invocation",
             delimited(
@@ -523,7 +523,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_struct_declaration(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_struct_declaration(input: Span<'a>) -> B2LexResult<'a, Self> {
         let (i, identifier) =
             preceded(tag(STRUCT_KW), preceded(space0, parse_identifier)).parse(input)?;
         let (rem, fields) = terminated(
@@ -540,7 +540,7 @@ impl<'a> LexStmt<'a> {
         Ok((rem, Self::StructDeclaration { identifier, fields }))
     }
 
-    pub fn parse_struct_field_statement(input: Span<'a>) -> B2Result<'a, (&'a str, LexType<'a>)> {
+    pub fn parse_struct_field_statement(input: Span<'a>) -> B2LexResult<'a, (&'a str, LexType<'a>)> {
         pair(
             pair(
                 preceded(
@@ -558,7 +558,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_type_alias(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_type_alias(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "type-alias-statement",
             terminated(
@@ -583,7 +583,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_import_module(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_import_module(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "import-module-statement",
             terminated(
@@ -598,7 +598,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_tuple_unpacking(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_tuple_unpacking(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "tuple-unpacking",
             delimited(
@@ -615,7 +615,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_list_unpacking(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_list_unpacking(input: Span<'a>) -> B2LexResult<'a, Self> {
         let (rem, (idents, _, value)) = context(
             "list-unpacking",
             delimited(
@@ -640,7 +640,7 @@ impl<'a> LexStmt<'a> {
 
         let mut remainders = idents.iter().filter_map(|i| i.err()).collect::<Vec<_>>();
         if remainders.len() >= 2 {
-            return Err(nom::Err::Error(B2Error::from_error_kind(
+            return Err(nom::Err::Error(B2LexError::from_error_kind(
                 input,
                 ErrorKind::Fail,
             )));
@@ -656,7 +656,7 @@ impl<'a> LexStmt<'a> {
         ))
     }
 
-    pub fn parse_struct_unpacking(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_struct_unpacking(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "struct-unpacking",
             delimited(
@@ -678,7 +678,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_for_statement(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_for_statement(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "for",
             terminated(
@@ -710,7 +710,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_list_reassignment(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_list_reassignment(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "list-reassignment",
             (
@@ -747,7 +747,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_enum_declaration(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_enum_declaration(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "enum-declaration",
             delimited(
@@ -769,7 +769,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_when_statement(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_when_statement(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "when-statement",
             delimited(
@@ -791,7 +791,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_trait_impl(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_trait_impl(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "trait-impl",
             delimited(
@@ -823,7 +823,7 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_trait_decl(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_trait_decl(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "trait-decl",
             delimited(
@@ -904,7 +904,7 @@ pub enum WhenMatch<'a> {
     },
 }
 
-type WMResult<'a> = B2Result<'a, (WhenMatch<'a>, Vec<LexStmt<'a>>)>;
+type WMResult<'a> = B2LexResult<'a, (WhenMatch<'a>, Vec<LexStmt<'a>>)>;
 
 impl<'a> WhenMatch<'a> {
     pub fn parse(input: Span<'a>) -> WMResult<'a> {
@@ -924,7 +924,7 @@ impl<'a> WhenMatch<'a> {
 
     fn parse_condition_and_stmt(
         input: Span<'a>,
-    ) -> B2Result<'a, (Option<LexExpr<'a>>, Vec<LexStmt<'a>>)> {
+    ) -> B2LexResult<'a, (Option<LexExpr<'a>>, Vec<LexStmt<'a>>)> {
         context(
             "condition-and-statements",
             (

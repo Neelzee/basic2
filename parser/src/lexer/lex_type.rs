@@ -1,5 +1,5 @@
 use crate::lexer::utils::{
-    B2Error, B2Result, Span,
+    B2LexError, B2LexResult, Span,
     consts::{
         BOOL_TYPE_KW, ENUM_INDEXING, FLOAT_TYPE_KW, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END,
         FUNCTION_TYPE_START, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW, STR_TYPE_KW,
@@ -50,11 +50,11 @@ pub enum LexType<'a> {
 }
 
 impl<'a> LexType<'a> {
-    pub fn parse_type(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_type(input: Span<'a>) -> B2LexResult<'a, Self> {
         alt((Self::parse_function_type, Self::parse_type_excl_fn)).parse(input)
     }
 
-    pub fn parse_type_excl_fn(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_type_excl_fn(input: Span<'a>) -> B2LexResult<'a, Self> {
         alt((
             tag(NIL_TYPE_KW).map(|_| Self::Nil),
             tag(STR_TYPE_KW).map(|_| Self::Str),
@@ -69,7 +69,7 @@ impl<'a> LexType<'a> {
         .parse(input)
     }
 
-    pub fn parse_tuple_type(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_tuple_type(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "tuple-type-parsing",
             separated_pair(
@@ -97,7 +97,7 @@ impl<'a> LexType<'a> {
         .parse(input)
     }
 
-    pub fn parse_list(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_list(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "list-type-parsing",
             delimited(
@@ -110,13 +110,13 @@ impl<'a> LexType<'a> {
         .parse(input)
     }
 
-    pub fn parse_type_var(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_type_var(input: Span<'a>) -> B2LexResult<'a, Self> {
         context("type-var", parse_identifier)
             .map(Self::TypeVar)
             .parse(input)
     }
 
-    pub fn parse_function_type(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_function_type(input: Span<'a>) -> B2LexResult<'a, Self> {
         let (rem, res) = context(
             "function-type",
             alt((
@@ -158,14 +158,14 @@ impl<'a> LexType<'a> {
 
         match res {
             Ok(res) => Ok((rem, res)),
-            Err(_) => Err(nom::Err::Error(B2Error::from_error_kind(
+            Err(_) => Err(nom::Err::Error(B2LexError::from_error_kind(
                 input,
                 ErrorKind::Fail,
             ))),
         }
     }
 
-    pub fn parse_enum_variant(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_enum_variant(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "enum-variant",
             separated_pair(parse_identifier, tag(ENUM_INDEXING), parse_identifier),

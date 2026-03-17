@@ -3,7 +3,7 @@ use std::ops::Neg;
 use crate::{
     common::ToB2,
     lexer::utils::{
-        B2Result, Span,
+        B2LexResult, Span,
         consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
     },
 };
@@ -27,7 +27,7 @@ pub enum Primitive<'a> {
 }
 
 impl<'a> Primitive<'a> {
-    pub fn parse_primitive(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_primitive(input: Span<'a>) -> B2LexResult<'a, Self> {
         alt((
             Self::parse_str,
             Self::parse_float,
@@ -37,7 +37,7 @@ impl<'a> Primitive<'a> {
         .parse(input)
     }
 
-    pub fn parse_bool(input: Span) -> B2Result<Self> {
+    pub fn parse_bool(input: Span) -> B2LexResult<Self> {
         alt((
             tag("TRUE").map(|_| Self::Bool(true)),
             tag("FALSE").map(|_| Self::Bool(false)),
@@ -45,7 +45,7 @@ impl<'a> Primitive<'a> {
         .parse(input)
     }
 
-    pub fn parse_int(input: Span) -> B2Result<Self> {
+    pub fn parse_int(input: Span) -> B2LexResult<Self> {
         let (i, negative) = is_negative.parse(input)?;
         digit1
             .map(|i: Span| {
@@ -59,7 +59,7 @@ impl<'a> Primitive<'a> {
             .parse(i)
     }
 
-    pub fn parse_float(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_float(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "primitive-float",
             (
@@ -79,7 +79,7 @@ impl<'a> Primitive<'a> {
         .parse(input)
     }
 
-    pub fn parse_str(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_str(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "string-primitive",
             delimited(
@@ -105,7 +105,7 @@ impl<'a> ToB2 for Primitive<'a> {
     }
 }
 
-fn is_negative(input: Span) -> B2Result<bool> {
+fn is_negative(input: Span) -> B2LexResult<bool> {
     opt(alt((tag("+"), tag("-"))))
         .map(|o| o.is_some_and(|s: Span| s.to_string() == "-"))
         .parse(input)

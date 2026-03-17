@@ -3,7 +3,7 @@ use crate::{
     lexer::{
         lex_expr::LexExpr,
         utils::{
-            B2Result, Span,
+            B2LexResult, Span,
             consts::{DECR_KW, INCR_KW, LIST_END, LIST_START},
         },
     },
@@ -21,7 +21,7 @@ pub enum Postfix<'a> {
 }
 
 impl<'a> Postfix<'a> {
-    pub fn parse_postfix(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_postfix(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "post-fix",
             alt((
@@ -33,7 +33,7 @@ impl<'a> Postfix<'a> {
         .parse(input)
     }
 
-    pub fn parse_index(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_index(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "post-fix-index",
             delimited(

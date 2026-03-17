@@ -1,7 +1,7 @@
 use crate::{
     common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
     lexer::utils::{
-        B2Error, B2Result, Span,
+        B2LexError, B2LexResult, Span,
         consts::{
             ADD_KW, AND_KW, DIV_KW, ENUM_INDEXING, EQ_KW, FUNCTION_CALL_DELIMITER,
             FUNCTION_CALL_END, FUNCTION_CALL_START, GEQ_KW, GROUP_END, GROUP_START, GT_KW, LEQ_KW,
@@ -52,7 +52,7 @@ pub enum LexExpr<'a> {
 }
 
 impl<'a> LexExpr<'a> {
-    pub fn parse_expr(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_expr(input: Span<'a>) -> B2LexResult<'a, Self> {
         alt((
             Self::parse_enum,
             Self::parse_struct_field_accessing,
@@ -68,7 +68,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_precedence(i: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_precedence(i: Span<'a>) -> B2LexResult<'a, Self> {
         let expr_parser = alt((
             LexExpr::parse_literal,
             LexExpr::parse_function_call,
@@ -113,13 +113,13 @@ impl<'a> LexExpr<'a> {
         .parse(i)
     }
 
-    pub fn parse_literal(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_literal(input: Span<'a>) -> B2LexResult<'a, Self> {
         Primitive::parse_primitive
             .map(|p| Self::Literal(p))
             .parse(input)
     }
 
-    pub fn parse_tuple(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_tuple(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "tuple-expr",
             separated_pair(
@@ -138,7 +138,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_list(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_list(input: Span<'a>) -> B2LexResult<'a, Self> {
         terminated(
             preceded(
                 context("list-start", tag(LIST_START)),
@@ -156,7 +156,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_variable(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_variable(input: Span<'a>) -> B2LexResult<'a, Self> {
         match parse_identifier.parse(input)? {
             // TODO: Figure out a better way to not allow keywords as identifiers
             (_, ident)
@@ -165,7 +165,7 @@ impl<'a> LexExpr<'a> {
                     STRUCT_KW | WHEN_STATEMENT_CONDITION_END_KW
                 ) =>
             {
-                Err(nom::Err::Error(B2Error::from_external_error(
+                Err(nom::Err::Error(B2LexError::from_external_error(
                     input,
                     ErrorKind::Fail,
                     "not valid identifier",
@@ -175,13 +175,13 @@ impl<'a> LexExpr<'a> {
         }
     }
 
-    pub fn parse_group(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_group(input: Span<'a>) -> B2LexResult<'a, Self> {
         let (rem, expr) =
             delimited(tag(GROUP_START), Self::parse_expr, tag(GROUP_END)).parse(input)?;
         Ok((rem, Self::Group(Box::new(expr))))
     }
 
-    pub fn parse_function_call(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_function_call(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "parse-function-call",
             (
@@ -215,7 +215,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_struct(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_struct(input: Span<'a>) -> B2LexResult<'a, Self> {
         let (i, ident) =
             preceded(tag(STRUCT_KW), preceded(space0, parse_identifier)).parse(input)?;
         let (rem, field_implementations) = terminated(
@@ -238,7 +238,7 @@ impl<'a> LexExpr<'a> {
         ))
     }
 
-    pub fn parse_struct_field_accessing(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_struct_field_accessing(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "struct-field-accessing",
             (
@@ -251,7 +251,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_struct_field(input: Span<'a>) -> B2Result<'a, (&'a str, Self)> {
+    pub fn parse_struct_field(input: Span<'a>) -> B2LexResult<'a, (&'a str, Self)> {
         pair(
             pair(
                 preceded(
@@ -272,7 +272,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_enum(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_enum(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "enum",
             (parse_identifier, tag(ENUM_INDEXING), parse_identifier),

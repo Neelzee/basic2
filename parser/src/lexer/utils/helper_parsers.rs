@@ -2,7 +2,7 @@ use crate::lexer::{
     lex_expr::LexExpr,
     lex_stmt::LexStmt,
     utils::{
-        B2Result, Span,
+        B2LexResult, Span,
         consts::{
             ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT,
             SINGLE_LINE_COMMENT_END, UNUSED_IDENTIFIER,
@@ -20,7 +20,7 @@ use nom::{
     sequence::{delimited, pair, preceded, terminated},
 };
 
-pub fn parse_identifier<'a>(input: Span<'a>) -> B2Result<'a, &'a str> {
+pub fn parse_identifier<'a>(input: Span<'a>) -> B2LexResult<'a, &'a str> {
     context(
         "identifier",
         recognize((
@@ -76,7 +76,7 @@ where
     )
 }
 
-pub fn parse_parameters<'a>(input: Span<'a>) -> B2Result<'a, (&'a str, Option<LexExpr<'a>>)> {
+pub fn parse_parameters<'a>(input: Span<'a>) -> B2LexResult<'a, (&'a str, Option<LexExpr<'a>>)> {
     context(
         "parse-parameters",
         pair(
@@ -96,7 +96,7 @@ pub fn parse_parameters<'a>(input: Span<'a>) -> B2Result<'a, (&'a str, Option<Le
     .parse(input)
 }
 
-pub fn parse_comments(input: Span) -> B2Result<Span> {
+pub fn parse_comments(input: Span) -> B2LexResult<Span> {
     context(
         "parse-comments",
         alt((parse_multi_comment, parse_single_comment)),
@@ -104,7 +104,7 @@ pub fn parse_comments(input: Span) -> B2Result<Span> {
     .parse(input)
 }
 
-pub fn parse_multi_comment(input: Span) -> B2Result<Span> {
+pub fn parse_multi_comment(input: Span) -> B2LexResult<Span> {
     context(
         "parse-multi-comment",
         delimited(
@@ -116,7 +116,7 @@ pub fn parse_multi_comment(input: Span) -> B2Result<Span> {
     .parse(input)
 }
 
-pub fn parse_single_comment(input: Span) -> B2Result<Span> {
+pub fn parse_single_comment(input: Span) -> B2LexResult<Span> {
     context(
         "parse-single-comment",
         terminated(
@@ -133,7 +133,7 @@ pub fn parse_single_comment(input: Span) -> B2Result<Span> {
     .parse(input)
 }
 
-pub fn parse_statements(input: Span) -> B2Result<Vec<LexStmt>> {
+pub fn parse_statements(input: Span) -> B2LexResult<Vec<LexStmt>> {
     context(
         "multi-statement",
         many0(alt((
@@ -145,7 +145,7 @@ pub fn parse_statements(input: Span) -> B2Result<Vec<LexStmt>> {
     .parse(input)
 }
 
-pub fn consume_comments_and_multispace(input: Span) -> B2Result<()> {
+pub fn consume_comments_and_multispace(input: Span) -> B2LexResult<()> {
     context(
         "consume-comments-multiline",
         alt((multispace1, parse_comments)),

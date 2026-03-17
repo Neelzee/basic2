@@ -1,7 +1,7 @@
 use crate::lexer::{
     lex_stmt::LexStmt,
     utils::{
-        B2Result, Span,
+        B2LexResult, Span,
         consts::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW, ONE_SPACE},
         helper_parsers::{parse_identifier, parse_statements},
     },
@@ -22,7 +22,7 @@ pub struct LexProgram<'a> {
 }
 
 impl<'a> LexProgram<'a> {
-    pub fn parse_program(input: Span<'a>) -> B2Result<'a, Self> {
+    pub fn parse_program(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "module",
             (

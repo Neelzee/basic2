@@ -5,7 +5,7 @@ use crate::{
         lex_stmt::LexStmt,
         lex_type::LexType,
         utils::{
-            B2Result, Span, convert_error,
+            B2LexResult, Span, convert_error,
             helper_parsers::{
                 parse_comments, parse_identifier, parse_poly_list_with, parse_statements,
             },
@@ -48,7 +48,7 @@ fn test_parse_poly_list_with<'a, P, O>(
     #[case] remainder: &'static str,
 ) where
     O: std::fmt::Debug + PartialEq,
-    P: Fn(Span<'a>) -> B2Result<'a, O> + Clone,
+    P: Fn(Span<'a>) -> B2LexResult<'a, O> + Clone,
 {
     let input = Span::new(input);
     let result = parse_poly_list_with(start, delimiter, end, parser).parse(input);
