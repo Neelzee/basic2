@@ -80,6 +80,7 @@ pub const FUNCTION_INVOCATION_END: &str = ";";
 pub const VARIABLE_REASIGNMENT: &str = "=";
 pub const END_STMT_KW: &str = ";";
 pub const BREAK_STMT_KW: &str = "BREAK";
+pub const CONTINUE_STMT_KW: &str = "CONTINUE";
 pub const RETURN_STMT_KW: &str = "RETURN";
 
 pub const STRING_KW: &str = "\"";
