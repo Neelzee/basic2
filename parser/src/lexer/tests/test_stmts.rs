@@ -270,6 +270,7 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
     LexStmt::FunctionDeclaration {
         identifier: "f",
         parameters: Vec::new(),
+        generics: Vec::new(),
         return_type: None
     }
 )]
@@ -279,6 +280,7 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
     LexStmt::FunctionDeclaration {
         identifier: "foo",
         parameters: Vec::new(),
+        generics: Vec::new(),
         return_type: Some(LexType::Int)
     }
 )]
@@ -289,6 +291,7 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
     LexStmt::FunctionDeclaration {
         identifier: "bar",
         parameters: vec![LexType::Int, LexType::Int, LexType::Int],
+        generics: Vec::new(),
         return_type: None
     }
 )]
@@ -298,6 +301,7 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
     LexStmt::FunctionDeclaration {
         identifier: "foobar",
         parameters: vec![LexType::Int, LexType::Int, LexType::Int, LexType::Str],
+        generics: Vec::new(),
         return_type: Some(LexType::Str)
     }
 )]
@@ -306,6 +310,7 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
     LexStmt::FunctionDeclaration {
         identifier: "map",
         parameters: vec![LexType::List(Box::new(LexType::Int)), LexType::FnType { input: Box::new(LexType::Int), output: Box::new(LexType::Int) }],
+        generics: Vec::new(),
         return_type: Some(LexType::List(Box::new(LexType::Int)))
     }
 )]

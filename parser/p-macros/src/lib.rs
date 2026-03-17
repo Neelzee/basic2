@@ -87,14 +87,16 @@ macro_rules! lai {
         $indexee:expr,
         $indexer:expr
     ) => {
-        LexExpr::Op(Box::new(B2Op::postfix($indexee.into(), Postfix::Index($indexer.into())).into()))
+        LexExpr::Op(Box::new(
+            B2Op::postfix($indexee.into(), Postfix::Index($indexer.into())).into(),
+        ))
     };
 }
 #[macro_export]
 macro_rules! lfne {
     (
         $ident:expr,
-        $($expr:expr),* 
+        $($expr:expr),*
     ) => {
         LexExpr::FunctionCall {
             identifier: $ident,
@@ -107,7 +109,7 @@ macro_rules! lfne {
 macro_rules! lfin {
     (
         $ident:expr,
-        $($expr:expr),* 
+        $($expr:expr),*
     ) => {
         LexStmt::FunctionInvocation {
             identifier: $ident,
@@ -119,7 +121,7 @@ macro_rules! lfin {
 #[macro_export]
 macro_rules! lprt {
     (
-        $($expr:expr),* 
+        $($expr:expr),*
     ) => {
         lfin!("PRINT", $($expr),*)
     };
@@ -133,7 +135,9 @@ macro_rules! rt {
     (
         $expr:expr
     ) => {
-        LexStmt::Return { value: Some($expr.into()) }
+        LexStmt::Return {
+            value: Some($expr.into()),
+        }
     };
 }
 
@@ -161,7 +165,7 @@ macro_rules! lfnt {
     ) => {
         LexType::FnType {
             input: Box::new($input),
-            output: Box::new(lfnt!($($rem),*)) 
+            output: Box::new(lfnt!($($rem),*))
         }
     };
 }

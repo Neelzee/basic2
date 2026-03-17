@@ -1,5 +1,7 @@
-BEGIN PROC GenericType
-DECL foo[T](T) : NIL;
+BEGIN MODULE GenericType
+DECL id[T](T) : T;
+IMPL id(t) RETURN T;
+DECL foo[T KNOWS SHOWABLE](T) : NIL;
 IMPL foo(v) INVOKE PRINT(v);
 LET _ = foo(10);
-PROC GenericType END
+MODULE GenericType END

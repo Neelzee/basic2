@@ -26,6 +26,12 @@ pub const FUNCTION_PARAMETERS_END: &str = ")";
 pub const FUNCTION_PARAMETERS_END_CHAR: char = ')';
 pub const FUNCTION_PARAMETERS_DELIMITER: &str = ",";
 pub const FUNCTION_PARAMETERS_DELIMITER_CHAR: char = ',';
+pub const FUNCTION_GENERICS_START: &str = "[";
+pub const FUNCTION_GENERICS_END: &str = "]";
+pub const FUNCTION_GENERICS_END_CHAR: char = ')';
+pub const FUNCTION_GENERICS_DELIMITER: &str = ";";
+pub const FUNCTION_GENERIC_TRAIT_KW: &str = "KNOWS";
+pub const FUNCTION_GENERIC_TRAIT_SEP: &str = ",";
 
 pub const FUNCTION_CALL_START: &str = "(";
 pub const FUNCTION_CALL_END: &str = ")";
@@ -138,6 +144,14 @@ pub const UNUSED_IDENTIFIER_CHAR: char = '_';
 pub const FUNCTION_TYPE_ARROW_KW: &str = "=>";
 pub const FUNCTION_TYPE_START: &str = "{";
 pub const FUNCTION_TYPE_END: &str = "}";
+
+pub const TRAIT_IMPL_KW: &str = "TEACH";
+pub const TRAIT_IMPL_BODY_START_KW: &str = "TO";
+pub const TRAIT_IMPL_BODY_END_KW: &str = "END";
+
+pub const TRAIT_DECL_KW: &str = "TRAIT";
+pub const TRAIT_DECL_BODY_START_KW: &str = "WHERE";
+pub const TRAIT_DECL_BODY_END_KW: &str = "END";
 
 #[cfg(test)]
 pub mod test_const {

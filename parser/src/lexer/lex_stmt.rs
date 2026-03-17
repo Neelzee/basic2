@@ -9,13 +9,16 @@ use crate::{
                 ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW,
                 END_STMT_KW, ENUM_END_KW, ENUM_START_KW, FOR_BODY_START_KW, FOR_CONDITION_END_KW,
                 FOR_CONDITION_START_KW, FOR_END_KW, FOR_START_KW, FUNCTION_BODY_END_KW,
-                FUNCTION_DECLARATION_KW, FUNCTION_IMPLEMENTATION_KW,
-                FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END,
-                FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER,
-                FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, IF_STATEMENT_BODY_START_KW,
-                IF_STATEMENT_END_KW, IF_STATEMENT_START_KW, IMPORT_MODULE_KW, LIST_DELIMITER,
-                LIST_END, LIST_START, LIST_UNPACKING_KW, RETURN_STMT_KW, STRUCT_DECL_KW,
-                STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW,
+                FUNCTION_DECLARATION_KW, FUNCTION_GENERIC_TRAIT_KW, FUNCTION_GENERIC_TRAIT_SEP,
+                FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_END, FUNCTION_GENERICS_START,
+                FUNCTION_IMPLEMENTATION_KW, FUNCTION_IMPLEMENTATION_START_KW,
+                FUNCTION_INVOCATION_END, FUNCTION_INVOCATION_START_KW,
+                FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START,
+                IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
+                IMPORT_MODULE_KW, LIST_DELIMITER, LIST_END, LIST_START, LIST_UNPACKING_KW,
+                RETURN_STMT_KW, STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW,
+                STRUCT_FIELD_DECL_KW, STRUCT_KW, TRAIT_DECL_BODY_END_KW, TRAIT_DECL_BODY_START_KW,
+                TRAIT_DECL_KW, TRAIT_IMPL_BODY_END_KW, TRAIT_IMPL_BODY_START_KW, TRAIT_IMPL_KW,
                 TUPLE_DELIMITER, TUPLE_END, TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW,
                 VARIABLE_DECLARATION, VARIABLE_REASIGNMENT, VARIABLE_TYPE_START,
                 WHEN_STATEMENT_BODY_END_KW, WHEN_STATEMENT_BODY_START_KW,
@@ -88,6 +91,7 @@ pub enum LexStmt<'a> {
     FunctionDeclaration {
         identifier: &'a str,
         parameters: Vec<LexType<'a>>,
+        generics: Vec<(&'a str, Vec<&'a str>)>,
         return_type: Option<LexType<'a>>,
     },
     FunctionImplementation {
@@ -137,7 +141,29 @@ pub enum LexStmt<'a> {
         identifier: &'a str,
         branches: Vec<(WhenMatch<'a>, Vec<Self>)>,
     },
+    TraitDecl {
+        identifier: &'a str,
+        decls: Vec<FunDeclComps<'a>>,
+        impls: Vec<FunImplComps<'a>>,
+    },
+    TraitImpl {
+        trait_identifier: &'a str,
+        type_identifier: &'a str,
+        body: Vec<Self>,
+    },
 }
+
+type FunImplComps<'a> = (
+    &'a str,
+    Vec<(&'a str, Option<LexExpr<'a>>)>,
+    Vec<LexStmt<'a>>,
+);
+type FunDeclComps<'a> = (
+    &'a str,
+    Vec<(&'a str, Vec<&'a str>)>,
+    Vec<LexType<'a>>,
+    Option<LexType<'a>>,
+);
 
 impl<'a> LexStmt<'a> {
     pub fn parse_statement(input: Span<'a>) -> B2Result<'a, Self> {
@@ -166,6 +192,8 @@ impl<'a> LexStmt<'a> {
                 Self::parse_import_module,
                 Self::parse_for_statement,
                 Self::parse_enum_declaration,
+                Self::parse_trait_decl,
+                Self::parse_trait_impl,
             ]),
         )
         .parse(input)
@@ -320,32 +348,55 @@ impl<'a> LexStmt<'a> {
     }
 
     pub fn parse_function_declaration(input: Span<'a>) -> B2Result<'a, Self> {
-        context(
-            "function-declaration",
-            delimited(
-                tag(FUNCTION_DECLARATION_KW).and(multispace0),
-                (
-                    parse_identifier,
+        context("function-declaration", Self::parse_function_decl_comps)
+            .map(
+                |(identifier, generics, parameters, return_type)| Self::FunctionDeclaration {
+                    identifier,
+                    parameters,
+                    return_type,
+                    generics,
+                },
+            )
+            .parse(input)
+    }
+
+    fn parse_function_decl_comps(input: Span<'a>) -> B2Result<'a, FunDeclComps<'a>> {
+        delimited(
+            tag(FUNCTION_DECLARATION_KW).and(multispace0),
+            (
+                context("function-ident", parse_identifier),
+                opt(parse_poly_list_with(
+                    FUNCTION_GENERICS_START,
+                    FUNCTION_GENERICS_DELIMITER,
+                    FUNCTION_GENERICS_END,
+                    (
+                        parse_identifier,
+                        opt(preceded(
+                            (multispace0, tag(FUNCTION_GENERIC_TRAIT_KW), multispace0),
+                            separated_list0(
+                                (multispace0, tag(FUNCTION_GENERIC_TRAIT_SEP), multispace0),
+                                parse_identifier,
+                            ),
+                        ))
+                        .map(|x| x.unwrap_or_default()),
+                    ),
+                ))
+                .map(|x| x.unwrap_or_default()),
+                context(
+                    "function-parameters",
                     parse_poly_list_with(
                         FUNCTION_PARAMETERS_START,
                         FUNCTION_PARAMETERS_DELIMITER,
                         FUNCTION_PARAMETERS_END,
                         LexType::parse_type,
                     ),
-                    opt(preceded(
-                        (multispace0, tag(":"), multispace0),
-                        LexType::parse_type,
-                    )),
                 ),
-                tag(END_STMT_KW),
+                opt(preceded(
+                    (multispace0, tag(":"), multispace0),
+                    LexType::parse_type,
+                )),
             ),
-        )
-        .map(
-            |(identifier, parameters, return_type)| Self::FunctionDeclaration {
-                identifier,
-                parameters,
-                return_type,
-            },
+            tag(END_STMT_KW),
         )
         .parse(input)
     }
@@ -353,58 +404,7 @@ impl<'a> LexStmt<'a> {
     pub fn parse_function_implementation(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "function-implementation",
-            alt((
-                context(
-                    "function-impl-body",
-                    delimited(
-                        context("impl-kw", tag(FUNCTION_IMPLEMENTATION_KW)).and(multispace0),
-                        (
-                            context("function-identifier", parse_identifier),
-                            context(
-                                "parameterers",
-                                parse_poly_list_with(
-                                    FUNCTION_PARAMETERS_START,
-                                    FUNCTION_PARAMETERS_DELIMITER,
-                                    FUNCTION_PARAMETERS_END,
-                                    parse_parameters,
-                                ),
-                            ),
-                            preceded(
-                                (
-                                    multispace0,
-                                    context("does-kw", tag(FUNCTION_IMPLEMENTATION_START_KW)),
-                                    multispace0,
-                                ),
-                                context("function-body", parse_statements),
-                            ),
-                        ),
-                        (multispace0, tag(FUNCTION_BODY_END_KW)),
-                    ),
-                ),
-                context(
-                    "function-impl-single-stmt",
-                    preceded(
-                        context("impl-kw", (tag(FUNCTION_IMPLEMENTATION_KW), multispace0)),
-                        (
-                            context("function-identifier", parse_identifier),
-                            context(
-                                "parameterers",
-                                parse_poly_list_with(
-                                    FUNCTION_PARAMETERS_START,
-                                    FUNCTION_PARAMETERS_DELIMITER,
-                                    FUNCTION_PARAMETERS_END,
-                                    parse_parameters,
-                                ),
-                            ),
-                            context(
-                                "single-statement",
-                                preceded(multispace0, Self::parse_statement),
-                            )
-                            .map(|x| vec![x]),
-                        ),
-                    ),
-                ),
-            )),
+            Self::parse_function_impl_components,
         )
         .map(
             |(identifier, parameters, body)| Self::FunctionImplementation {
@@ -413,6 +413,62 @@ impl<'a> LexStmt<'a> {
                 body,
             },
         )
+        .parse(input)
+    }
+
+    fn parse_function_impl_components(input: Span<'a>) -> B2Result<'a, FunImplComps<'a>> {
+        alt((
+            context(
+                "function-impl-body",
+                delimited(
+                    context("impl-kw", tag(FUNCTION_IMPLEMENTATION_KW)).and(multispace0),
+                    (
+                        context("function-identifier", parse_identifier),
+                        context(
+                            "parameterers",
+                            parse_poly_list_with(
+                                FUNCTION_PARAMETERS_START,
+                                FUNCTION_PARAMETERS_DELIMITER,
+                                FUNCTION_PARAMETERS_END,
+                                parse_parameters,
+                            ),
+                        ),
+                        preceded(
+                            (
+                                multispace0,
+                                context("does-kw", tag(FUNCTION_IMPLEMENTATION_START_KW)),
+                                multispace0,
+                            ),
+                            context("function-body", parse_statements),
+                        ),
+                    ),
+                    (multispace0, tag(FUNCTION_BODY_END_KW)),
+                ),
+            ),
+            context(
+                "function-impl-single-stmt",
+                preceded(
+                    context("impl-kw", (tag(FUNCTION_IMPLEMENTATION_KW), multispace0)),
+                    (
+                        context("function-identifier", parse_identifier),
+                        context(
+                            "parameterers",
+                            parse_poly_list_with(
+                                FUNCTION_PARAMETERS_START,
+                                FUNCTION_PARAMETERS_DELIMITER,
+                                FUNCTION_PARAMETERS_END,
+                                parse_parameters,
+                            ),
+                        ),
+                        context(
+                            "single-statement",
+                            preceded(multispace0, Self::parse_statement),
+                        )
+                        .map(|x| vec![x]),
+                    ),
+                ),
+            ),
+        ))
         .parse(input)
     }
 
@@ -721,6 +777,74 @@ impl<'a> LexStmt<'a> {
         .map(|(identifier, branches)| Self::WhenStatement {
             identifier,
             branches,
+        })
+        .parse(input)
+    }
+
+    pub fn parse_trait_impl(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "trait-impl",
+            delimited(
+                context("trait-impl-kw", (tag(TRAIT_IMPL_KW), multispace0)),
+                (
+                    context(
+                        "trait-ident",
+                        terminated(
+                            parse_identifier,
+                            (multispace0, tag(TRAIT_IMPL_BODY_START_KW)),
+                        ),
+                    ),
+                    context("trait-type", preceded(multispace0, parse_identifier)),
+                    context("trait-body", parse_statements),
+                ),
+                context(
+                    "trait-impl-end-kw",
+                    (multispace0, tag(TRAIT_IMPL_BODY_END_KW)),
+                ),
+            ),
+        )
+        .map(
+            |(trait_identifier, type_identifier, body)| Self::TraitImpl {
+                trait_identifier,
+                type_identifier,
+                body,
+            },
+        )
+        .parse(input)
+    }
+
+    pub fn parse_trait_decl(input: Span<'a>) -> B2Result<'a, Self> {
+        context(
+            "trait-decl",
+            delimited(
+                (tag(TRAIT_DECL_KW), multispace0),
+                (
+                    terminated(
+                        parse_identifier,
+                        (multispace0, tag(TRAIT_DECL_BODY_START_KW), multispace0),
+                    ),
+                    many0(alt((
+                        Self::parse_function_impl_components.map(|o| Ok(o)),
+                        Self::parse_function_decl_comps.map(|o| Err(o)),
+                    ))),
+                ),
+                (multispace0, tag(TRAIT_DECL_BODY_END_KW)),
+            ),
+        )
+        .map(|(identifier, impls_decls)| {
+            let mut decls = Vec::new();
+            let mut impls = Vec::new();
+            for id in impls_decls {
+                match id {
+                    Ok(i) => impls.push(i),
+                    Err(d) => decls.push(d),
+                }
+            }
+            Self::TraitDecl {
+                identifier,
+                decls,
+                impls,
+            }
         })
         .parse(input)
     }

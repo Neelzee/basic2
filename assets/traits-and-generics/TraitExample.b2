@@ -16,4 +16,14 @@ TRAIT Semigroup WHERE
   DECL combine(IT, IT) : Semigroup;
 END
 
+DECL print2[T KNOWS SHOWABLE]([T]) : NIL;
+IMPL print2(xs = []) WHEN xs THEN
+  [] FOLLOWS
+    INVOKE PRINT("Nothing to print!");
+  END
+  _ FOLLOWS
+    INVOKE PRINT(xs);
+  END
+END
+
 MODULE traits END

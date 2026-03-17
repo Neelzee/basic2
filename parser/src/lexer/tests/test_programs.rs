@@ -30,7 +30,7 @@ fn test_can_parse_basic_examples(
     #[mode = str]
     #[files("*.b2")]
     content: &str,
-) -> Result<()> {
+) {
     let input = Span::new(content);
 
     let result = LexProgram::parse_program(input);
@@ -39,8 +39,6 @@ fn test_can_parse_basic_examples(
         "{}",
         convert_error(input, result.unwrap_err())
     );
-
-    Ok(())
 }
 
 #[rstest]
@@ -49,7 +47,7 @@ fn test_can_parse_valid_examples(
     #[mode = str]
     #[files("*.b2")]
     content: &str,
-) -> Result<()> {
+) {
     let input = Span::new(content);
     let result = LexProgram::parse_program(input);
 
@@ -58,6 +56,21 @@ fn test_can_parse_valid_examples(
         "{}",
         convert_error(input, result.unwrap_err())
     );
+}
 
-    Ok(())
+#[rstest]
+fn test_can_parse_trait_and_generics(
+    #[base_dir = "../assets/traits-and-generics/"]
+    #[mode = str]
+    #[files("*.b2")]
+    content: &str,
+) {
+    let input = Span::new(content);
+    let result = LexProgram::parse_program(input);
+
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
 }
