@@ -1,12 +1,19 @@
 use crate::lexer::utils::{
     B2Error, B2Result, Span,
     consts::{
-        BOOL_TYPE_KW, ENUM_INDEXING, FLOAT_TYPE_KW, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END, FUNCTION_TYPE_START, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW, STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START
+        BOOL_TYPE_KW, ENUM_INDEXING, FLOAT_TYPE_KW, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END,
+        FUNCTION_TYPE_START, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW, STR_TYPE_KW,
+        TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
     },
     helper_parsers::{parse_identifier, parse_poly_list_with},
 };
 use nom::{
-    Parser, branch::alt, bytes::complete::tag, character::{complete::space0, streaming::multispace0}, combinator::{fail, recognize}, error::{ErrorKind, ParseError, context}, sequence::{delimited, pair, preceded, separated_pair, terminated}
+    Parser,
+    branch::alt,
+    bytes::complete::tag,
+    character::{complete::space0, streaming::multispace0},
+    error::{ErrorKind, ParseError, context},
+    sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -34,7 +41,7 @@ pub enum LexType<'a> {
     ///   One;
     ///   Two;
     /// END
-    /// 
+    ///
     /// DECL ConstOne() : Num.One;
     /// IMPL ConstOne()
     ///   RETURN Num.One;
@@ -161,7 +168,7 @@ impl<'a> LexType<'a> {
     pub fn parse_enum_variant(input: Span<'a>) -> B2Result<'a, Self> {
         context(
             "enum-variant",
-            separated_pair(parse_identifier, tag(ENUM_INDEXING), parse_identifier)
+            separated_pair(parse_identifier, tag(ENUM_INDEXING), parse_identifier),
         )
         .map(|(e, v)| Self::EnumVariant(e, v))
         .parse(input)
