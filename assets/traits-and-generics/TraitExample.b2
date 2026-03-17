@@ -12,7 +12,11 @@ TEACH Orderable TO INT
   END
 END
 
-TRAIT Semigroup WHERE
+TRAIT Magma WHERE
+  DECL binop(IT, IT) : IT;
+END
+
+TRAIT Semigroup KNOWS Magma WHERE
   DECL combine(IT, IT) : Semigroup;
 END
 

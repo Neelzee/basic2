@@ -19,13 +19,14 @@ use crate::{
                 LIST_END, LIST_START, LIST_UNPACKING_KW, RETURN_STMT_KW, STRUCT_DECL_KW,
                 STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW,
                 TRAIT_DECL_BODY_END_KW, TRAIT_DECL_BODY_START_KW, TRAIT_DECL_KW,
-                TRAIT_IMPL_BODY_END_KW, TRAIT_IMPL_BODY_START_KW, TRAIT_IMPL_KW, TUPLE_DELIMITER,
-                TUPLE_END, TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION,
-                VARIABLE_REASIGNMENT, VARIABLE_TYPE_START, WHEN_STATEMENT_BODY_END_KW,
-                WHEN_STATEMENT_BODY_START_KW, WHEN_STATEMENT_BRANCH_END,
-                WHEN_STATEMENT_CONDITION_END_KW, WHEN_STATEMENT_CONDITION_START_KW,
-                WHEN_STATEMENT_START_KW, WHEN_STATEMENT_TYPE_START_KW,
-                WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
+                TRAIT_IMPL_BODY_END_KW, TRAIT_IMPL_BODY_START_KW, TRAIT_IMPL_KW,
+                TRAIT_RESTRICTION_KW, TRAIT_RESTRICTION_SEP_KW, TUPLE_DELIMITER, TUPLE_END,
+                TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
+                VARIABLE_TYPE_START, WHEN_STATEMENT_BODY_END_KW, WHEN_STATEMENT_BODY_START_KW,
+                WHEN_STATEMENT_BRANCH_END, WHEN_STATEMENT_CONDITION_END_KW,
+                WHEN_STATEMENT_CONDITION_START_KW, WHEN_STATEMENT_START_KW,
+                WHEN_STATEMENT_TYPE_START_KW, WHILE_STATEMENT_BODY_START_KW,
+                WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
                 parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
@@ -144,6 +145,7 @@ pub enum LexStmt<'a> {
     },
     TraitDecl {
         identifier: &'a str,
+        restrictions: Vec<&'a str>,
         decls: Vec<FunDeclComps<'a>>,
         impls: Vec<FunImplComps<'a>>,
     },
@@ -828,7 +830,17 @@ impl<'a> LexStmt<'a> {
                 (tag(TRAIT_DECL_KW), multispace0),
                 (
                     terminated(
-                        parse_identifier,
+                        (
+                            parse_identifier,
+                            opt(preceded(
+                                (multispace0, tag(TRAIT_RESTRICTION_KW)),
+                                separated_list0(
+                                    (multispace0, tag(TRAIT_RESTRICTION_SEP_KW), multispace0),
+                                    delimited(multispace0, parse_identifier, multispace0),
+                                ),
+                            ))
+                            .map(|x| x.unwrap_or_default()),
+                        ),
                         (multispace0, tag(TRAIT_DECL_BODY_START_KW), multispace0),
                     ),
                     many0(alt((
@@ -839,7 +851,7 @@ impl<'a> LexStmt<'a> {
                 (multispace0, tag(TRAIT_DECL_BODY_END_KW)),
             ),
         )
-        .map(|(identifier, impls_decls)| {
+        .map(|((identifier, restrictions), impls_decls)| {
             let mut decls = Vec::new();
             let mut impls = Vec::new();
             for id in impls_decls {
@@ -850,6 +862,7 @@ impl<'a> LexStmt<'a> {
             }
             Self::TraitDecl {
                 identifier,
+                restrictions,
                 decls,
                 impls,
             }

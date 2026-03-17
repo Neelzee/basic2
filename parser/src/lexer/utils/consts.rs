@@ -153,6 +153,8 @@ pub const TRAIT_IMPL_BODY_END_KW: &str = "END";
 pub const TRAIT_DECL_KW: &str = "TRAIT";
 pub const TRAIT_DECL_BODY_START_KW: &str = "WHERE";
 pub const TRAIT_DECL_BODY_END_KW: &str = "END";
+pub const TRAIT_RESTRICTION_KW: &str = "KNOWS";
+pub const TRAIT_RESTRICTION_SEP_KW: &str = ";";
 
 #[cfg(test)]
 pub mod test_const {
