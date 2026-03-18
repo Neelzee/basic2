@@ -15,13 +15,21 @@ use nom::{
 };
 
 #[derive(Debug)]
-pub struct LexProgram<'a> {
+pub struct LexModule<'a> {
     start_identifier: String,
     end_identifier: String,
     statements: Vec<LexStmt<'a>>,
 }
 
-impl<'a> LexProgram<'a> {
+impl<'a> LexModule<'a> {
+    pub fn idents(&'a self) -> (&'a str, &'a str) {
+        (&self.start_identifier, &self.end_identifier)
+    }
+
+    pub fn statements(&'a self) -> &'a [LexStmt<'a>] {
+        &self.statements
+    }
+
     pub fn parse_program(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "module",

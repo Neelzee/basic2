@@ -1,5 +1,5 @@
 use crate::lexer::{
-    lex_prog::LexProgram,
+    lex_mod::LexModule,
     utils::{Span, consts::test_const::EMPTY_PROGRAM_PATH, convert_error},
 };
 use anyhow::{Context, Result};
@@ -15,7 +15,7 @@ fn test_can_parse_empty_program() -> Result<()> {
     file.read_to_string(&mut buf)?;
     let input = Span::new(&buf);
 
-    let result = LexProgram::parse_program(input);
+    let result = LexModule::parse_program(input);
     assert!(
         result.is_ok(),
         "{}",
@@ -33,7 +33,7 @@ fn test_can_parse_basic_examples(
 ) {
     let input = Span::new(content);
 
-    let result = LexProgram::parse_program(input);
+    let result = LexModule::parse_program(input);
     assert!(
         result.is_ok(),
         "{}",
@@ -49,7 +49,7 @@ fn test_can_parse_valid_examples(
     content: &str,
 ) {
     let input = Span::new(content);
-    let result = LexProgram::parse_program(input);
+    let result = LexModule::parse_program(input);
 
     assert!(
         result.is_ok(),
@@ -66,7 +66,7 @@ fn test_can_parse_trait_and_generics(
     content: &str,
 ) {
     let input = Span::new(content);
-    let result = LexProgram::parse_program(input);
+    let result = LexModule::parse_program(input);
 
     assert!(
         result.is_ok(),

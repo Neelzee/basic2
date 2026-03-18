@@ -50,7 +50,7 @@ use nom::{
 pub enum LexStmt<'a> {
     VariableDeclaration {
         identifier: &'a str,
-        variable_type: Option<LexType<'a>>,
+        variable_type: LexType<'a>,
     },
     TupleUnpacking {
         identifiers: Vec<&'a str>,
@@ -233,7 +233,7 @@ impl<'a> LexStmt<'a> {
             preceded(multispace0, tag(VARIABLE_DECLARATION)),
             (
                 preceded(multispace0, parse_identifier),
-                preceded(multispace0, opt(LexType::parse_type)),
+                preceded((multispace0, tag(VARIABLE_TYPE_START), multispace0), LexType::parse_type),
             ),
             tag(END_STMT_KW),
         )
@@ -540,7 +540,9 @@ impl<'a> LexStmt<'a> {
         Ok((rem, Self::StructDeclaration { identifier, fields }))
     }
 
-    pub fn parse_struct_field_statement(input: Span<'a>) -> B2LexResult<'a, (&'a str, LexType<'a>)> {
+    pub fn parse_struct_field_statement(
+        input: Span<'a>,
+    ) -> B2LexResult<'a, (&'a str, LexType<'a>)> {
         pair(
             pair(
                 preceded(

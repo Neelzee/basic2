@@ -12,14 +12,15 @@ use rstest::rstest;
 
 #[rstest]
 fn test_variable_declaration() {
-    let input = r##"LET FOO;"##;
-    let result = LexStmt::parse_variable_declaration(Span::new(input));
-    assert!(result.is_ok(), "{result:?}");
+    let input = r##"LET FOO: NIL;"##;
+    let input = Span::new(input);
+    let result = LexStmt::parse_variable_declaration(input);
+    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
     assert_eq!(
         result.unwrap().1,
         LexStmt::VariableDeclaration {
             identifier: "FOO",
-            variable_type: None,
+            variable_type: LexType::Nil,
         }
     );
 }
@@ -610,10 +611,10 @@ fn test_parse_multiline_statements(#[case] input: &str, #[case] expected: LexStm
 #[case(
     r##"
     DO
-        LET FOO;
+        LET FOO: NIL;
     END
     "##,
-    LexStmt::Block { body: vec![LexStmt::VariableDeclaration { identifier: "FOO", variable_type: None }] }
+    LexStmt::Block { body: vec![LexStmt::VariableDeclaration { identifier: "FOO", variable_type: LexType::Nil }] }
 )]
 fn test_parse_block_statements(#[case] input: &str, #[case] expected: LexStmt) {
     let input = Span::new(input);

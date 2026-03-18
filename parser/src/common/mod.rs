@@ -13,7 +13,7 @@ pub trait ToB2 {
     fn to_b2(&self) -> String;
 }
 
-type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;
+pub type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;
 
 pub struct B2Op<'a>(B2OpInner<'a>);
 
@@ -28,6 +28,10 @@ impl<'a> B2Op<'a> {
 
     pub fn binary(l: LexExpr<'a>, op: BinOp, r: LexExpr<'a>) -> Self {
         Self(B2OpInner::Binary(l, op, r))
+    }
+
+    pub fn inner(&'a self) -> &'a B2OpInner<'a> {
+        &self.0
     }
 }
 
