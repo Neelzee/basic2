@@ -4,11 +4,12 @@ use crate::{
         B2LexError, B2LexResult, Span,
         consts::{
             ADD_KW, AND_KW, DIV_KW, ENUM_INDEXING, EQ_KW, FUNCTION_CALL_DELIMITER,
-            FUNCTION_CALL_END, FUNCTION_CALL_START, GEQ_KW, GROUP_END, GROUP_START, GT_KW, LEQ_KW,
-            LIST_DELIMITER, LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW,
-            STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END,
-            STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END,
-            TUPLE_START, WHEN_STATEMENT_CONDITION_END_KW,
+            FUNCTION_CALL_END, FUNCTION_CALL_START, FUNCTION_PARAMETERS_DELIMITER,
+            FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, GEQ_KW, GROUP_END, GROUP_START,
+            GT_KW, LEQ_KW, LIST_DELIMITER, LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW,
+            OR_KW, POW_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT,
+            STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, SUB_KW,
+            TUPLE_DELIMITER, TUPLE_END, TUPLE_START, WHEN_STATEMENT_CONDITION_END_KW,
         },
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
@@ -19,6 +20,7 @@ use nom::{
     branch::{alt, permutation},
     bytes::complete::tag,
     character::complete::{multispace0, space0},
+    combinator::opt,
     error::{ErrorKind, FromExternalError, context},
     multi::{many0, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, terminated},
@@ -48,6 +50,7 @@ pub enum LexExpr<'a> {
     Enum {
         identifier: &'a str,
         instance: &'a str,
+        values: Vec<Self>,
     },
 }
 
@@ -275,11 +278,23 @@ impl<'a> LexExpr<'a> {
     pub fn parse_enum(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "enum",
-            (parse_identifier, tag(ENUM_INDEXING), parse_identifier),
+            (
+                parse_identifier,
+                tag(ENUM_INDEXING),
+                parse_identifier,
+                opt(parse_poly_list_with(
+                    FUNCTION_PARAMETERS_START,
+                    FUNCTION_PARAMETERS_DELIMITER,
+                    FUNCTION_PARAMETERS_END,
+                    Self::parse_expr,
+                ))
+                .map(|x| x.unwrap_or_default()),
+            ),
         )
-        .map(|(identifier, _, instance)| Self::Enum {
+        .map(|(identifier, _, instance, values)| Self::Enum {
             identifier,
             instance,
+            values,
         })
         .parse(input)
     }
@@ -340,7 +355,21 @@ impl<'a> ToB2 for LexExpr<'a> {
             LexExpr::Enum {
                 identifier,
                 instance,
-            } => format!("{identifier}{ENUM_INDEXING}{instance}"),
+                values,
+            } => {
+                if values.is_empty() {
+                    format!("{identifier}{ENUM_INDEXING}{instance}")
+                } else {
+                    format!(
+                        "{identifier}{ENUM_INDEXING}{instance}{FUNCTION_PARAMETERS_START}{}{FUNCTION_PARAMETERS_END}",
+                        values
+                            .into_iter()
+                            .map(|e| e.to_b2())
+                            .collect::<Vec<_>>()
+                            .join(FUNCTION_PARAMETERS_DELIMITER)
+                    )
+                }
+            }
         }
     }
 }

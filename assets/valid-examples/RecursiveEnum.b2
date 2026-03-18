@@ -1,0 +1,6 @@
+BEGIN MODULE RecursiveEnum
+ENUMS Exprs
+  Int(INT);
+  Add(IT, IT);
+END
+MODULE RecursiveEnum END

@@ -3,8 +3,8 @@ use crate::lexer::utils::{
     consts::{
         BOOL_TYPE_KW, ENUM_INDEXING, FLOAT_TYPE_KW, FUNCTION_GENERICS_DELIMITER,
         FUNCTION_GENERICS_END, FUNCTION_GENERICS_START, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END,
-        FUNCTION_TYPE_START, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW, STR_TYPE_KW,
-        TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+        FUNCTION_TYPE_START, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW, SELF_TYPE_KW,
+        STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
     },
     helper_parsers::{parse_identifier, parse_poly_list_with},
 };
@@ -30,6 +30,7 @@ pub enum LexType<'a> {
         snd: Box<Self>,
     },
     List(Box<Self>),
+    SelfType,
     /// Can be a Type alias, a generic, and a struct
     TypeVar(&'a str),
     TypeVarGen(&'a str, Vec<&'a str>),
@@ -67,6 +68,7 @@ impl<'a> LexType<'a> {
             Self::parse_tuple_type,
             Self::parse_list,
             Self::parse_enum_variant,
+            Self::parse_self_type,
             Self::parse_type_var_gen,
             Self::parse_type_var,
         ))
@@ -140,6 +142,12 @@ impl<'a> LexType<'a> {
         )
         .map(|(ident, gens)| Self::TypeVarGen(ident, gens))
         .parse(input)
+    }
+
+    pub fn parse_self_type(input: Span<'a>) -> B2LexResult<'a, Self> {
+        context("self-type", tag(SELF_TYPE_KW))
+            .map(|_| Self::SelfType)
+            .parse(input)
     }
 
     pub fn parse_function_type(input: Span<'a>) -> B2LexResult<'a, Self> {

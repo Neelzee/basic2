@@ -42,7 +42,7 @@ use nom::{
     character::complete::{multispace0, multispace1, space0},
     combinator::opt,
     error::{ErrorKind, ParseError, context},
-    multi::{many0, separated_list0},
+    multi::{many0, separated_list0, separated_list1},
     sequence::{delimited, pair, preceded, terminated},
 };
 
@@ -139,7 +139,7 @@ pub enum LexStmt<'a> {
     EnumDeclaration {
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        enumerations: Vec<(&'a str, Option<LexType<'a>>)>,
+        enumerations: Vec<(&'a str, Vec<LexType<'a>>)>,
     },
     WhenStatement {
         identifier: &'a str,
@@ -799,11 +799,13 @@ impl<'a> LexStmt<'a> {
                             terminated(
                                 (
                                     parse_identifier,
-                                    opt(delimited(
-                                        (tag(FUNCTION_PARAMETERS_START), multispace0),
+                                    opt(parse_poly_list_with(
+                                        FUNCTION_PARAMETERS_START,
+                                        FUNCTION_PARAMETERS_DELIMITER,
+                                        FUNCTION_PARAMETERS_END,
                                         LexType::parse_type,
-                                        (multispace0, tag(FUNCTION_PARAMETERS_END)),
-                                    )),
+                                    ))
+                                    .map(|x| x.unwrap_or_default()),
                                 ),
                                 tag(END_STMT_KW),
                             ),

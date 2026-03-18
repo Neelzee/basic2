@@ -1234,3 +1234,27 @@ fn test_parse_struct_with_generics() {
         convert_error(input, result.unwrap_err())
     );
 }
+
+#[test]
+fn test_recursive_enum() {
+    let input = Span::new(
+        r##"ENUMS Days
+                    Tuesday(IT);
+                END
+                "##,
+    );
+    let result = LexStmt::parse_enum_declaration(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(
+        result.unwrap().1,
+        LexStmt::EnumDeclaration {
+            identifier: "Days",
+            generics: Vec::new(),
+            enumerations: vec![("Tuesday", vec![LexType::SelfType])]
+        }
+    )
+}

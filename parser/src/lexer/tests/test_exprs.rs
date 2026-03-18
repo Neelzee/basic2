@@ -250,3 +250,22 @@ fn test_binary_expression() {
     );
     assert_eq!(result.unwrap().1, lbop!(lv!("x"), BinOp::Eq, lv!("y")));
 }
+
+#[test]
+fn test_parse_enum_values() {
+    let input = Span::new("Days.Sun(10)");
+    let result = LexExpr::parse_expr(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+    assert_eq!(
+        result.unwrap().1,
+        LexExpr::Enum {
+            identifier: "Days",
+            instance: "Sun",
+            values: vec![10.into()]
+        }
+    );
+}

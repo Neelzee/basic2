@@ -156,6 +156,8 @@ pub const TRAIT_DECL_BODY_END_KW: &str = "END";
 pub const TRAIT_RESTRICTION_KW: &str = "KNOWS";
 pub const TRAIT_RESTRICTION_SEP_KW: &str = ";";
 
+pub const SELF_TYPE_KW: &str = "IT";
+
 #[cfg(test)]
 pub mod test_const {
     pub const EMPTY_PROGRAM_PATH: &str = "../assets/basic-examples/EmptyExample.b2";
