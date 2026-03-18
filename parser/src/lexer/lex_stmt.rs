@@ -42,7 +42,7 @@ use nom::{
     character::complete::{multispace0, multispace1, space0},
     combinator::opt,
     error::{ErrorKind, ParseError, context},
-    multi::{many0, separated_list0, separated_list1},
+    multi::{many0, separated_list0},
     sequence::{delimited, pair, preceded, terminated},
 };
 
