@@ -15,7 +15,11 @@ fn test_variable_declaration() {
     let input = r##"LET FOO: NIL;"##;
     let input = Span::new(input);
     let result = LexStmt::parse_variable_declaration(input);
-    assert!(result.is_ok(), "{}", convert_error(input, result.unwrap_err()));
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
     assert_eq!(
         result.unwrap().1,
         LexStmt::VariableDeclaration {
@@ -1142,6 +1146,88 @@ fn test_when_statement_example() {
         "##,
     );
     let result = LexStmt::parse_statement(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+}
+
+#[test]
+fn test_parse_enum() {
+    let input = Span::new(
+        r##"ENUMS Days
+                    Monday;
+                    Tuesday;
+                    Wednsday;
+                    Thursday;
+                    Friday;
+                    Saturday;
+                    Sunday;
+                END
+                "##,
+    );
+    let result = LexStmt::parse_enum_declaration(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+}
+
+#[test]
+fn test_parse_enum_with_types() {
+    let input = Span::new(
+        r##"ENUMS Days
+                    Monday(INT);
+                    Tuesday;
+                    Wednsday;
+                    Thursday;
+                    Friday;
+                    Saturday;
+                    Sunday;
+                END
+                "##,
+    );
+    let result = LexStmt::parse_enum_declaration(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+}
+
+#[test]
+fn test_parse_enum_with_generics() {
+    let input = Span::new(
+        r##"ENUMS Days[T]
+                    Monday(T);
+                    Tuesday;
+                    Wednsday;
+                    Thursday;
+                    Friday;
+                    Saturday;
+                    Sunday;
+                END
+                "##,
+    );
+    let result = LexStmt::parse_enum_declaration(input);
+    assert!(
+        result.is_ok(),
+        "{}",
+        convert_error(input, result.unwrap_err())
+    );
+}
+
+#[test]
+fn test_parse_struct_with_generics() {
+    let input = Span::new(
+        r##"STRUCTURE Days[T] WHERE
+                    DECL foo: T;
+                END
+                "##,
+    );
+    let result = LexStmt::parse_struct_declaration(input);
     assert!(
         result.is_ok(),
         "{}",

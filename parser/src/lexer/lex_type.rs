@@ -1,7 +1,8 @@
 use crate::lexer::utils::{
     B2LexError, B2LexResult, Span,
     consts::{
-        BOOL_TYPE_KW, ENUM_INDEXING, FLOAT_TYPE_KW, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END,
+        BOOL_TYPE_KW, ENUM_INDEXING, FLOAT_TYPE_KW, FUNCTION_GENERICS_DELIMITER,
+        FUNCTION_GENERICS_END, FUNCTION_GENERICS_START, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END,
         FUNCTION_TYPE_START, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW, STR_TYPE_KW,
         TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
     },
@@ -13,6 +14,7 @@ use nom::{
     bytes::complete::tag,
     character::{complete::space0, streaming::multispace0},
     error::{ErrorKind, ParseError, context},
+    multi::separated_list1,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
 
@@ -30,6 +32,7 @@ pub enum LexType<'a> {
     List(Box<Self>),
     /// Can be a Type alias, a generic, and a struct
     TypeVar(&'a str),
+    TypeVarGen(&'a str, Vec<&'a str>),
     FnType {
         input: Box<Self>,
         output: Box<Self>,
@@ -64,6 +67,7 @@ impl<'a> LexType<'a> {
             Self::parse_tuple_type,
             Self::parse_list,
             Self::parse_enum_variant,
+            Self::parse_type_var_gen,
             Self::parse_type_var,
         ))
         .parse(input)
@@ -114,6 +118,28 @@ impl<'a> LexType<'a> {
         context("type-var", parse_identifier)
             .map(Self::TypeVar)
             .parse(input)
+    }
+
+    pub fn parse_type_var_gen(input: Span<'a>) -> B2LexResult<'a, Self> {
+        context(
+            "type-var-with-generics",
+            (
+                parse_identifier,
+                context(
+                    "generics",
+                    delimited(
+                        tag(FUNCTION_GENERICS_START),
+                        separated_list1(
+                            (multispace0, tag(FUNCTION_GENERICS_DELIMITER), multispace0),
+                            parse_identifier,
+                        ),
+                        tag(FUNCTION_GENERICS_END),
+                    ),
+                ),
+            ),
+        )
+        .map(|(ident, gens)| Self::TypeVarGen(ident, gens))
+        .parse(input)
     }
 
     pub fn parse_function_type(input: Span<'a>) -> B2LexResult<'a, Self> {

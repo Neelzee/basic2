@@ -102,6 +102,7 @@ pub enum LexStmt<'a> {
     },
     StructDeclaration {
         identifier: &'a str,
+        generics: Vec<(&'a str, Vec<&'a str>)>,
         fields: Vec<(&'a str, LexType<'a>)>,
     },
     Block {
@@ -137,7 +138,8 @@ pub enum LexStmt<'a> {
     },
     EnumDeclaration {
         identifier: &'a str,
-        enumerations: Vec<&'a str>,
+        generics: Vec<(&'a str, Vec<&'a str>)>,
+        enumerations: Vec<(&'a str, Option<LexType<'a>>)>,
     },
     WhenStatement {
         identifier: &'a str,
@@ -233,7 +235,10 @@ impl<'a> LexStmt<'a> {
             preceded(multispace0, tag(VARIABLE_DECLARATION)),
             (
                 preceded(multispace0, parse_identifier),
-                preceded((multispace0, tag(VARIABLE_TYPE_START), multispace0), LexType::parse_type),
+                preceded(
+                    (multispace0, tag(VARIABLE_TYPE_START), multispace0),
+                    LexType::parse_type,
+                ),
             ),
             tag(END_STMT_KW),
         )
@@ -370,28 +375,35 @@ impl<'a> LexStmt<'a> {
             .parse(input)
     }
 
+    fn parse_generics(input: Span<'a>) -> B2LexResult<'a, Vec<(&'a str, Vec<&'a str>)>> {
+        context(
+            "parse-generics",
+            parse_poly_list_with(
+                FUNCTION_GENERICS_START,
+                FUNCTION_GENERICS_DELIMITER,
+                FUNCTION_GENERICS_END,
+                (
+                    parse_identifier,
+                    opt(preceded(
+                        (multispace0, tag(FUNCTION_GENERIC_TRAIT_KW), multispace0),
+                        separated_list0(
+                            (multispace0, tag(FUNCTION_GENERIC_TRAIT_SEP), multispace0),
+                            parse_identifier,
+                        ),
+                    ))
+                    .map(|x| x.unwrap_or_default()),
+                ),
+            ),
+        )
+        .parse(input)
+    }
+
     fn parse_function_decl_comps(input: Span<'a>) -> B2LexResult<'a, FunDeclComps<'a>> {
         delimited(
             tag(FUNCTION_DECLARATION_KW).and(multispace0),
             (
                 context("function-ident", parse_identifier),
-                opt(parse_poly_list_with(
-                    FUNCTION_GENERICS_START,
-                    FUNCTION_GENERICS_DELIMITER,
-                    FUNCTION_GENERICS_END,
-                    (
-                        parse_identifier,
-                        opt(preceded(
-                            (multispace0, tag(FUNCTION_GENERIC_TRAIT_KW), multispace0),
-                            separated_list0(
-                                (multispace0, tag(FUNCTION_GENERIC_TRAIT_SEP), multispace0),
-                                parse_identifier,
-                            ),
-                        ))
-                        .map(|x| x.unwrap_or_default()),
-                    ),
-                ))
-                .map(|x| x.unwrap_or_default()),
+                opt(Self::parse_generics).map(|x| x.unwrap_or_default()),
                 context(
                     "function-parameters",
                     parse_poly_list_with(
@@ -524,20 +536,43 @@ impl<'a> LexStmt<'a> {
     }
 
     pub fn parse_struct_declaration(input: Span<'a>) -> B2LexResult<'a, Self> {
-        let (i, identifier) =
-            preceded(tag(STRUCT_KW), preceded(space0, parse_identifier)).parse(input)?;
-        let (rem, fields) = terminated(
-            preceded(
-                multispace0,
-                preceded(
-                    tag(STRUCT_DECL_KW),
-                    many0(preceded(multispace0, Self::parse_struct_field_statement)),
+        context(
+            "structure-declaration",
+            (
+                context(
+                    "structure-identifier",
+                    preceded(
+                        tag(STRUCT_KW),
+                        preceded(
+                            multispace0,
+                            (
+                                parse_identifier,
+                                opt(Self::parse_generics).map(|x| x.unwrap_or_default()),
+                            ),
+                        ),
+                    ),
+                ),
+                terminated(
+                    context(
+                        "structure-body",
+                        preceded(
+                            (multispace0, tag(STRUCT_DECL_KW)),
+                            many0(preceded(multispace0, Self::parse_struct_field_statement)),
+                        ),
+                    ),
+                    context(
+                        "structure-end-kw",
+                        preceded(multispace0, tag(STRUCT_END_KW)),
+                    ),
                 ),
             ),
-            preceded(multispace0, tag(STRUCT_END_KW)),
         )
-        .parse(i)?;
-        Ok((rem, Self::StructDeclaration { identifier, fields }))
+        .map(|((identifier, generics), fields)| Self::StructDeclaration {
+            identifier,
+            generics,
+            fields,
+        })
+        .parse(input)
     }
 
     pub fn parse_struct_field_statement(
@@ -756,18 +791,35 @@ impl<'a> LexStmt<'a> {
                 (tag(ENUM_START_KW), multispace0),
                 (
                     parse_identifier,
+                    opt(Self::parse_generics).map(|x| x.unwrap_or_default()),
                     preceded(
                         multispace0,
-                        many0(delimited(multispace0, parse_identifier, tag(END_STMT_KW))),
+                        many0(preceded(
+                            multispace0,
+                            terminated(
+                                (
+                                    parse_identifier,
+                                    opt(delimited(
+                                        (tag(FUNCTION_PARAMETERS_START), multispace0),
+                                        LexType::parse_type,
+                                        (multispace0, tag(FUNCTION_PARAMETERS_END)),
+                                    )),
+                                ),
+                                tag(END_STMT_KW),
+                            ),
+                        )),
                     ),
                 ),
                 (multispace0, tag(ENUM_END_KW)),
             ),
         )
-        .map(|(identifier, enumerations)| Self::EnumDeclaration {
-            identifier,
-            enumerations,
-        })
+        .map(
+            |(identifier, generics, enumerations)| Self::EnumDeclaration {
+                identifier,
+                generics,
+                enumerations,
+            },
+        )
         .parse(input)
     }
 

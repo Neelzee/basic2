@@ -54,6 +54,10 @@ pub fn parse_identifier<'a>(input: Span<'a>) -> B2LexResult<'a, &'a str> {
 /// assert_eq!(result.unwrap().1, vec![LexType::Int]);
 ///
 ///
+/// let other_input = "INT some-other-string";
+/// let result = parse_poly_list_with("(", ",", ")", LexType::parse_type).parse(Span::new(other_input));
+/// assert!(result.is_err(), "{result:?}");
+///
 /// ```
 pub fn parse_poly_list_with<'a, P>(
     start: &'static str,

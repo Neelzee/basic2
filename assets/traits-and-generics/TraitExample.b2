@@ -30,4 +30,14 @@ IMPL print2(xs = []) WHEN xs THEN
   END
 END
 
+ENUMS Maybe[T]
+  Something(T);
+  Nothing;
+END
+
+STRUCTURE List[T] WHERE
+  DECL head : Maybe[T];
+  DECL tail : [List[T]];
+END
+
 MODULE traits END
