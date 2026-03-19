@@ -119,6 +119,7 @@ pub enum LexStmt<'a> {
     },
     TypeAlias {
         identifier: &'a str,
+        generics: Vec<(&'a str, Vec<&'a str>)>,
         b2_type: LexType<'a>,
     },
     ImportModule {
@@ -605,7 +606,13 @@ impl<'a> LexStmt<'a> {
                             "type-alias-kw-and-multispace",
                             preceded(tag(TYPE_ALIAS_KW), multispace0),
                         ),
-                        context("type-alias-identifier", parse_identifier),
+                        (
+                            context("type-alias-identifier", parse_identifier),
+                            context(
+                                "generics",
+                                opt(Self::parse_generics).map(|x| x.unwrap_or_default()),
+                            ),
+                        ),
                         context("type-alias-type", preceded(multispace0, tag(ASSIGNMENT_KW))),
                     ),
                     preceded(multispace0, LexType::parse_type),
@@ -613,8 +620,9 @@ impl<'a> LexStmt<'a> {
                 tag(END_STMT_KW),
             ),
         )
-        .map(|(identifier, b2_type)| Self::TypeAlias {
+        .map(|((identifier, generics), b2_type)| Self::TypeAlias {
             identifier,
+            generics,
             b2_type,
         })
         .parse(input)

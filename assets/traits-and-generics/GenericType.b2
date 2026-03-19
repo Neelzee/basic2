@@ -4,4 +4,9 @@ IMPL id(t) RETURN T;
 DECL foo[T KNOWS SHOWABLE](T) : NIL;
 IMPL foo(v) INVOKE PRINT(v);
 LET _ = foo(10);
+STRUCTURE FOO[T] WHERE
+    DECL t: T;
+END
+ALIAS Bar = FOO[INT];
+ALIAS FooBar[K] = FOO[K];
 MODULE GenericType END

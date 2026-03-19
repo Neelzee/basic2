@@ -672,6 +672,7 @@ fn test_parse_function_invocation(#[case] input: &str, #[case] expected: LexStmt
     r##"ALIAS Foo = INT;"##,
     LexStmt::TypeAlias {
         identifier: "Foo",
+        generics: Vec::new(),
         b2_type: LexType::Int
     }
 )]
@@ -679,6 +680,7 @@ fn test_parse_function_invocation(#[case] input: &str, #[case] expected: LexStmt
     r##"ALIAS Foo = (INT, INT);"##,
     LexStmt::TypeAlias {
         identifier: "Foo",
+        generics: Vec::new(),
         b2_type: LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) }
     }
 )]
@@ -686,7 +688,16 @@ fn test_parse_function_invocation(#[case] input: &str, #[case] expected: LexStmt
     r##"ALIAS Foo = (INT, (INT, INT));"##,
     LexStmt::TypeAlias {
         identifier: "Foo",
+        generics: Vec::new(),
         b2_type: LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) }) }
+    }
+)]
+#[case(
+    r##"ALIAS Foo[T] = (INT, (INT, T));"##,
+    LexStmt::TypeAlias {
+        identifier: "Foo",
+        generics: vec![("T", Vec::new())],
+        b2_type: LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::TypeVar("T")) }) }
     }
 )]
 fn test_parse_type_alias(#[case] input: &str, #[case] expected: LexStmt) {
