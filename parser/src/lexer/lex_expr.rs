@@ -7,9 +7,10 @@ use crate::{
             FUNCTION_CALL_END, FUNCTION_CALL_START, FUNCTION_PARAMETERS_DELIMITER,
             FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, GEQ_KW, GROUP_END, GROUP_START,
             GT_KW, LEQ_KW, LIST_DELIMITER, LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW,
-            OR_KW, POW_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT,
-            STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW, SUB_KW,
-            TUPLE_DELIMITER, TUPLE_END, TUPLE_START, WHEN_STATEMENT_CONDITION_END_KW,
+            NIL_VAL_KW, OR_KW, POW_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW,
+            STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW,
+            STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+            WHEN_STATEMENT_CONDITION_END_KW,
         },
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
@@ -27,8 +28,10 @@ use nom::{
 };
 use nom_language::precedence::{Assoc, binary_op, precedence, unary_op};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum LexExpr<'a> {
+    #[default]
+    Nil,
     Literal(Primitive<'a>),
     Tuple(Box<Self>, Box<Self>),
     List(Vec<Self>),
@@ -370,6 +373,7 @@ impl<'a> ToB2 for LexExpr<'a> {
                     )
                 }
             }
+            LexExpr::Nil => NIL_VAL_KW.to_string(),
         }
     }
 }

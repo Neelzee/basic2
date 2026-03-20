@@ -1,5 +1,5 @@
 use crate::lexer::{
-    lex_type::LexType,
+    lex_type::{LexMonoType, LexPolyType, LexType},
     utils::{Span, convert_error},
 };
 use p_macros::ltype;
@@ -8,37 +8,20 @@ use rstest::rstest;
 #[rstest]
 #[case(
     r##"(INT, INT)"##,
-    LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) },
+    ltype!((INT, INT)),
 )]
 #[case(
     r##"(INT, (INT, INT))"##,
-    LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) }) },
+    ltype!((INT, ltype!((INT, INT)))),
 )]
 #[case(
     r##"((INT, INT), INT)"##,
-    LexType::Tuple { fst: Box::new(LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) }), snd: Box::new(LexType::Int) },
+    ltype!((ltype!((INT, INT)), INT))
 )]
 #[case(
     r##"(STR, (STR, (INT, (STR, (INT, (STR, INT))))))"##,
-    LexType::Tuple {
-        fst: Box::new(LexType::Str),
-        snd: Box::new(LexType::Tuple {
-            fst: Box::new(LexType::Str),
-            snd: Box::new(LexType::Tuple {
-                fst: Box::new(LexType::Int),
-                snd: Box::new(LexType::Tuple {
-                        fst: Box::new(LexType::Str),
-                        snd: Box::new(LexType::Tuple {
-                            fst: Box::new(LexType::Int),
-                            snd: Box::new(LexType::Tuple {
-                                fst: Box::new(LexType::Str),
-                                snd: Box::new(LexType::Int)
-                            })
-                    })
-                })
-            })
-        })
-    },
+    ltype!((STR, ltype!((STR, ltype!((INT, ltype!((STR, ltype!((INT, ltype!((STR, INT))))))))))))
+    ,
 )]
 fn test_parse_tuple_types(#[case] input: &str, #[case] expected: LexType) {
     let input = Span::new(input);
@@ -55,10 +38,7 @@ fn test_parse_tuple_types(#[case] input: &str, #[case] expected: LexType) {
 fn test_parse_function_type() {
     let input = Span::new("{INT => INT}");
     let result = LexType::parse_function_type(input);
-    let expected = LexType::FnType {
-        input: Box::new(LexType::Int),
-        output: Box::new(LexType::Int),
-    };
+    let expected = ltype!(INT => INT);
     assert!(
         result.is_ok(),
         "{}",
@@ -108,5 +88,5 @@ fn test_parse_enum() {
         "{}",
         convert_error(input, result.unwrap_err())
     );
-    assert_eq!(result.unwrap().1, LexType::EnumVariant("Days", "Saturday"));
+    assert_eq!(result.unwrap().1, ltype!("Days"; "Saturday"));
 }

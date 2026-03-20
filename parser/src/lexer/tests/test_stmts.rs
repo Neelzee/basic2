@@ -2,12 +2,22 @@ use crate::{
     common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive},
     lexer::{
         lex_expr::LexExpr,
-        lex_stmt::{LexStmt, WhenMatch},
-        lex_type::LexType,
+        lex_stmt::{
+            LexStmt,
+            decls::{
+                Decl,
+                variants::{EnumDeclaration, ListUnpacking, StructUnpacking, TypeAlias},
+            },
+            impls::Impl,
+            when_match::WhenMatch,
+        },
+        lex_type::{LexMonoType, LexPolyType, LexType},
         utils::{Span, convert_error},
     },
 };
-use p_macros::{lbop, leel, lfin, lfne, lg, lprt, lv, lvda, rt};
+use p_macros::{
+    b2, create_return_type, lbop, leel, lfin, lfne, lg, lprt, ltype, lv, lvda, rt,
+};
 use rstest::rstest;
 
 #[rstest]
@@ -22,10 +32,7 @@ fn test_variable_declaration() {
     );
     assert_eq!(
         result.unwrap().1,
-        LexStmt::VariableDeclaration {
-            identifier: "FOO",
-            variable_type: LexType::Nil,
-        }
+        LexStmt::new_var_decl("FOO", ltype!(NIL),)
     );
 }
 
@@ -39,11 +46,7 @@ fn test_variable_declaration_fails_with_missing_end_stmt_kw() {
 #[rstest]
 #[case(
     r##"LET FOO = "BAR";"##,
-    LexStmt::VariableDeclarationAssignment {
-        identifier: "FOO",
-        variable_type: None,
-        value: LexExpr::Literal(Primitive::Str("BAR"))
-    }
+    b2!(LET FOO = "BAR";)
 )]
 #[case(
     r##"
@@ -53,18 +56,13 @@ fn test_variable_declaration_fails_with_missing_end_stmt_kw() {
         IMPL age = 24;
     END;
     "##,
-    LexStmt::VariableDeclarationAssignment {
-        identifier: "me",
-        variable_type: None,
-        value: LexExpr::Struct {
-            identifier: "Person",
-            field_implementations: vec![
-                ("firstName", LexExpr::Literal(Primitive::Str("Nils"))),
-                ("lastName", LexExpr::Literal(Primitive::Str("Fitjar"))),
-                ("age", LexExpr::Literal(Primitive::Int(24))),
-            ]
-        }
-    }
+    b2!(LET me = b2!(
+        STRUCTURE Person WITH
+            IMPL firstName = "Nils";
+            IMPL lastName = "Fitjar";
+            IMPL age = 24;
+        END
+    );)
 )]
 fn test_variable_declaration_assignment(#[case] input: &str, #[case] expected: LexStmt) {
     let result = LexStmt::parse_variable_declaration_assignment(Span::new(input));
@@ -158,11 +156,7 @@ fn test_variable_reassignment_fails_with_missing_end_stmt_kw() {
     LexStmt::If {
         condition: LexExpr::Literal(Primitive::Bool(true)),
         body: vec![
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "FOO",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Str("BAR"))
-            }
+            b2!(LET FOO = "BAR";)
         ]
     }
 )]
@@ -178,22 +172,13 @@ fn test_variable_reassignment_fails_with_missing_end_stmt_kw() {
     LexStmt::If {
         condition: LexExpr::Literal(Primitive::Bool(true)),
         body: vec![
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "FOO",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Str("BAR"))
-            },
-
-    LexStmt::If {
-        condition: LexExpr::Literal(Primitive::Bool(true)),
-        body: vec![
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Str("FOO"))
+            b2!(LET FOO = "BAR";),
+            LexStmt::If {
+                condition: LexExpr::Literal(Primitive::Bool(true)),
+                body: vec![
+                    b2!(LET BAR = "FOO";),
+                ]
             }
-        ]
-    }
         ]
     }
 )]
@@ -227,11 +212,7 @@ fn test_parse_if(#[case] input: &str, #[case] expected: LexStmt) {
     LexStmt::While {
         condition: LexExpr::Literal(Primitive::Bool(true)),
         body: vec![
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "FOO",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Str("BAR"))
-            }
+            b2!(LET FOO = "BAR";)
         ]
     }
 )]
@@ -272,52 +253,27 @@ fn test_parse_while(#[case] input: &str, #[case] expected: LexStmt) {
 #[case(
     r##"DECL f();
     "##,
-    LexStmt::FunctionDeclaration {
-        identifier: "f",
-        parameters: Vec::new(),
-        generics: Vec::new(),
-        return_type: None
-    }
+    b2!(DECL f();)
 )]
 #[case(
     r##"DECL foo() : INT;
     "##,
-    LexStmt::FunctionDeclaration {
-        identifier: "foo",
-        parameters: Vec::new(),
-        generics: Vec::new(),
-        return_type: Some(LexType::Int)
-    }
+    b2!(DECL foo() : INT;)
 )]
 #[case(
     r##"DECL
         bar(INT, INT, INT);
     "##,
-    LexStmt::FunctionDeclaration {
-        identifier: "bar",
-        parameters: vec![LexType::Int, LexType::Int, LexType::Int],
-        generics: Vec::new(),
-        return_type: None
-    }
+    b2!(DECL bar(INT, INT, INT);)
 )]
 #[case(
     r##"DECL foobar(INT, INT, INT, STR) : STR;
     "##,
-    LexStmt::FunctionDeclaration {
-        identifier: "foobar",
-        parameters: vec![LexType::Int, LexType::Int, LexType::Int, LexType::Str],
-        generics: Vec::new(),
-        return_type: Some(LexType::Str)
-    }
+    b2!(DECL foobar(INT, INT, INT, STR) : STR;)
 )]
 #[case(
     "DECL map([INT], {INT => INT}): [INT];",
-    LexStmt::FunctionDeclaration {
-        identifier: "map",
-        parameters: vec![LexType::List(Box::new(LexType::Int)), LexType::FnType { input: Box::new(LexType::Int), output: Box::new(LexType::Int) }],
-        generics: Vec::new(),
-        return_type: Some(LexType::List(Box::new(LexType::Int)))
-    }
+    b2!(DECL map(ltype!([INT]), ltype!(INT => INT)) : ltype!([INT]);)
 )]
 fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStmt) {
     let input = Span::new(input);
@@ -334,74 +290,54 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
 #[case(
     r##"IMPL f() DOES END
     "##,
-    LexStmt::FunctionImplementation {
-        identifier: "f",
-        parameters: Vec::new(),
-        body: Vec::new(),
-    }
+    LexStmt::Impl(Impl::new_fn("f", Vec::new(), Vec::new(),))
 )]
 #[case(
     r##"IMPL f() DOES
         END
     "##,
-    LexStmt::FunctionImplementation {
-        identifier: "f",
-        parameters: Vec::new(),
-        body: Vec::new(),
-    }
+    LexStmt::Impl(Impl::new_fn("f", Vec::new(), Vec::new(),))
 )]
 #[case(
     r##"IMPL foo() DOES
             LET BAR = 0;
         END
     "##,
-    LexStmt::FunctionImplementation {
-        identifier: "foo",
-        parameters: Vec::new(),
-        body: vec![
-            LexStmt::VariableDeclarationAssignment { identifier: "BAR", variable_type: None, value: LexExpr::Literal(Primitive::Int(0)) }
-        ]
-    }
+    LexStmt::Impl(Impl::new_fn(
+        "foo",
+        Vec::new(),
+        vec![b2!(LET BAR = 0;)],
+    ))
 )]
 #[case(
     r##"IMPL bar(a, b, c) DOES
         END
     "##,
-    LexStmt::FunctionImplementation {
-        identifier: "bar",
-        parameters: vec![
-            ("a", None),
-            ("b", None),
-            ("c", None)
-        ],
-        body: Vec::new(),
-    }
+    LexStmt::Impl(Impl::new_fn(
+        "bar",
+        vec![("a", None), ("b", None), ("c", None)],
+        Vec::new(),
+    ))
 )]
 #[case(
     r##"IMPL foobar(a = "FOO") DOES
             LET BAR = 0;
         END
     "##,
-    LexStmt::FunctionImplementation {
-        identifier: "foobar",
-        parameters: vec![("a", Some(LexExpr::Literal(Primitive::Str("FOO"))))],
-        body: vec![
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            }
-        ]
-    }
+    LexStmt::Impl(Impl::new_fn(
+        "foobar",
+        vec![("a", Some("FOO".into()))],
+        vec![b2!(LET BAR = 0;)],
+    ))
 )]
 #[case(
     r##"IMPL Person(firstName, lastName, age, city, postcode, street) DOES
         RETURN (firstName, (lastName, (age, (city, (postcode, (street, -1))))));
     END
     "##,
-    LexStmt::FunctionImplementation {
-        identifier: "Person",
-        parameters: vec![
+    LexStmt::Impl(Impl::new_fn(
+        "Person",
+        vec![
             ("firstName", None),
             ("lastName", None),
             ("age", None),
@@ -409,7 +345,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
             ("postcode", None),
             ("street", None),
         ],
-        body: vec![LexStmt::Return {
+        vec![LexStmt::Return {
             value: Some(LexExpr::Tuple(
                 Box::new(LexExpr::Variable("firstName")),
                 Box::new(LexExpr::Tuple(
@@ -430,7 +366,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
                 ))
             ))
         }]
-    }
+    ))
 )]
 #[case::map_for_int(
     r##"IMPL map(xs, f) DOES
@@ -443,10 +379,10 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
                 END
             END
         END"##,
-    LexStmt::FunctionImplementation {
-        identifier: "map", 
-        parameters: vec![("xs", None), ("f", None)],
-        body: vec![
+    LexStmt::Impl(Impl::new_fn(
+        "map", 
+        vec![("xs", None), ("f", None)],
+        vec![
             LexStmt::WhenStatement {
                 identifier: "xs",
                 branches: vec![
@@ -465,7 +401,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
                 ]
             }
         ]
-    }
+    ))
 )]
 fn test_parse_function_implementation(#[case] input: &str, #[case] expected: LexStmt) {
     let input = Span::new(input);
@@ -489,42 +425,18 @@ fn test_parse_function_implementation(#[case] input: &str, #[case] expected: Lex
         LET BAR = 0;
     END
     "##,
-    LexStmt::FunctionImplementation {
-        identifier: "FOOBAR",
-        parameters: Vec::new(),
-        body: vec![
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
+    LexStmt::Impl(Impl::new_fn(
+        "FOOBAR",
+        Vec::new(),
+        vec![
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
         ]
-    }
+    ))
 )]
 #[case(
     r##"
@@ -540,36 +452,12 @@ fn test_parse_function_implementation(#[case] input: &str, #[case] expected: Lex
     LexStmt::If {
         condition: LexExpr::Literal(Primitive::Bool(true)),
         body: vec![
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
-            LexStmt::VariableDeclarationAssignment {
-                identifier: "BAR",
-                variable_type: None,
-                value: LexExpr::Literal(Primitive::Int(0))
-            },
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
+            b2!(LET BAR = 0;),
         ]
     }
 )]
@@ -618,7 +506,7 @@ fn test_parse_multiline_statements(#[case] input: &str, #[case] expected: LexStm
         LET FOO: NIL;
     END
     "##,
-    LexStmt::Block { body: vec![LexStmt::VariableDeclaration { identifier: "FOO", variable_type: LexType::Nil }] }
+    LexStmt::Block { body: vec![b2!(LET FOO: NIL;)] }
 )]
 fn test_parse_block_statements(#[case] input: &str, #[case] expected: LexStmt) {
     let input = Span::new(input);
@@ -670,35 +558,19 @@ fn test_parse_function_invocation(#[case] input: &str, #[case] expected: LexStmt
 #[rstest]
 #[case(
     r##"ALIAS Foo = INT;"##,
-    LexStmt::TypeAlias {
-        identifier: "Foo",
-        generics: Vec::new(),
-        b2_type: LexType::Int
-    }
+    b2!(ALIAS Foo = INT;)
 )]
 #[case(
     r##"ALIAS Foo = (INT, INT);"##,
-    LexStmt::TypeAlias {
-        identifier: "Foo",
-        generics: Vec::new(),
-        b2_type: LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) }
-    }
+    b2!(ALIAS Foo = ltype!((INT, INT));)
 )]
 #[case(
     r##"ALIAS Foo = (INT, (INT, INT));"##,
-    LexStmt::TypeAlias {
-        identifier: "Foo",
-        generics: Vec::new(),
-        b2_type: LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Int) }) }
-    }
+    b2!(ALIAS Foo = ltype!((INT, ltype!((INT, INT))));)
 )]
 #[case(
     r##"ALIAS Foo[T] = (INT, (INT, T));"##,
-    LexStmt::TypeAlias {
-        identifier: "Foo",
-        generics: vec![("T", Vec::new())],
-        b2_type: LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::Tuple { fst: Box::new(LexType::Int), snd: Box::new(LexType::TypeVar("T")) }) }
-    }
+    LexStmt::Decl(Decl::TypeDecl(TypeAlias::new("Foo", vec![("T", Vec::new())], ltype!((INT, ltype!((INT, "T".into())))))))
 )]
 fn test_parse_type_alias(#[case] input: &str, #[case] expected: LexStmt) {
     let input = Span::new(input);
@@ -770,10 +642,10 @@ fn test_function_impl_get_age() {
                 RETURN p[1][1][0];
             END"##;
     let input = Span::new(INPUT);
-    let expected = LexStmt::FunctionImplementation {
-        identifier: "getAge",
-        parameters: vec![("p", None)],
-        body: vec![LexStmt::Return {
+    let expected = LexStmt::Impl(Impl::new_fn(
+        "getAge",
+        vec![("p", None)],
+        vec![LexStmt::Return {
             value: Some(LexExpr::Op(Box::new(
                 B2Op::postfix(
                     LexExpr::Op(Box::new(
@@ -794,7 +666,7 @@ fn test_function_impl_get_age() {
                 .into(),
             ))),
         }],
-    };
+    ));
     let result = LexStmt::parse_function_implementation(input);
     assert!(
         result.is_ok(),
@@ -808,10 +680,7 @@ fn test_function_impl_get_age() {
 fn test_function_unpacking() {
     const INPUT: &str = r##"LET (firstName, lastName, age, city, postCode, street) >< p;"##;
     let input = Span::new(INPUT);
-    let expected = LexStmt::TupleUnpacking {
-        identifiers: vec!["firstName", "lastName", "age", "city", "postCode", "street"],
-        value: LexExpr::Variable("p"),
-    };
+    let expected = b2!(LET (firstName, lastName, age, city, postCode, street) >< p;);
     let result = LexStmt::parse_tuple_unpacking(input);
     assert!(
         result.is_ok(),
@@ -846,11 +715,7 @@ fn test_for_loop() {
 fn test_variable_declaration_assignment_with_type() {
     const INPUT: &str = r##"LET result: STR = "";"##;
     let input = Span::new(INPUT);
-    let expected = LexStmt::VariableDeclarationAssignment {
-        identifier: "result",
-        variable_type: Some(LexType::Str),
-        value: LexExpr::Literal(Primitive::Str("")),
-    };
+    let expected = b2!(LET result: ltype!(STR), "";);
     let result = LexStmt::parse_variable_declaration_assignment(input);
     assert!(
         result.is_ok(),
@@ -881,11 +746,11 @@ fn test_list_reasignment() {
 #[test]
 fn test_list_unpacking() {
     let input = Span::new(r##"LET [a, b, ...cd] >< list;"##);
-    let expected = LexStmt::ListUnpacking {
-        identifiers: vec!["a", "b"],
-        remainder: Some("cd"),
-        value: lv!("list"),
-    };
+    let expected = LexStmt::Decl(Decl::LstUnpk(ListUnpacking::new(
+        vec!["a", "b"],
+        Some("cd"),
+        lv!("list"),
+    )));
     let result = LexStmt::parse_list_unpacking(input);
     assert!(
         result.is_ok(),
@@ -898,10 +763,10 @@ fn test_list_unpacking() {
 #[test]
 fn test_struct_unpacking() {
     let input = Span::new(r##"LET [::a, ::b] >< struct;"##);
-    let expected = LexStmt::StructUnpacking {
-        identifiers: vec!["a", "b"],
-        value: lv!("struct"),
-    };
+    let expected = LexStmt::Decl(Decl::StrUnpk(StructUnpacking::new(
+        vec!["a", "b"],
+        lv!(struct),
+    )));
     let result = LexStmt::parse_struct_unpacking(input);
     assert!(
         result.is_ok(),
@@ -1262,10 +1127,10 @@ fn test_recursive_enum() {
     );
     assert_eq!(
         result.unwrap().1,
-        LexStmt::EnumDeclaration {
-            identifier: "Days",
-            generics: Vec::new(),
-            enumerations: vec![("Tuesday", vec![LexType::SelfType])]
-        }
+        LexStmt::Decl(Decl::EnumDecl(EnumDeclaration::new(
+            "Days",
+            Vec::new(),
+            vec![("Tuesday", vec![ltype!(IT)])]
+        )))
     )
 }

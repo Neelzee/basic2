@@ -2,6 +2,7 @@ use crate::{
     common::binop::BinOp,
     lexer::{
         lex_expr::LexExpr,
+        lex_stmt::{FunDeclComps, FunImplComps, Import, LexStmt, when_match::WhenMatch},
         lex_type::LexType,
         utils::{
             B2LexError, B2LexResult, Span,
@@ -23,10 +24,8 @@ use crate::{
                 TRAIT_RESTRICTION_KW, TRAIT_RESTRICTION_SEP_KW, TUPLE_DELIMITER, TUPLE_END,
                 TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
                 VARIABLE_TYPE_START, WHEN_STATEMENT_BODY_END_KW, WHEN_STATEMENT_BODY_START_KW,
-                WHEN_STATEMENT_BRANCH_END, WHEN_STATEMENT_CONDITION_END_KW,
-                WHEN_STATEMENT_CONDITION_START_KW, WHEN_STATEMENT_START_KW,
-                WHEN_STATEMENT_TYPE_START_KW, WHILE_STATEMENT_BODY_START_KW,
-                WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
+                WHEN_STATEMENT_START_KW, WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW,
+                WHILE_STATEMENT_START_KW,
             },
             helper_parsers::{
                 parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
@@ -37,7 +36,7 @@ use crate::{
 };
 use nom::{
     Parser,
-    branch::{alt, permutation},
+    branch::alt,
     bytes::complete::tag,
     character::complete::{multispace0, multispace1, space0},
     combinator::opt,
@@ -45,131 +44,6 @@ use nom::{
     multi::{many0, separated_list0},
     sequence::{delimited, pair, preceded, terminated},
 };
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum LexStmt<'a> {
-    VariableDeclaration {
-        identifier: &'a str,
-        variable_type: LexType<'a>,
-    },
-    TupleUnpacking {
-        identifiers: Vec<&'a str>,
-        value: LexExpr<'a>,
-    },
-    StructUnpacking {
-        identifiers: Vec<&'a str>,
-        value: LexExpr<'a>,
-    },
-    ListUnpacking {
-        identifiers: Vec<&'a str>,
-        remainder: Option<&'a str>,
-        value: LexExpr<'a>,
-    },
-    VariableDeclarationAssignment {
-        identifier: &'a str,
-        variable_type: Option<LexType<'a>>,
-        value: LexExpr<'a>,
-    },
-    VariableReassignment {
-        identifier: &'a str,
-        reassignment: Option<BinOp>,
-        new_value: LexExpr<'a>,
-    },
-    ListReassignment {
-        indexee: LexExpr<'a>,
-        index: LexExpr<'a>,
-        reassignment: Option<BinOp>,
-        new_value: LexExpr<'a>,
-    },
-    If {
-        condition: LexExpr<'a>,
-        body: Vec<Self>,
-    },
-    While {
-        condition: LexExpr<'a>,
-        body: Vec<Self>,
-    },
-    FunctionDeclaration {
-        identifier: &'a str,
-        parameters: Vec<LexType<'a>>,
-        generics: Vec<(&'a str, Vec<&'a str>)>,
-        return_type: Option<LexType<'a>>,
-    },
-    FunctionImplementation {
-        identifier: &'a str,
-        parameters: Vec<(&'a str, Option<LexExpr<'a>>)>,
-        body: Vec<Self>,
-    },
-    StructDeclaration {
-        identifier: &'a str,
-        generics: Vec<(&'a str, Vec<&'a str>)>,
-        fields: Vec<(&'a str, LexType<'a>)>,
-    },
-    Block {
-        body: Vec<Self>,
-    },
-    FunctionInvocation {
-        identifier: &'a str,
-        arguments: Vec<LexExpr<'a>>,
-    },
-    Break,
-    Continue,
-    Return {
-        value: Option<LexExpr<'a>>,
-    },
-    TypeAlias {
-        identifier: &'a str,
-        generics: Vec<(&'a str, Vec<&'a str>)>,
-        b2_type: LexType<'a>,
-    },
-    ImportModule {
-        identifier: &'a str,
-    },
-    For {
-        start_stmt: Box<Self>,
-        condition: LexExpr<'a>,
-        incrementer: LexExpr<'a>,
-        body: Vec<Self>,
-    },
-    StructFieldReassignment {
-        identifier: &'a str,
-        field: &'a str,
-        reassignment: Option<BinOp>,
-        new_value: LexExpr<'a>,
-    },
-    EnumDeclaration {
-        identifier: &'a str,
-        generics: Vec<(&'a str, Vec<&'a str>)>,
-        enumerations: Vec<(&'a str, Vec<LexType<'a>>)>,
-    },
-    WhenStatement {
-        identifier: &'a str,
-        branches: Vec<(WhenMatch<'a>, Vec<Self>)>,
-    },
-    TraitDecl {
-        identifier: &'a str,
-        restrictions: Vec<&'a str>,
-        decls: Vec<FunDeclComps<'a>>,
-        impls: Vec<FunImplComps<'a>>,
-    },
-    TraitImpl {
-        trait_identifier: &'a str,
-        type_identifier: &'a str,
-        body: Vec<Self>,
-    },
-}
-
-type FunImplComps<'a> = (
-    &'a str,
-    Vec<(&'a str, Option<LexExpr<'a>>)>,
-    Vec<LexStmt<'a>>,
-);
-type FunDeclComps<'a> = (
-    &'a str,
-    Vec<(&'a str, Vec<&'a str>)>,
-    Vec<LexType<'a>>,
-    Option<LexType<'a>>,
-);
 
 impl<'a> LexStmt<'a> {
     pub fn parse_statement(input: Span<'a>) -> B2LexResult<'a, Self> {
@@ -243,10 +117,7 @@ impl<'a> LexStmt<'a> {
             ),
             tag(END_STMT_KW),
         )
-        .map(|(identifier, variable_type)| Self::VariableDeclaration {
-            identifier,
-            variable_type,
-        })
+        .map(|(identifier, variable_type)| Self::new_var_decl(identifier, variable_type))
         .parse(input)
     }
 
@@ -269,13 +140,9 @@ impl<'a> LexStmt<'a> {
             ),
             tag(END_STMT_KW),
         )
-        .map(
-            |(identifier, variable_type, value)| Self::VariableDeclarationAssignment {
-                identifier,
-                variable_type,
-                value,
-            },
-        )
+        .map(|(identifier, variable_type, value)| {
+            Self::new_var_decl_ass(identifier, variable_type, value)
+        })
         .parse(input)
     }
 
@@ -365,14 +232,9 @@ impl<'a> LexStmt<'a> {
 
     pub fn parse_function_declaration(input: Span<'a>) -> B2LexResult<'a, Self> {
         context("function-declaration", Self::parse_function_decl_comps)
-            .map(
-                |(identifier, generics, parameters, return_type)| Self::FunctionDeclaration {
-                    identifier,
-                    parameters,
-                    return_type,
-                    generics,
-                },
-            )
+            .map(|(identifier, generics, parameters, return_type)| {
+                Self::new_fn_decl(identifier, parameters, generics, return_type)
+            })
             .parse(input)
     }
 
@@ -429,13 +291,7 @@ impl<'a> LexStmt<'a> {
             "function-implementation",
             Self::parse_function_impl_components,
         )
-        .map(
-            |(identifier, parameters, body)| Self::FunctionImplementation {
-                identifier,
-                parameters,
-                body,
-            },
-        )
+        .map(|(identifier, parameters, body)| Self::new_fn_impl(identifier, parameters, body))
         .parse(input)
     }
 
@@ -568,11 +424,7 @@ impl<'a> LexStmt<'a> {
                 ),
             ),
         )
-        .map(|((identifier, generics), fields)| Self::StructDeclaration {
-            identifier,
-            generics,
-            fields,
-        })
+        .map(|((identifier, generics), fields)| Self::new_struct_decl(identifier, generics, fields))
         .parse(input)
     }
 
@@ -620,10 +472,8 @@ impl<'a> LexStmt<'a> {
                 tag(END_STMT_KW),
             ),
         )
-        .map(|((identifier, generics), b2_type)| Self::TypeAlias {
-            identifier,
-            generics,
-            b2_type,
+        .map(|((identifier, generics), b2_type)| {
+            Self::new_type_alias(identifier, generics, b2_type)
         })
         .parse(input)
     }
@@ -639,7 +489,7 @@ impl<'a> LexStmt<'a> {
                 tag(END_STMT_KW),
             ),
         )
-        .map(|identifier| Self::ImportModule { identifier })
+        .map(|identifier| Self::Import(Import { identifier }))
         .parse(input)
     }
 
@@ -656,7 +506,7 @@ impl<'a> LexStmt<'a> {
                 (multispace0, tag(END_STMT_KW)),
             ),
         )
-        .map(|(identifiers, _, value)| Self::TupleUnpacking { identifiers, value })
+        .map(|(identifiers, _, value)| Self::new_tuple_unpack(identifiers, value))
         .parse(input)
     }
 
@@ -693,11 +543,11 @@ impl<'a> LexStmt<'a> {
         let remainder = remainders.pop();
         Ok((
             rem,
-            Self::ListUnpacking {
-                identifiers: idents.into_iter().filter_map(|i| i.ok()).collect(),
-                value,
+            Self::new_list_unpack(
+                idents.into_iter().filter_map(|i| i.ok()).collect(),
                 remainder,
-            },
+                value,
+            ),
         ))
     }
 
@@ -719,7 +569,7 @@ impl<'a> LexStmt<'a> {
                 (multispace0, tag(END_STMT_KW)),
             ),
         )
-        .map(|(identifiers, _, value)| Self::StructUnpacking { identifiers, value })
+        .map(|(identifiers, _, value)| Self::new_struct_unpack(identifiers, value))
         .parse(input)
     }
 
@@ -823,13 +673,9 @@ impl<'a> LexStmt<'a> {
                 (multispace0, tag(ENUM_END_KW)),
             ),
         )
-        .map(
-            |(identifier, generics, enumerations)| Self::EnumDeclaration {
-                identifier,
-                generics,
-                enumerations,
-            },
-        )
+        .map(|(identifier, generics, enumerations)| {
+            Self::new_enum_decl(identifier, generics, enumerations)
+        })
         .parse(input)
     }
 
@@ -877,13 +723,9 @@ impl<'a> LexStmt<'a> {
                 ),
             ),
         )
-        .map(
-            |(trait_identifier, type_identifier, body)| Self::TraitImpl {
-                trait_identifier,
-                type_identifier,
-                body,
-            },
-        )
+        .map(|(trait_identifier, type_identifier, body)| {
+            Self::new_trait_impl(trait_identifier, type_identifier, body)
+        })
         .parse(input)
     }
 
@@ -924,247 +766,8 @@ impl<'a> LexStmt<'a> {
                     Err(d) => decls.push(d),
                 }
             }
-            Self::TraitDecl {
-                identifier,
-                restrictions,
-                decls,
-                impls,
-            }
+            Self::new_trait_decl(identifier, restrictions, decls, impls)
         })
-        .parse(input)
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum WhenMatch<'a> {
-    /// [ ]
-    EmptyList { condition: Option<LexExpr<'a>> },
-    /// [x]
-    Singleton {
-        identifier: &'a str,
-        condition: Option<LexExpr<'a>>,
-    },
-    /// [a, b, ...xs]
-    VariadicList {
-        identifiers: Vec<&'a str>,
-        remainder: Option<&'a str>,
-        condition: Option<LexExpr<'a>>,
-    },
-    /// x
-    CatchAll {
-        identifier: &'a str,
-        condition: Option<LexExpr<'a>>,
-    },
-    /// IS INT
-    /// Matches if the value is assignable to the specified type
-    Type {
-        b2_type: LexType<'a>,
-        condition: Option<LexExpr<'a>>,
-    },
-    // [::field_a, ::field_b] AND field_a < field_b FOLLOWS ...
-    StructField {
-        fields: Vec<&'a str>,
-        condition: Option<LexExpr<'a>>,
-    },
-}
-
-type WMResult<'a> = B2LexResult<'a, (WhenMatch<'a>, Vec<LexStmt<'a>>)>;
-
-impl<'a> WhenMatch<'a> {
-    pub fn parse(input: Span<'a>) -> WMResult<'a> {
-        context(
-            "when-match",
-            alt((
-                Self::parse_empty_list,
-                Self::parse_singleton,
-                Self::parse_variadic_list,
-                Self::parse_catch_all,
-                Self::parse_type,
-                Self::parse_struct,
-            )),
-        )
-        .parse(input)
-    }
-
-    fn parse_condition_and_stmt(
-        input: Span<'a>,
-    ) -> B2LexResult<'a, (Option<LexExpr<'a>>, Vec<LexStmt<'a>>)> {
-        context(
-            "condition-and-statements",
-            (
-                delimited(
-                    opt((
-                        multispace0,
-                        tag(WHEN_STATEMENT_CONDITION_START_KW),
-                        multispace0,
-                    )),
-                    context(
-                        "optional-condition",
-                        opt(preceded(multispace0, LexExpr::parse_expr)),
-                    ),
-                    context(
-                        "multispace-follows-multispace",
-                        (multispace0, tag(WHEN_STATEMENT_CONDITION_END_KW)),
-                    ),
-                ),
-                parse_statements,
-            ),
-        )
-        .parse(input)
-    }
-
-    pub fn parse_empty_list(input: Span<'a>) -> WMResult<'a> {
-        context(
-            "empty-list-branch",
-            delimited(
-                (tag(LIST_START), multispace0, tag(LIST_END)),
-                Self::parse_condition_and_stmt,
-                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
-            ),
-        )
-        .map(|(condition, stmts)| (Self::EmptyList { condition }, stmts))
-        .parse(input)
-    }
-
-    pub fn parse_singleton(input: Span<'a>) -> WMResult<'a> {
-        context(
-            "singleton-branch",
-            terminated(
-                (
-                    delimited(
-                        (tag(LIST_START), multispace0),
-                        parse_identifier,
-                        (multispace0, tag(LIST_END)),
-                    ),
-                    Self::parse_condition_and_stmt,
-                ),
-                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
-            ),
-        )
-        .map(|(identifier, (condition, stmts))| {
-            (
-                Self::Singleton {
-                    identifier,
-                    condition,
-                },
-                stmts,
-            )
-        })
-        .parse(input)
-    }
-
-    pub fn parse_variadic_list(input: Span<'a>) -> WMResult<'a> {
-        context(
-            "variadic-list-branch",
-            terminated(
-                (
-                    (
-                        context(
-                            "single-variables",
-                            preceded(
-                                tag(LIST_START),
-                                separated_list0(
-                                    permutation((multispace0, tag(LIST_DELIMITER), multispace0)),
-                                    context("variadic-variables", parse_identifier),
-                                ),
-                            ),
-                        ),
-                        context(
-                            "optional-variadic-variable",
-                            terminated(
-                                opt(preceded(
-                                    (
-                                        multispace0,
-                                        tag(LIST_DELIMITER),
-                                        multispace0,
-                                        tag(LIST_UNPACKING_KW),
-                                    ),
-                                    parse_identifier,
-                                )),
-                                (multispace0, tag(LIST_END)),
-                            ),
-                        ),
-                    ),
-                    Self::parse_condition_and_stmt,
-                ),
-                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
-            ),
-        )
-        .map(|((identifiers, remainder), (condition, stmts))| {
-            (
-                Self::VariadicList {
-                    identifiers,
-                    remainder,
-                    condition,
-                },
-                stmts,
-            )
-        })
-        .parse(input)
-    }
-
-    pub fn parse_catch_all(input: Span<'a>) -> WMResult<'a> {
-        context(
-            "catch-all-branch",
-            terminated(
-                (
-                    preceded(multispace0, parse_identifier),
-                    Self::parse_condition_and_stmt,
-                ),
-                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
-            ),
-        )
-        .map(|(identifier, (condition, stmts))| {
-            (
-                Self::CatchAll {
-                    identifier,
-                    condition,
-                },
-                stmts,
-            )
-        })
-        .parse(input)
-    }
-
-    pub fn parse_type(input: Span<'a>) -> WMResult<'a> {
-        context(
-            "type-branch",
-            terminated(
-                (
-                    preceded(
-                        (multispace0, tag(WHEN_STATEMENT_TYPE_START_KW), multispace0),
-                        LexType::parse_type,
-                    ),
-                    Self::parse_condition_and_stmt,
-                ),
-                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
-            ),
-        )
-        .map(|(b2_type, (condition, stmts))| (Self::Type { b2_type, condition }, stmts))
-        .parse(input)
-    }
-
-    pub fn parse_struct(input: Span<'a>) -> WMResult<'a> {
-        context(
-            "struct-branch",
-            terminated(
-                (
-                    delimited(
-                        multispace0,
-                        parse_poly_list_with(
-                            LIST_START,
-                            LIST_DELIMITER,
-                            LIST_END,
-                            preceded(tag(STRUCT_FIELD_ACCESS_KW), parse_identifier),
-                        ),
-                        (tag(WHEN_STATEMENT_CONDITION_END_KW), multispace0),
-                    ),
-                    Self::parse_condition_and_stmt,
-                ),
-                (multispace0, tag(WHEN_STATEMENT_BRANCH_END)),
-            ),
-        )
-        .map(|(fields, (condition, stmts))| (Self::StructField { fields, condition }, stmts))
         .parse(input)
     }
 }

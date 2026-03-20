@@ -3,7 +3,7 @@ use crate::{
     lexer::{
         lex_expr::LexExpr,
         lex_stmt::LexStmt,
-        lex_type::LexType,
+        lex_type::{LexMonoType, LexType},
         utils::{
             B2LexResult, Span, convert_error,
             helper_parsers::{
@@ -13,7 +13,7 @@ use crate::{
     },
 };
 use nom::Parser;
-use p_macros::{lbop, lv};
+use p_macros::{lbop, ltype, lv};
 use rstest::rstest;
 
 #[rstest]
@@ -24,7 +24,7 @@ use rstest::rstest;
     ")",
     LexType::parse_type,
     "(INT, INT)",
-    vec![LexType::Int, LexType::Int],
+    vec![ltype!(INT), ltype!(INT)],
     ""
 )]
 #[case(

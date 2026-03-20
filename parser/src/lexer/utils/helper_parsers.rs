@@ -34,7 +34,7 @@ pub fn parse_identifier<'a>(input: Span<'a>) -> B2LexResult<'a, &'a str> {
 
 /// Parses a list-like input, with a specified start, end and delimiter. The delimiter includes multispace0
 /// ```rust
-/// use parser::lexer::{utils::{helper_parsers::parse_poly_list_with, Span}, lex_type::LexType};
+/// use parser::lexer::{utils::{helper_parsers::parse_poly_list_with, Span}, lex_type::{LexType, LexMonoType}};
 /// use nom::Parser;
 ///
 /// let input = "(INT, STR, BOOL)";
@@ -51,7 +51,7 @@ pub fn parse_identifier<'a>(input: Span<'a>) -> B2LexResult<'a, &'a str> {
 /// let other_input = "(INT) some-other-string";
 /// let result = parse_poly_list_with("(", ",", ")", LexType::parse_type).parse(Span::new(other_input));
 /// assert!(result.is_ok(), "{result:?}");
-/// assert_eq!(result.unwrap().1, vec![LexType::Int]);
+/// assert_eq!(result.unwrap().1, vec![LexType::Mono(LexMonoType::Int)]);
 ///
 ///
 /// let other_input = "INT some-other-string";
