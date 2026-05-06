@@ -1,6 +1,6 @@
 use crate::{
     common::{binop::BinOp, postfix::Postfix, uniop::UniOp},
-    lexer::lex_expr::LexExpr,
+    lexer::{lex_expr::LexExpr, lex_type::LexType},
 };
 use nom_language::precedence::Operation;
 
@@ -11,6 +11,10 @@ pub mod uniop;
 
 pub trait ToB2 {
     fn to_b2(&self) -> String;
+}
+
+pub trait AsB2Type<'a> {
+    fn as_b2_type(&'a self) -> LexType<'a>;
 }
 
 pub type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;

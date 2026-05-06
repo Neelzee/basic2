@@ -27,6 +27,7 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
 use nom_language::precedence::{Assoc, binary_op, precedence, unary_op};
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub enum LexExpr<'a> {
@@ -44,7 +45,7 @@ pub enum LexExpr<'a> {
     Op(Box<B2Op<'a>>),
     Struct {
         identifier: &'a str,
-        field_implementations: Vec<(&'a str, Self)>,
+        field_implementations: HashMap<&'a str, Self>,
     },
     StructFieldAccessing {
         identifier: &'a str,
@@ -239,7 +240,7 @@ impl<'a> LexExpr<'a> {
             rem,
             Self::Struct {
                 identifier: &ident,
-                field_implementations,
+                field_implementations: field_implementations.into_iter().collect(),
             },
         ))
     }

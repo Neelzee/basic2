@@ -424,7 +424,9 @@ impl<'a> LexStmt<'a> {
                 ),
             ),
         )
-        .map(|((identifier, generics), fields)| Self::new_struct_decl(identifier, generics, fields))
+        .map(|((identifier, generics), fields)| {
+            Self::new_struct_decl(identifier, generics, fields.into_iter().collect())
+        })
         .parse(input)
     }
 

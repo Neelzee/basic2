@@ -1,10 +1,11 @@
-use std::ops::Neg;
-
 use crate::{
-    common::ToB2,
-    lexer::utils::{
-        B2LexResult, Span,
-        consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
+    common::{AsB2Type, ToB2},
+    lexer::{
+        lex_type::LexType,
+        utils::{
+            B2LexResult, Span,
+            consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
+        },
     },
 };
 use nom::{
@@ -17,6 +18,7 @@ use nom::{
     number::complete::float,
     sequence::{delimited, terminated},
 };
+use std::ops::Neg;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Primitive<'a> {
@@ -126,5 +128,16 @@ impl<'a> From<&'a str> for Primitive<'a> {
 impl<'a> From<bool> for Primitive<'a> {
     fn from(value: bool) -> Self {
         Self::Bool(value)
+    }
+}
+
+impl<'a> AsB2Type<'a> for Primitive<'a> {
+    fn as_b2_type(&'a self) -> LexType<'a> {
+        match self {
+            Primitive::Int(_) => LexType::int(),
+            Primitive::Float(_) => LexType::float(),
+            Primitive::Str(_) => LexType::str(),
+            Primitive::Bool(_) => LexType::bool(),
+        }
     }
 }

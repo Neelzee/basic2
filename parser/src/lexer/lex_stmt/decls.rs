@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::lexer::{
     lex_stmt::{
         FunDeclComps, FunImplComps,
@@ -100,7 +102,7 @@ impl<'a> Decl<'a> {
     pub fn new_struct(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        fields: Vec<(&'a str, LexType<'a>)>,
+        fields: HashMap<&'a str, LexType<'a>>,
     ) -> Self {
         Self::StructDecl(StructDeclaration::new(identifier, generics, fields))
     }

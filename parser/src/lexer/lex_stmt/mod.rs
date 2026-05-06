@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     common::binop::BinOp,
     lexer::{
@@ -92,6 +94,11 @@ pub enum LexStmt<'a> {
 pub struct Import<'a> {
     identifier: &'a str,
 }
+impl<'a> Import<'a> {
+    pub fn module(&'a self) -> &'a str {
+        self.identifier
+    }
+}
 
 impl<'a> LexStmt<'a> {
     pub fn as_decl(self) -> Option<Decl<'a>> {
@@ -152,7 +159,7 @@ impl<'a> LexStmt<'a> {
     pub fn new_struct_decl(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        fields: Vec<(&'a str, LexType<'a>)>,
+        fields: HashMap<&'a str, LexType<'a>>,
     ) -> Self {
         Self::Decl(Decl::new_struct(identifier, generics, fields))
     }

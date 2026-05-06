@@ -16,9 +16,10 @@ use crate::{
     },
 };
 use p_macros::{
-    b2, create_return_type, lbop, leel, lfin, lfne, lg, lprt, ltype, lv, lvda, rt,
+    b2, create_return_type, hashmap, lbop, leel, lfin, lfne, lg, lprt, ltype, lv, lvda, rt,
 };
 use rstest::rstest;
+use std::collections::HashMap;
 
 #[rstest]
 fn test_variable_declaration() {

@@ -47,7 +47,7 @@ macro_rules! b2 {
     ) => {
         LexExpr::Struct {
             identifier: stringify!($ident),
-            field_implementations: vec![$( (stringify!($field), $expr.into()), )*]
+            field_implementations: hashmap![$( (stringify!($field), $expr.into()), )*]
         }
     };
     (
@@ -74,9 +74,15 @@ macro_rules! b2 {
 
 #[macro_export]
 macro_rules! create_return_type {
-    () => { None };
-    ($ret:ident) => { Some(ltype!($ret)) };
-    ($ret:expr) => { Some($ret) };
+    () => {
+        None
+    };
+    ($ret:ident) => {
+        Some(ltype!($ret))
+    };
+    ($ret:expr) => {
+        Some($ret)
+    };
 }
 
 #[macro_export]
@@ -126,21 +132,13 @@ macro_rules! lvda {
         $type:ty,
         $value:expr
     ) => {
-        LexStmt::new_var_decl_ass(
-            $ident,
-            Some($type),
-            $value.into(),
-        )
+        LexStmt::new_var_decl_ass($ident, Some($type), $value.into())
     };
     (
         $ident:expr,
         $value:expr
     ) => {
-        LexStmt::new_var_decl_ass(
-            $ident,
-            None,
-            $value.into(),
-        )
+        LexStmt::new_var_decl_ass($ident, None, $value.into())
     };
 }
 
@@ -334,5 +332,21 @@ macro_rules! ltype {
 macro_rules! lyv {
     ($t:expr) => {
         LexType::Mono(LexMonoType::TypeVar($t))
+    };
+}
+
+#[macro_export]
+macro_rules! hashmap {
+    () => {
+        HashMap::new()
+    };
+    (
+        $(($key:expr, $val:expr)),+ $(,)?
+    ) => {
+        (|| {
+            let mut map = HashMap::new();
+            $(map.insert($key, $val);)*
+            map
+        })()
     };
 }

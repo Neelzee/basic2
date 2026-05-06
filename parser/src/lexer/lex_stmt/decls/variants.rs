@@ -1,13 +1,18 @@
-use crate::lexer::{
-    lex_expr::LexExpr,
-    lex_stmt::{FunDeclComps, FunImplComps},
-    lex_type::LexType,
+use std::collections::HashMap;
+
+use crate::{
+    common::AsB2Type,
+    lexer::{
+        lex_expr::LexExpr,
+        lex_stmt::{FunDeclComps, FunImplComps},
+        lex_type::{LexMonoType, LexPolyType, LexType},
+    },
 };
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableDeclaration<'a> {
-    identifier: &'a str,
-    variable_type: LexType<'a>,
+    pub identifier: &'a str,
+    pub variable_type: LexType<'a>,
 }
 
 impl<'a> VariableDeclaration<'a> {
@@ -79,6 +84,24 @@ impl<'a> VariableDeclarationAssignment<'a> {
             value,
         }
     }
+
+    pub fn value(&'a self) -> &'a LexExpr<'a> {
+        &self.value
+    }
+
+    pub fn b2_type(&'a self) -> Option<&'a LexType<'a>> {
+        self.variable_type.as_ref()
+    }
+}
+
+impl<'a> From<VariableDeclaration<'a>> for VariableDeclarationAssignment<'a> {
+    fn from(value: VariableDeclaration<'a>) -> Self {
+        Self {
+            identifier: value.identifier,
+            variable_type: Some(value.variable_type),
+            value: LexExpr::default(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -105,24 +128,59 @@ impl<'a> FunctionDeclaration<'a> {
     }
 }
 
+impl<'a> AsB2Type<'a> for FunctionDeclaration<'a> {
+    fn as_b2_type(&'a self) -> LexType<'a> {
+        match self.parameters.first() {
+            Some(input) => {
+                let mut pars = vec![input.clone()];
+                let mut parameters = self.parameters.clone();
+                pars.append(&mut parameters);
+                pars.push(self.return_type.clone().unwrap_or_default());
+                LexType::fold_funs(pars).unwrap_or(LexType::Poly(LexPolyType::FnType {
+                    input: Box::new(LexType::default()),
+                    output: Box::new(self.return_type.clone().unwrap_or_default()),
+                }))
+            }
+            None => LexType::Poly(LexPolyType::FnType {
+                input: Box::new(LexType::default()),
+                output: Box::new(self.return_type.clone().unwrap_or_default()),
+            }),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct StructDeclaration<'a> {
     identifier: &'a str,
     generics: Vec<(&'a str, Vec<&'a str>)>,
-    fields: Vec<(&'a str, LexType<'a>)>,
+    fields: HashMap<&'a str, LexType<'a>>,
 }
 
 impl<'a> StructDeclaration<'a> {
     pub fn new(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        fields: Vec<(&'a str, LexType<'a>)>,
+        fields: HashMap<&'a str, LexType<'a>>,
     ) -> Self {
         Self {
             identifier,
             generics,
             fields,
         }
+    }
+
+    pub fn has_field(&self, field: &str) -> bool {
+        self.fields.contains_key(field)
+    }
+
+    pub fn get_field(&self, field: &str) -> Option<&LexType<'a>> {
+        self.fields.get(field)
+    }
+}
+
+impl<'a> AsB2Type<'a> for StructDeclaration<'a> {
+    fn as_b2_type(&'a self) -> LexType<'a> {
+        LexType::Mono(LexMonoType::TypeVar(self.identifier))
     }
 }
 
@@ -144,6 +202,12 @@ impl<'a> TypeAlias<'a> {
             generics,
             b2_type,
         }
+    }
+}
+
+impl<'a> AsB2Type<'a> for TypeAlias<'a> {
+    fn as_b2_type(&'a self) -> LexType<'a> {
+        self.b2_type.clone()
     }
 }
 

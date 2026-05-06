@@ -6,8 +6,9 @@ use crate::{
     },
 };
 use nom::Parser;
-use p_macros::{lai, lbop, lfne, lg, lv};
+use p_macros::{hashmap, lai, lbop, lfne, lg, lv};
 use rstest::rstest;
+use std::collections::HashMap;
 
 #[rstest]
 #[case::parses_int("123", LexExpr::Literal(Primitive::Int(123)))]
@@ -38,10 +39,10 @@ use rstest::rstest;
     "##,
     LexExpr::Struct {
         identifier: "Person",
-        field_implementations: vec![
+        field_implementations: hashmap![
             ("firstName", LexExpr::Literal(Primitive::Str("Nils"))),
             ("lastName", LexExpr::Literal(Primitive::Str("Fitjar"))),
-            ("age", LexExpr::Literal(Primitive::Int(24))),
+            ("age", LexExpr::Literal(Primitive::Int(24)))
         ]
     }
 )]
@@ -99,7 +100,7 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
     "STRUCTURE empty WITH END",
     LexExpr::Struct {
         identifier: "empty",
-        field_implementations: Vec::new(),
+        field_implementations: HashMap::new(),
     }
 )]
 #[case(
@@ -108,7 +109,7 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
     END",
     LexExpr::Struct {
         identifier: "FOO",
-        field_implementations: vec![("bar", LexExpr::Literal(Primitive::Int(10)))],
+        field_implementations: hashmap![("bar", LexExpr::Literal(Primitive::Int(10)))],
     }
 )]
 #[case(
@@ -118,7 +119,7 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
     END"##,
     LexExpr::Struct {
         identifier: "FOOBAR",
-        field_implementations: vec![
+        field_implementations: hashmap![
             ("bar", LexExpr::Literal(Primitive::Int(10))),
             ("foo", LexExpr::Literal(Primitive::Str("")))
         ],

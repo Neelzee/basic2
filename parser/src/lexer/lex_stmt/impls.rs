@@ -8,9 +8,9 @@ pub enum Impl<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunctionImplementation<'a> {
-    identifier: &'a str,
-    parameters: Vec<(&'a str, Option<LexExpr<'a>>)>,
-    body: Vec<LexStmt<'a>>,
+    pub identifier: &'a str,
+    pub parameters: Vec<(&'a str, Option<LexExpr<'a>>)>,
+    pub body: Vec<LexStmt<'a>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
