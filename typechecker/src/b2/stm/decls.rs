@@ -19,21 +19,21 @@ pub enum Decl<'a> {
 }
 
 impl<'a> Decl<'a> {
-    pub fn as_var(&'a self) -> Option<&'a VarDecl<'a>> {
+    pub fn as_var(&self) -> Option<&VarDecl<'a>> {
         match self {
             Decl::VarDecl(v) => Some(v),
             _ => None,
         }
     }
 
-    pub fn as_fn(&'a self) -> Option<&'a FnDecl<'a>> {
+    pub fn as_fn(&self) -> Option<&FnDecl<'a>> {
         match self {
             Decl::FnDecl(f) => Some(f),
             _ => None,
         }
     }
 
-    pub fn as_import(&'a self) -> Option<&'a Import<'a>> {
+    pub fn as_import(&self) -> Option<&Import<'a>> {
         match self {
             Decl::Import(i) => Some(i),
             _ => None,
@@ -49,11 +49,11 @@ pub struct VarDecl<'a> {
 }
 
 impl<'a> VarDecl<'a> {
-    pub fn get_type(&'a self) -> Option<&'a B2Type<'a>> {
+    pub fn get_type(&self) -> Option<&B2Type<'a>> {
         self.b2_type.as_ref()
     }
 
-    pub fn get_expr(&'a self) -> Option<&'a B2Expr<'a>> {
+    pub fn get_expr(&self) -> Option<&B2Expr<'a>> {
         self.val.as_ref()
     }
 
@@ -98,7 +98,7 @@ pub struct FnDecl<'a> {
 }
 
 impl<'a> FnDecl<'a> {
-    pub fn get_return(&'a self) -> &'a B2Type<'a> {
+    pub fn get_return(&self) -> &B2Type<'a> {
         &self.ret
     }
 }

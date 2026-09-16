@@ -22,11 +22,11 @@ pub struct LexModule<'a> {
 }
 
 impl<'a> LexModule<'a> {
-    pub fn idents(&'a self) -> (&'a str, &'a str) {
+    pub fn idents(&self) -> (&str, &str) {
         (&self.start_identifier, &self.end_identifier)
     }
 
-    pub fn statements(&'a self) -> &'a [LexStmt<'a>] {
+    pub fn statements(&self) -> &[LexStmt<'a>] {
         &self.statements
     }
 

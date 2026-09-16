@@ -95,7 +95,7 @@ pub struct Import<'a> {
     identifier: &'a str,
 }
 impl<'a> Import<'a> {
-    pub fn module(&'a self) -> &'a str {
+    pub fn module(&self) -> &str {
         self.identifier
     }
 }

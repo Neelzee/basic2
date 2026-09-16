@@ -132,7 +132,7 @@ impl<'a> From<bool> for Primitive<'a> {
 }
 
 impl<'a> AsB2Type<'a> for Primitive<'a> {
-    fn as_b2_type(&'a self) -> LexType<'a> {
+    fn as_b2_type(&self) -> LexType<'a> {
         match self {
             Primitive::Int(_) => LexType::int(),
             Primitive::Float(_) => LexType::float(),

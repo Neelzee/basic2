@@ -12,7 +12,7 @@ pub enum IE<'a> {
     MoreArgumentsSuppliedToFunctionThanExpected(
         &'a str,
         Vec<LexExpr<'a>>,
-        &'a [(&'a str, Option<LexExpr<'a>>)],
+        Vec<(&'a str, Option<LexExpr<'a>>)>,
     ),
 }
 

@@ -42,49 +42,19 @@ type StructField = ();
 impl<'a> B2Expr<'a> {
     pub fn get_type(&self, st: &'a SymbolTable<'a>) -> B2Type<'a> {
         match &self {
-            B2Expr::IntLit(_) => B2Type::Int,
-            B2Expr::FloatLit(_) => B2Type::Float,
-            B2Expr::StrLit(_) => B2Type::Str,
-            B2Expr::BoolLit(_) => B2Type::Bool,
-            B2Expr::BinOp(l, op, r) => match op {
-                BinOp::Add => {
-                    if l.get_type(st) == B2Type::Str || r.get_type(st) == B2Type::Str {
-                        return B2Type::Str;
-                    }
-                    if l.get_type(st) == B2Type::Float || r.get_type(st) == B2Type::Float {
-                        return B2Type::Float;
-                    }
-                    return B2Type::Int;
-                }
-                BinOp::Mul => todo!(),
-                BinOp::Sub => todo!(),
-                BinOp::Div => todo!(),
-                BinOp::Pow => todo!(),
-                BinOp::Eq
-                | BinOp::Geq
-                | BinOp::Gt
-                | BinOp::Leq
-                | BinOp::Lt
-                | BinOp::Neq
-                | BinOp::And
-                | BinOp::Or => B2Type::Bool,
-                BinOp::Mod => B2Type::Int,
-            },
-            B2Expr::UniOp(_, b2_expr) => b2_expr.get_type(st),
-            B2Expr::PostFix(b2_expr, postfix) => match postfix {
-                Postfix::Incr | Postfix::Decr => b2_expr.get_type(st),
-                Postfix::Index(_) => match &**b2_expr {
-                    B2Expr::List { b2_type, .. } => B2Type::List(Box::new(b2_type.clone())),
-                    t => t.get_type(st),
-                },
-            },
-            B2Expr::EnumLit { ident, instance } => B2Type::EnumVariant(ident, instance),
-            B2Expr::Variable { b2_type, .. } => b2_type.clone(),
-            B2Expr::List { b2_type, .. } => B2Type::List(Box::new(b2_type.clone())),
-            B2Expr::Tuple(f, s) => {
-                B2Type::Tuple(Box::new(f.get_type(st)), Box::new(s.get_type(st)))
-            }
-            B2Expr::Struct { ident } => B2Type::Struct(ident),
+            B2Expr::IntLit(_) => todo!(),
+            B2Expr::FloatLit(_) => todo!(),
+            B2Expr::StrLit(_) => todo!(),
+            B2Expr::BoolLit(_) => todo!(),
+            B2Expr::EnumLit { ident, instance } => todo!(),
+            B2Expr::Struct { ident, fields } => todo!(),
+            B2Expr::UniOp(uni_op, b2_expr) => todo!(),
+            B2Expr::PostFix(b2_expr, postfix) => todo!(),
+            B2Expr::BinOp(b2_expr, bin_op, b2_expr1) => todo!(),
+            B2Expr::Variable { ident, b2_type } => todo!(),
+            B2Expr::List(b2_exprs) => todo!(),
+            B2Expr::Tuple(b2_expr, b2_expr1) => todo!(),
+            B2Expr::Fn { ident, args } => todo!(),
         }
     }
 }

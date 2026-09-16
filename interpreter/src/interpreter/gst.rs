@@ -1,15 +1,15 @@
+use std::todo;
+
 use crate::symbol_table::SymbolTable;
 use parser::{
-    common::{AsB2Type, ToB2},
-    lexer::{
-        lex_stmt::{
+    common::{AsB2Type, ToB2}, lexer::{
+        lex_mod::LexModule, lex_stmt::{
             decls::variants::{
                 FunctionDeclaration, StructDeclaration, TraitDecl, TypeAlias, VariableDeclaration,
                 VariableDeclarationAssignment,
             },
             impls::{FunctionImplementation, TraitImpl},
-        },
-        lex_type::LexType,
+        }, lex_type::LexType,
     },
 };
 
@@ -37,11 +37,24 @@ impl<'a> GlobalSymbolTable<'a> {
         }
     }
 
+    pub fn from_module(module: &LexModule<'a>) -> Self {
+        let stmts = module.statements().clone();
+        Self {
+            vars: todo!(),
+            fn_decls: todo!(),
+            fn_impls: todo!(),
+            trait_decls: todo!(),
+            trait_impls: todo!(),
+            struct_decls: todo!(),
+            type_decls: todo!(),
+        }
+    }
+
     pub fn lookup_var(
-        &'a self,
+        &self,
         scope: usize,
         ident: &'a str,
-    ) -> Option<&'a VariableDeclarationAssignment<'a>> {
+    ) -> Option<&VariableDeclarationAssignment<'a>> {
         self.vars.lookup(&(scope, ident))
     }
 
@@ -51,90 +64,97 @@ impl<'a> GlobalSymbolTable<'a> {
         ident: &'a str,
         var: VariableDeclaration<'a>,
     ) -> Self {
-        self.vars.insert((scope, ident), var.into());
+        self.vars = self.vars.insert((scope, ident), var.into());
         self
     }
 
     pub fn insert_var_ass(
-        &mut self,
+        mut self,
         scope: usize,
         ident: &'a str,
         var: VariableDeclarationAssignment<'a>,
-    ) {
-        self.vars.insert((scope, ident), var);
+    ) -> Self {
+        self.vars = self.vars.insert((scope, ident), var);
+        self
     }
 
     pub fn lookup_fn_decl(
-        &'a self,
+        &self,
         scope: usize,
         ident: &'a str,
-    ) -> Option<&'a FunctionDeclaration<'a>> {
+    ) -> Option<&FunctionDeclaration<'a>> {
         self.fn_decls.lookup(&(scope, ident))
     }
 
-    pub fn insert_fn_decl(&'a mut self, scope: usize, ident: &'a str, d: FunctionDeclaration<'a>) {
-        self.fn_decls.insert((scope, ident), d);
+    pub fn insert_fn_decl(mut self, scope: usize, ident: &'a str, d: FunctionDeclaration<'a>) -> Self {
+        self.fn_decls = self.fn_decls.insert((scope, ident), d);
+        self
     }
 
     pub fn lookup_fn_impl(
-        &'a self,
+        &self,
         scope: usize,
         ident: &'a str,
-    ) -> Option<&'a FunctionImplementation<'a>> {
+    ) -> Option<&FunctionImplementation<'a>> {
         self.fn_impls.lookup(&(scope, ident))
     }
 
     pub fn insert_fn_impl(
-        &'a mut self,
+        mut self,
         scope: usize,
         ident: &'a str,
         d: FunctionImplementation<'a>,
-    ) {
-        self.fn_impls.insert((scope, ident), d);
+    ) -> Self {
+        self.fn_impls = self.fn_impls.insert((scope, ident), d);
+        self
     }
 
-    pub fn lookup_trait_decl(&'a self, scope: usize, ident: &'a str) -> Option<&'a TraitDecl<'a>> {
+    pub fn lookup_trait_decl(&self, scope: usize, ident: &'a str) -> Option<&TraitDecl<'a>> {
         self.trait_decls.lookup(&(scope, ident))
     }
 
-    pub fn insert_trait_decl(&'a mut self, scope: usize, ident: &'a str, d: TraitDecl<'a>) {
-        self.trait_decls.insert((scope, ident), d);
+    pub fn insert_trait_decl(mut self, scope: usize, ident: &'a str, d: TraitDecl<'a>) -> Self {
+        self.trait_decls = self.trait_decls.insert((scope, ident), d);
+        self
     }
 
-    pub fn lookup_trait_impl(&'a self, scope: usize, ident: &'a str) -> Option<&'a TraitImpl<'a>> {
+    pub fn lookup_trait_impl(&self, scope: usize, ident: &'a str) -> Option<&TraitImpl<'a>> {
         self.trait_impls.lookup(&(scope, ident))
     }
 
-    pub fn insert_trait_impl(&'a mut self, scope: usize, ident: &'a str, d: TraitImpl<'a>) {
-        self.trait_impls.insert((scope, ident), d);
+    pub fn insert_trait_impl(mut self, scope: usize, ident: &'a str, d: TraitImpl<'a>) -> Self {
+        self.trait_impls = self.trait_impls.insert((scope, ident), d);
+        self
     }
 
     pub fn lookup_struct_decl(
-        &'a self,
+        &self,
         scope: usize,
         ident: &'a str,
-    ) -> Option<&'a StructDeclaration<'a>> {
+    ) -> Option<&StructDeclaration<'a>> {
         self.struct_decls.lookup(&(scope, ident))
     }
 
     pub fn insert_struct_decl(
-        &'a mut self,
+        mut self,
         scope: usize,
         ident: &'a str,
         d: StructDeclaration<'a>,
-    ) {
-        self.struct_decls.insert((scope, ident), d);
+    ) -> Self {
+        self.struct_decls = self.struct_decls.insert((scope, ident), d);
+        self
     }
 
-    pub fn lookup_type_decl(&'a self, scope: usize, ident: &'a str) -> Option<&'a TypeAlias<'a>> {
+    pub fn lookup_type_decl(&self, scope: usize, ident: &'a str) -> Option<&TypeAlias<'a>> {
         self.type_decls.lookup(&(scope, ident))
     }
 
-    pub fn insert_type_decl(&'a mut self, scope: usize, ident: &'a str, d: TypeAlias<'a>) {
-        self.type_decls.insert((scope, ident), d);
+    pub fn insert_type_decl(mut self, scope: usize, ident: &'a str, d: TypeAlias<'a>) -> Self {
+        self.type_decls = self.type_decls.insert((scope, ident), d);
+        self
     }
 
-    pub fn lookup_type(&'a self, scope: usize, ident: &'a str) -> Option<LexType<'a>> {
+    pub fn lookup_type(&self, scope: usize, ident: &'a str) -> Option<LexType<'a>> {
         self.lookup_type_decl(scope, ident)
             .map(AsB2Type::as_b2_type)
             .or_else(|| {
@@ -144,7 +164,7 @@ impl<'a> GlobalSymbolTable<'a> {
             .or_else(|| self.lookup_fn_decl(scope, ident).map(AsB2Type::as_b2_type))
     }
 
-    pub fn ident_is_available(&'a self, scope: usize, ident: &'a str) -> Result<(), String> {
+    pub fn ident_is_available(&self, scope: usize, ident: &'a str) -> Result<(), String> {
         if let Some(var) = self.lookup_var(scope, ident) {
             return Err(format!(
                 "Variable: {ident} already exists with value {}, and type {}",

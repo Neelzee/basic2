@@ -4,7 +4,7 @@ use crate::interpreter::{
 };
 use parser::{
     common::{
-        AsB2Type, B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive,
+         B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive,
         uniop::UniOp,
     },
     lexer::{
@@ -188,8 +188,8 @@ pub fn unpack_expr<'a>(
 
 fn infer_type<'a>(
     scope: usize,
-    gst: &'a GlobalSymbolTable<'a>,
-    value: &'a LexExpr<'a>,
+    gst: &GlobalSymbolTable<'a>,
+    value: &LexExpr<'a>,
 ) -> LexType<'a> {
     match value {
         LexExpr::Nil => LexType::nil(),
@@ -279,7 +279,7 @@ fn infer_type<'a>(
 
 fn invoke_function<'a>(
     scope: usize,
-    gst: &'a GlobalSymbolTable<'a>,
+    gst: &GlobalSymbolTable<'a>,
     identifier: &'a str,
     arguments: Vec<LexExpr<'a>>,
 ) -> Result<LexExpr<'a>, IE<'a>> {
@@ -291,7 +291,7 @@ fn invoke_function<'a>(
 
     if arguments.len() > parameters.len() {
         return Err(IE::MoreArgumentsSuppliedToFunctionThanExpected(
-            identifier, arguments, parameters,
+            identifier, arguments, parameters.clone(),
         ));
     }
 
@@ -310,7 +310,7 @@ fn invoke_function<'a>(
                 return Err(IE::MissingFunctionArgument(identifier, i, par_id));
             }
             (Some(arg), _) | (_, Some(arg)) => {
-                function_gst.insert_var_ass(
+                function_gst = function_gst.insert_var_ass(
                     function_scope,
                     par_id,
                     VariableDeclarationAssignment::new(par_id, None, arg),
@@ -342,15 +342,15 @@ fn invoke_function<'a>(
 
 fn eval_operation<'a>(
     scope: usize,
-    gst: &'a GlobalSymbolTable<'a>,
+    gst: &GlobalSymbolTable<'a>,
     op: B2Op<'a>,
 ) -> Result<LexExpr<'a>, IE<'a>> {
     todo!()
 }
 
-fn eval_expr<'a, 'b: 'a>(
+fn eval_expr<'a>(
     scope: usize,
-    gst: &'b GlobalSymbolTable<'a>,
+    gst: &GlobalSymbolTable<'a>,
     expr: LexExpr<'a>,
 ) -> Result<LexExpr<'a>, IE<'a>> {
     match expr {

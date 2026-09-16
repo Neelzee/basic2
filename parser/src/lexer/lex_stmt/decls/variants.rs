@@ -85,11 +85,15 @@ impl<'a> VariableDeclarationAssignment<'a> {
         }
     }
 
-    pub fn value(&'a self) -> &'a LexExpr<'a> {
+    pub fn identifier(&self) -> &str {
+        self.identifier
+    }
+
+    pub fn value(&self) -> &LexExpr<'a> {
         &self.value
     }
 
-    pub fn b2_type(&'a self) -> Option<&'a LexType<'a>> {
+    pub fn b2_type(&self) -> Option<&LexType<'a>> {
         self.variable_type.as_ref()
     }
 }
@@ -129,7 +133,7 @@ impl<'a> FunctionDeclaration<'a> {
 }
 
 impl<'a> AsB2Type<'a> for FunctionDeclaration<'a> {
-    fn as_b2_type(&'a self) -> LexType<'a> {
+    fn as_b2_type(&self) -> LexType<'a> {
         match self.parameters.first() {
             Some(input) => {
                 let mut pars = vec![input.clone()];
@@ -179,7 +183,7 @@ impl<'a> StructDeclaration<'a> {
 }
 
 impl<'a> AsB2Type<'a> for StructDeclaration<'a> {
-    fn as_b2_type(&'a self) -> LexType<'a> {
+    fn as_b2_type(&self) -> LexType<'a> {
         LexType::Mono(LexMonoType::TypeVar(self.identifier))
     }
 }
@@ -206,7 +210,7 @@ impl<'a> TypeAlias<'a> {
 }
 
 impl<'a> AsB2Type<'a> for TypeAlias<'a> {
-    fn as_b2_type(&'a self) -> LexType<'a> {
+    fn as_b2_type(&self) -> LexType<'a> {
         self.b2_type.clone()
     }
 }

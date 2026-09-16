@@ -14,7 +14,7 @@ impl<'a, T: Clone> SymbolTable<'a, T> {
         }
     }
 
-    pub fn lookup(&'a self, key @ (scope, ident): &'_ Key<'a>) -> Option<&'a T> {
+    pub fn lookup(&self, key @ (scope, ident): &'_ Key<'a>) -> Option<&T> {
         match scope {
             0 => self.symbols.get(key),
             _ => self
@@ -24,8 +24,9 @@ impl<'a, T: Clone> SymbolTable<'a, T> {
         }
     }
 
-    pub fn insert(&mut self, key: Key<'a>, value: T) {
+    pub fn insert(mut self, key: Key<'a>, value: T) -> Self {
         self.symbols.insert(key, value);
+        self
     }
 }
 

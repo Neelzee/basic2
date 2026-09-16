@@ -14,7 +14,7 @@ pub trait ToB2 {
 }
 
 pub trait AsB2Type<'a> {
-    fn as_b2_type(&'a self) -> LexType<'a>;
+    fn as_b2_type(&self) -> LexType<'a>;
 }
 
 pub type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;
@@ -34,7 +34,7 @@ impl<'a> B2Op<'a> {
         Self(B2OpInner::Binary(l, op, r))
     }
 
-    pub fn inner(&'a self) -> &'a B2OpInner<'a> {
+    pub fn inner(&self) -> &B2OpInner<'a> {
         &self.0
     }
 }
