@@ -55,12 +55,12 @@ pub fn typecheck_statement<'a>(
                 st,
             })
         }
-        LexStmt::VariableReassignment { identifier, .. } if !st.contains_ident(identifier) => {
-            Err(B2Error::IdentifierDoesNotExist {
-                ident: identifier,
-                st,
-            })
-        }
+        LexStmt::VariableReassignment {
+            ident: identifier, ..
+        } if !st.contains_ident(identifier) => Err(B2Error::IdentifierDoesNotExist {
+            ident: identifier,
+            st,
+        }),
         LexStmt::ListReassignment {
             indexee,
             index,
@@ -142,7 +142,7 @@ pub fn typecheck_statement<'a>(
             value,
         } => todo!(),
         LexStmt::VariableReassignment {
-            identifier,
+            ident: identifier,
             reassignment,
             new_value,
         } => todo!(),
@@ -166,9 +166,9 @@ pub fn infer_type<'a>(expr: &'a LexExpr<'a>, st: &'a SymbolTable<'a>) -> Option<
                 .or_else(|| v.get_expr().map(|x| x.get_type(st)))
         }),
         LexExpr::Group(i) => infer_type(i, st),
-        LexExpr::FunctionCall { identifier, .. } => {
-            st.lookup_fn(identifier).map(|f| f.get_return()).cloned()
-        }
+        LexExpr::FunctionCall {
+            ident: identifier, ..
+        } => st.lookup_fn(identifier).map(|f| f.get_return()).cloned(),
         LexExpr::Op(op) => match op.inner() {
             B2OpInner::Prefix(_, e) => infer_type(e, st),
             B2OpInner::Postfix(e, o) => match o {
@@ -178,12 +178,15 @@ pub fn infer_type<'a>(expr: &'a LexExpr<'a>, st: &'a SymbolTable<'a>) -> Option<
             B2OpInner::Binary(_, _, _) => todo!(),
         },
         LexExpr::Struct {
-            identifier,
+            ident: identifier,
             field_implementations,
         } => todo!(),
-        LexExpr::StructFieldAccessing { identifier, field } => todo!(),
+        LexExpr::StructFieldAccessing {
+            ident: identifier,
+            field,
+        } => todo!(),
         LexExpr::Enum {
-            identifier,
+            ident: identifier,
             instance,
         } => todo!(),
     }
