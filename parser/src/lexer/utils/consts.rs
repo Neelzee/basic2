@@ -30,8 +30,6 @@ pub const FUNCTION_GENERICS_START: &str = "[";
 pub const FUNCTION_GENERICS_END: &str = "]";
 pub const FUNCTION_GENERICS_END_CHAR: char = ')';
 pub const FUNCTION_GENERICS_DELIMITER: &str = ";";
-pub const FUNCTION_GENERIC_TRAIT_KW: &str = "KNOWS";
-pub const FUNCTION_GENERIC_TRAIT_SEP: &str = ",";
 
 pub const FUNCTION_CALL_START: &str = "(";
 pub const FUNCTION_CALL_END: &str = ")";
@@ -146,15 +144,17 @@ pub const FUNCTION_TYPE_ARROW_KW: &str = "=>";
 pub const FUNCTION_TYPE_START: &str = "{";
 pub const FUNCTION_TYPE_END: &str = "}";
 
-pub const TRAIT_IMPL_KW: &str = "TEACH";
-pub const TRAIT_IMPL_BODY_START_KW: &str = "TO";
-pub const TRAIT_IMPL_BODY_END_KW: &str = "END";
+pub const FUNCTION_GENERIC_SKILL_KW: &str = "KNOWS";
+pub const FUNCTION_GENERIC_SKILL_SEP: &str = ",";
+pub const SKILL_IMPL_KW: &str = "KNOWS";
+pub const SKILL_IMPL_BODY_START_KW: &str = "WITH";
+pub const SKILL_IMPL_BODY_END_KW: &str = "END";
 
-pub const TRAIT_DECL_KW: &str = "TRAIT";
-pub const TRAIT_DECL_BODY_START_KW: &str = "WHERE";
-pub const TRAIT_DECL_BODY_END_KW: &str = "END";
-pub const TRAIT_RESTRICTION_KW: &str = "KNOWS";
-pub const TRAIT_RESTRICTION_SEP_KW: &str = ";";
+pub const SKILL_DECL_KW: &str = "SKILL";
+pub const SKILL_DECL_BODY_START_KW: &str = "WHERE";
+pub const SKILL_DECL_BODY_END_KW: &str = "END";
+pub const SKILL_RESTRICTION_KW: &str = "KNOWS";
+pub const SKILL_RESTRICTION_SEP_KW: &str = ";";
 
 pub const SELF_TYPE_KW: &str = "IT";
 

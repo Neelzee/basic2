@@ -26,8 +26,12 @@ impl<'a> LexModule<'a> {
         (&self.start_identifier, &self.end_identifier)
     }
 
-    pub fn statements(&self) -> &[LexStmt<'a>] {
+    pub fn get_statements(&self) -> &[LexStmt<'a>] {
         &self.statements
+    }
+
+    pub fn statements(self) -> Vec<LexStmt<'a>> {
+        self.statements
     }
 
     pub fn parse_program(input: Span<'a>) -> B2LexResult<'a, Self> {

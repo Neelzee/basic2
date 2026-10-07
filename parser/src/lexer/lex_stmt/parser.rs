@@ -2,7 +2,10 @@ use crate::{
     common::binop::BinOp,
     lexer::{
         lex_expr::LexExpr,
-        lex_stmt::{FunDeclComps, FunImplComps, Import, LexStmt, when_match::WhenMatch},
+        lex_stmt::{
+            FunDeclComps, FunImplComps, Import, LexStmt,
+            decls::variants::VariableDeclarationAssignment, when_match::WhenMatch,
+        },
         lex_type::LexType,
         utils::{
             B2LexError, B2LexResult, Span,
@@ -10,19 +13,19 @@ use crate::{
                 ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW,
                 CONTINUE_STMT_KW, END_STMT_KW, ENUM_END_KW, ENUM_START_KW, FOR_BODY_START_KW,
                 FOR_CONDITION_END_KW, FOR_CONDITION_START_KW, FOR_END_KW, FOR_START_KW,
-                FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_GENERIC_TRAIT_KW,
-                FUNCTION_GENERIC_TRAIT_SEP, FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_END,
+                FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_GENERIC_SKILL_KW,
+                FUNCTION_GENERIC_SKILL_SEP, FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_END,
                 FUNCTION_GENERICS_START, FUNCTION_IMPLEMENTATION_KW,
                 FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END,
                 FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER,
                 FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, IF_STATEMENT_BODY_START_KW,
                 IF_STATEMENT_END_KW, IF_STATEMENT_START_KW, IMPORT_MODULE_KW, LIST_DELIMITER,
-                LIST_END, LIST_START, LIST_UNPACKING_KW, RETURN_STMT_KW, STRUCT_DECL_KW,
-                STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW,
-                TRAIT_DECL_BODY_END_KW, TRAIT_DECL_BODY_START_KW, TRAIT_DECL_KW,
-                TRAIT_IMPL_BODY_END_KW, TRAIT_IMPL_BODY_START_KW, TRAIT_IMPL_KW,
-                TRAIT_RESTRICTION_KW, TRAIT_RESTRICTION_SEP_KW, TUPLE_DELIMITER, TUPLE_END,
-                TUPLE_START, TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
+                LIST_END, LIST_START, LIST_UNPACKING_KW, RETURN_STMT_KW, SKILL_DECL_BODY_END_KW,
+                SKILL_DECL_BODY_START_KW, SKILL_DECL_KW, SKILL_IMPL_BODY_END_KW,
+                SKILL_IMPL_BODY_START_KW, SKILL_IMPL_KW, SKILL_RESTRICTION_KW,
+                SKILL_RESTRICTION_SEP_KW, STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW,
+                STRUCT_FIELD_DECL_KW, STRUCT_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+                TYPE_ALIAS_KW, UNPACK_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT,
                 VARIABLE_TYPE_START, WHEN_STATEMENT_BODY_END_KW, WHEN_STATEMENT_BODY_START_KW,
                 WHEN_STATEMENT_START_KW, WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW,
                 WHILE_STATEMENT_START_KW,
@@ -41,7 +44,7 @@ use nom::{
     character::complete::{multispace0, multispace1, space0},
     combinator::opt,
     error::{ErrorKind, ParseError, context},
-    multi::{many0, separated_list0},
+    multi::{many, many0, many1, separated_list0, separated_list1},
     sequence::{delimited, pair, preceded, terminated},
 };
 
@@ -72,8 +75,8 @@ impl<'a> LexStmt<'a> {
                 Self::parse_import_module,
                 Self::parse_for_statement,
                 Self::parse_enum_declaration,
-                Self::parse_trait_decl,
-                Self::parse_trait_impl,
+                Self::parse_skill_decl,
+                Self::parse_skill_impl,
                 Self::parse_continue,
             ]),
         )
@@ -146,6 +149,33 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
+    fn _parse_variable_declaration_assignment(
+        input: Span<'a>,
+    ) -> B2LexResult<'a, VariableDeclarationAssignment<'a>> {
+        delimited(
+            preceded(multispace0, tag(VARIABLE_DECLARATION)),
+            (
+                preceded(multispace0, parse_identifier),
+                preceded(
+                    multispace0,
+                    opt(preceded(
+                        (tag(VARIABLE_TYPE_START), multispace0),
+                        LexType::parse_type,
+                    )),
+                ),
+                preceded(
+                    (multispace0, tag(VARIABLE_REASIGNMENT)),
+                    preceded(multispace0, LexExpr::parse_expr),
+                ),
+            ),
+            tag(END_STMT_KW),
+        )
+        .map(|(identifier, variable_type, value)| {
+            VariableDeclarationAssignment::new(identifier, variable_type, value)
+        })
+        .parse(input)
+    }
+
     pub fn parse_struct_field_reassignment(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "struct-field-accessing",
@@ -158,8 +188,8 @@ impl<'a> LexStmt<'a> {
             ),
         )
         .map(
-            |(identifier, _, field, reassignment, new_value)| Self::StructFieldReassignment {
-                identifier,
+            |(ident, _, field, reassignment, new_value)| Self::StructFieldReassignment {
+                ident,
                 field,
                 reassignment,
                 new_value,
@@ -176,6 +206,31 @@ impl<'a> LexStmt<'a> {
                 tag(VARIABLE_REASIGNMENT),
             ),
         )
+        .parse(input)
+    }
+
+    fn _parse_variable_reassignment(
+        input: Span<'a>,
+    ) -> B2LexResult<'a, VariableDeclarationAssignment<'a>> {
+        context(
+            "parse-variable-reassignment",
+            preceded(
+                multispace0,
+                terminated(
+                    (
+                        parse_identifier,
+                        Self::parse_reasignment,
+                        preceded(space0, LexExpr::parse_expr),
+                    ),
+                    tag(END_STMT_KW),
+                ),
+            ),
+        )
+        .map(|(ident, _, value)| VariableDeclarationAssignment {
+            identifier: ident,
+            variable_type: None,
+            value,
+        })
         .parse(input)
     }
 
@@ -196,7 +251,7 @@ impl<'a> LexStmt<'a> {
         )
         .map(
             |(ident, reassignment, new_value)| Self::VariableReassignment {
-                identifier: ident,
+                ident,
                 reassignment,
                 new_value,
             },
@@ -248,9 +303,9 @@ impl<'a> LexStmt<'a> {
                 (
                     parse_identifier,
                     opt(preceded(
-                        (multispace0, tag(FUNCTION_GENERIC_TRAIT_KW), multispace0),
+                        (multispace0, tag(FUNCTION_GENERIC_SKILL_KW), multispace0),
                         separated_list0(
-                            (multispace0, tag(FUNCTION_GENERIC_TRAIT_SEP), multispace0),
+                            (multispace0, tag(FUNCTION_GENERIC_SKILL_SEP), multispace0),
                             parse_identifier,
                         ),
                     ))
@@ -380,13 +435,9 @@ impl<'a> LexStmt<'a> {
             ),
         )
         .map(|function| match function {
-            LexExpr::FunctionCall {
-                identifier,
-                arguments,
-            } => Self::FunctionInvocation {
-                identifier,
-                arguments,
-            },
+            LexExpr::FunctionCall { ident, arguments } => {
+                Self::FunctionInvocation { ident, arguments }
+            }
             _ => unreachable!("parse_function_call should only return functioncall"),
         })
         .parse(input)
@@ -563,7 +614,10 @@ impl<'a> LexStmt<'a> {
                         LIST_START,
                         LIST_DELIMITER,
                         LIST_END,
-                        preceded(tag(STRUCT_FIELD_ACCESS_KW), parse_identifier),
+                        (
+                            terminated(opt(parse_identifier), tag(STRUCT_FIELD_ACCESS_KW)),
+                            parse_identifier,
+                        ),
                     ),
                     (multispace0, tag(UNPACK_KW), multispace0),
                     LexExpr::parse_expr,
@@ -585,9 +639,14 @@ impl<'a> LexStmt<'a> {
                         delimited(
                             (tag(FOR_CONDITION_START_KW), multispace0),
                             (
-                                Self::parse_variable_declaration_assignment.map(|b| Box::new(b)),
+                                Self::_parse_variable_declaration_assignment,
                                 delimited(multispace0, LexExpr::parse_expr, tag(END_STMT_KW)),
-                                delimited(multispace0, LexExpr::parse_expr, tag(END_STMT_KW)),
+                                // TODO: REASISGMNENT
+                                delimited(
+                                    multispace0,
+                                    Self::_parse_variable_reassignment,
+                                    tag(END_STMT_KW),
+                                ),
                             ),
                             (multispace0, tag(FOR_CONDITION_END_KW)),
                         ),
@@ -696,32 +755,41 @@ impl<'a> LexStmt<'a> {
                 (multispace0, tag(WHEN_STATEMENT_BODY_END_KW)),
             ),
         )
-        .map(|(identifier, branches)| Self::WhenStatement {
-            identifier,
-            branches,
-        })
+        .map(|(ident, branches)| Self::WhenStatement { ident, branches })
         .parse(input)
     }
 
-    pub fn parse_trait_impl(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_skill_impl(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "trait-impl",
-            delimited(
-                context("trait-impl-kw", (tag(TRAIT_IMPL_KW), multispace0)),
+            terminated(
                 (
+                    // TODO: Make this also be type, if known?
                     context(
-                        "trait-ident",
+                        "type-identifier",
                         terminated(
                             parse_identifier,
-                            (multispace0, tag(TRAIT_IMPL_BODY_START_KW)),
+                            (multispace0, tag(SKILL_IMPL_KW), multispace0),
                         ),
                     ),
-                    context("trait-type", preceded(multispace0, parse_identifier)),
-                    context("trait-body", parse_statements),
+                    context(
+                        "skills",
+                        separated_list1(
+                            (multispace0, tag(SKILL_RESTRICTION_SEP_KW), multispace0),
+                            parse_identifier,
+                        ),
+                    ),
+                    context(
+                        "body",
+                        preceded(
+                            (multispace0, tag(SKILL_IMPL_BODY_START_KW)),
+                            parse_statements,
+                        ),
+                    ),
                 ),
                 context(
                     "trait-impl-end-kw",
-                    (multispace0, tag(TRAIT_IMPL_BODY_END_KW)),
+                    (multispace0, tag(SKILL_IMPL_BODY_END_KW)),
                 ),
             ),
         )
@@ -731,32 +799,32 @@ impl<'a> LexStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_trait_decl(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_skill_decl(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "trait-decl",
             delimited(
-                (tag(TRAIT_DECL_KW), multispace0),
+                (tag(SKILL_DECL_KW), multispace0),
                 (
                     terminated(
                         (
                             parse_identifier,
                             opt(preceded(
-                                (multispace0, tag(TRAIT_RESTRICTION_KW)),
+                                (multispace0, tag(SKILL_RESTRICTION_KW)),
                                 separated_list0(
-                                    (multispace0, tag(TRAIT_RESTRICTION_SEP_KW), multispace0),
+                                    (multispace0, tag(SKILL_RESTRICTION_SEP_KW), multispace0),
                                     delimited(multispace0, parse_identifier, multispace0),
                                 ),
                             ))
                             .map(|x| x.unwrap_or_default()),
                         ),
-                        (multispace0, tag(TRAIT_DECL_BODY_START_KW), multispace0),
+                        (multispace0, tag(SKILL_DECL_BODY_START_KW), multispace0),
                     ),
                     many0(alt((
                         Self::parse_function_impl_components.map(|o| Ok(o)),
                         Self::parse_function_decl_comps.map(|o| Err(o)),
                     ))),
                 ),
-                (multispace0, tag(TRAIT_DECL_BODY_END_KW)),
+                (multispace0, tag(SKILL_DECL_BODY_END_KW)),
             ),
         )
         .map(|((identifier, restrictions), impls_decls)| {

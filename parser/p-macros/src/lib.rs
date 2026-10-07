@@ -46,7 +46,7 @@ macro_rules! b2 {
         END
     ) => {
         LexExpr::Struct {
-            identifier: stringify!($ident),
+            ident: stringify!($ident),
             field_implementations: hashmap![$( (stringify!($field), $expr.into()), )*]
         }
     };
@@ -126,6 +126,23 @@ macro_rules! lbop {
 }
 
 #[macro_export]
+macro_rules! lvdar {
+    (
+        $ident:expr,
+        $type:ty,
+        $value:expr
+    ) => {
+        VariableDeclarationAssignment::new($ident, Some($type), $value.into())
+    };
+    (
+        $ident:expr,
+        $value:expr
+    ) => {
+        VariableDeclarationAssignment::new($ident, None, $value.into())
+    };
+}
+
+#[macro_export]
 macro_rules! lvda {
     (
         $ident:expr,
@@ -183,7 +200,7 @@ macro_rules! lfne {
         $($expr:expr),*
     ) => {
         LexExpr::FunctionCall {
-            identifier: $ident,
+            ident: $ident,
             arguments: vec![$($expr.into()),*],
         }
     };
@@ -196,7 +213,7 @@ macro_rules! lfin {
         $($expr:expr),*
     ) => {
         LexStmt::FunctionInvocation {
-            identifier: $ident,
+            ident: $ident,
             arguments: vec![$($expr.into()),*],
         }
     };

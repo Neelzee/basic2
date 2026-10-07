@@ -39,20 +39,20 @@ pub enum LexExpr<'a> {
     Variable(&'a str),
     Group(Box<Self>),
     FunctionCall {
-        identifier: &'a str,
+        ident: &'a str,
         arguments: Vec<Self>,
     },
     Op(Box<B2Op<'a>>),
     Struct {
-        identifier: &'a str,
+        ident: &'a str,
         field_implementations: HashMap<&'a str, Self>,
     },
     StructFieldAccessing {
-        identifier: &'a str,
+        ident: &'a str,
         field: &'a str,
     },
     Enum {
-        identifier: &'a str,
+        ident: &'a str,
         instance: &'a str,
         values: Vec<Self>,
     },
@@ -216,7 +216,7 @@ impl<'a> LexExpr<'a> {
             ),
         )
         .map(|(ident, arguments)| Self::FunctionCall {
-            identifier: &ident,
+            ident: &ident,
             arguments,
         })
         .parse(input)
@@ -239,7 +239,7 @@ impl<'a> LexExpr<'a> {
         Ok((
             rem,
             Self::Struct {
-                identifier: &ident,
+                ident: &ident,
                 field_implementations: field_implementations.into_iter().collect(),
             },
         ))
@@ -254,7 +254,10 @@ impl<'a> LexExpr<'a> {
                 parse_identifier,
             ),
         )
-        .map(|(identifier, _, field)| Self::StructFieldAccessing { identifier, field })
+        .map(|(identifier, _, field)| Self::StructFieldAccessing {
+            ident: identifier,
+            field,
+        })
         .parse(input)
     }
 
@@ -296,7 +299,7 @@ impl<'a> LexExpr<'a> {
             ),
         )
         .map(|(identifier, _, instance, values)| Self::Enum {
-            identifier,
+            ident: identifier,
             instance,
             values,
         })
@@ -328,7 +331,7 @@ impl<'a> ToB2 for LexExpr<'a> {
             LexExpr::Variable(xs) => xs.to_string(),
             LexExpr::Group(x) => format!("{}{}{}", GROUP_START, x.to_b2(), GROUP_END),
             LexExpr::FunctionCall {
-                identifier,
+                ident: identifier,
                 arguments,
             } => format!(
                 "{}{}{}{}",
@@ -343,7 +346,7 @@ impl<'a> ToB2 for LexExpr<'a> {
             ),
             LexExpr::Op(op) => op.to_b2(),
             LexExpr::Struct {
-                identifier,
+                ident: identifier,
                 field_implementations,
             } => format!(
                 "{STRUCT_KW} {identifier} {STRUCT_START_KW} {} {STRUCT_END_KW}",
@@ -353,11 +356,14 @@ impl<'a> ToB2 for LexExpr<'a> {
                     .collect::<Vec<_>>()
                     .join(STRUCT_FIELD_END)
             ),
-            LexExpr::StructFieldAccessing { identifier, field } => {
+            LexExpr::StructFieldAccessing {
+                ident: identifier,
+                field,
+            } => {
                 format!("{identifier}{STRUCT_FIELD_ACCESS_KW}{field}")
             }
             LexExpr::Enum {
-                identifier,
+                ident: identifier,
                 instance,
                 values,
             } => {

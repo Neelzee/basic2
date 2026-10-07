@@ -29,7 +29,7 @@ use std::collections::HashMap;
     )
 )]
 #[case::parses_list(r##"["string", 123]"##, LexExpr::List(vec![LexExpr::Literal(Primitive::Str("string")), LexExpr::Literal(Primitive::Int(123))]))]
-#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo", arguments: Vec::new(), })]
+#[case::parses_function_call(r##"foo()"##, LexExpr::FunctionCall { ident: "foo", arguments: Vec::new(), })]
 #[case::parses_struct_expr(
     r##"STRUCTURE Person WITH
         IMPL firstName = "Nils";
@@ -38,7 +38,7 @@ use std::collections::HashMap;
     END
     "##,
     LexExpr::Struct {
-        identifier: "Person",
+        ident: "Person",
         field_implementations: hashmap![
             ("firstName", LexExpr::Literal(Primitive::Str("Nils"))),
             ("lastName", LexExpr::Literal(Primitive::Str("Fitjar"))),
@@ -99,7 +99,7 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
 #[case(
     "STRUCTURE empty WITH END",
     LexExpr::Struct {
-        identifier: "empty",
+        ident: "empty",
         field_implementations: HashMap::new(),
     }
 )]
@@ -108,7 +108,7 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
         IMPL bar = 10;
     END",
     LexExpr::Struct {
-        identifier: "FOO",
+        ident: "FOO",
         field_implementations: hashmap![("bar", LexExpr::Literal(Primitive::Int(10)))],
     }
 )]
@@ -118,7 +118,7 @@ fn test_primitive_int_parser(#[case] input: &str, #[case] expected: LexExpr) {
         IMPL foo = "";
     END"##,
     LexExpr::Struct {
-        identifier: "FOOBAR",
+        ident: "FOOBAR",
         field_implementations: hashmap![
             ("bar", LexExpr::Literal(Primitive::Int(10))),
             ("foo", LexExpr::Literal(Primitive::Str("")))
@@ -154,12 +154,12 @@ fn test_struct_field_impl_parser(
 }
 
 #[rstest]
-#[case(r##"foo()"##, LexExpr::FunctionCall { identifier: "foo", arguments: Vec::new(), })]
-#[case(r##"PRINT("HELLO")"##, LexExpr::FunctionCall { identifier: "PRINT", arguments: vec![LexExpr::Literal(Primitive::Str("HELLO"))], })]
+#[case(r##"foo()"##, LexExpr::FunctionCall { ident: "foo", arguments: Vec::new(), })]
+#[case(r##"PRINT("HELLO")"##, LexExpr::FunctionCall { ident: "PRINT", arguments: vec![LexExpr::Literal(Primitive::Str("HELLO"))], })]
 #[case(
     r##"PRINT("Before: " + global)"##,
     LexExpr::FunctionCall {
-        identifier: "PRINT",
+        ident: "PRINT",
         arguments: vec![
             LexExpr::Op(Box::new(B2Op::binary(
                 LexExpr::Literal(Primitive::Str("Before: ")),
@@ -227,7 +227,7 @@ fn test_struct_field_access() {
     assert_eq!(
         result.unwrap().1,
         LexExpr::StructFieldAccessing {
-            identifier: "me",
+            ident: "me",
             field: "firstName"
         }
     );
@@ -264,7 +264,7 @@ fn test_parse_enum_values() {
     assert_eq!(
         result.unwrap().1,
         LexExpr::Enum {
-            identifier: "Days",
+            ident: "Days",
             instance: "Sun",
             values: vec![10.into()]
         }

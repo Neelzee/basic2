@@ -6,7 +6,10 @@ use crate::{
             LexStmt,
             decls::{
                 Decl,
-                variants::{EnumDeclaration, ListUnpacking, StructUnpacking, TypeAlias},
+                variants::{
+                    EnumDeclaration, ListUnpacking, StructUnpacking, TypeAlias,
+                    VariableDeclarationAssignment,
+                },
             },
             impls::Impl,
             when_match::WhenMatch,
@@ -16,7 +19,7 @@ use crate::{
     },
 };
 use p_macros::{
-    b2, create_return_type, hashmap, lbop, leel, lfin, lfne, lg, lprt, ltype, lv, lvda, rt,
+    b2, create_return_type, hashmap, lbop, leel, lfin, lfne, lg, lprt, ltype, lv, lvda, lvdar, rt,
 };
 use rstest::rstest;
 use std::collections::HashMap;
@@ -90,7 +93,7 @@ fn test_variable_declaration_assignment_consumes_end_stmt_kw() {
 #[case(
     r##"FOO = "BAR";"##,
     LexStmt::VariableReassignment {
-        identifier: "FOO",
+        ident: "FOO",
         new_value: LexExpr::Literal(Primitive::Str("BAR")),
         reassignment: None
     }
@@ -100,7 +103,7 @@ fn test_variable_declaration_assignment_consumes_end_stmt_kw() {
     hello += ", World!";
     "##,
     LexStmt::VariableReassignment {
-        identifier: "hello",
+        ident: "hello",
         new_value: LexExpr::Literal(Primitive::Str(", World!")),
         reassignment: Some(BinOp::Add),
     }
@@ -119,7 +122,7 @@ fn test_variable_reassignment_addition() {
     assert_eq!(
         result.unwrap().1,
         LexStmt::VariableReassignment {
-            identifier: "FOO",
+            ident: "FOO",
             new_value: LexExpr::Literal(Primitive::Str("BAR")),
             reassignment: Some(BinOp::Add)
         }
@@ -228,7 +231,7 @@ fn test_parse_if(#[case] input: &str, #[case] expected: LexStmt) {
         condition: LexExpr::Group(Box::new(LexExpr::Literal(Primitive::Bool(true)))),
         body: vec![
             LexStmt::FunctionInvocation {
-                identifier: "PRINT",
+                ident: "PRINT",
                 arguments: vec![LexExpr::Literal(Primitive::Str("Hello!"))]
             },
             LexStmt::Break,
@@ -385,7 +388,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
         vec![("xs", None), ("f", None)],
         vec![
             LexStmt::WhenStatement {
-                identifier: "xs",
+                ident: "xs",
                 branches: vec![
                     (
                         WhenMatch::EmptyList { condition: None },
@@ -393,7 +396,7 @@ fn test_parse_function_declaration(#[case] input: &str, #[case] expected: LexStm
                     ),
                     (
                         WhenMatch::VariadicList {
-                            identifiers: vec!["y"],
+                            idents: vec!["y"],
                             remainder: Some("ys"),
                             condition: None
                         },
@@ -524,14 +527,14 @@ fn test_parse_block_statements(#[case] input: &str, #[case] expected: LexStmt) {
 #[case(
     r##"INVOKE PRINT("HELLO");"##,
     LexStmt::FunctionInvocation {
-        identifier: "PRINT",
+        ident: "PRINT",
         arguments: vec![LexExpr::Literal(Primitive::Str("HELLO"))],
     }
 )]
 #[case(
     r##"INVOKE PRINT("Before: " + global);"##,
     LexStmt::FunctionInvocation {
-        identifier: "PRINT",
+        ident: "PRINT",
         arguments: vec![
             LexExpr::Op(Box::new(B2Op::binary(
                 LexExpr::Literal(Primitive::Str("Before: ")),
@@ -693,14 +696,14 @@ fn test_function_unpacking() {
 
 #[test]
 fn test_for_loop() {
-    const INPUT: &str = r##"FOR (LET i = 2; i <= (n + 1); i++;) THEN
+    const INPUT: &str = r##"FOR (LET i = 2; i <= (n + 1); i = i + 1;) THEN
             END
         "##;
     let input = Span::new(INPUT);
     let expected = LexStmt::For {
-        start_stmt: Box::new(lvda!("i", 2)),
+        start_stmt: lvdar!("i", 2),
         condition: lbop!(lv!("i"), BinOp::Leq, lg!(lbop!(lv!("n"), BinOp::Add, 1))),
-        incrementer: LexExpr::Op(Box::new(B2Op::postfix(lv!("i"), Postfix::Incr).into())),
+        incrementer: lvdar!("i", lbop!(lv!("i"), BinOp::Add, 1)),
         body: Vec::new(),
     };
     let result = LexStmt::parse_for_statement(input);
@@ -765,7 +768,7 @@ fn test_list_unpacking() {
 fn test_struct_unpacking() {
     let input = Span::new(r##"LET [::a, ::b] >< struct;"##);
     let expected = LexStmt::Decl(Decl::StrUnpk(StructUnpacking::new(
-        vec!["a", "b"],
+        vec![(None, "a"), (None, "b")],
         lv!(struct),
     )));
     let result = LexStmt::parse_struct_unpacking(input);
@@ -823,7 +826,7 @@ fn test_when_stmt() {
                 "##,
     );
     let expected = LexStmt::WhenStatement {
-        identifier: "foo",
+        ident: "foo",
         branches: vec![
             (
                 WhenMatch::EmptyList { condition: None },
@@ -831,7 +834,7 @@ fn test_when_stmt() {
             ),
             (
                 WhenMatch::Singleton {
-                    identifier: "x",
+                    ident: "x",
                     condition: None,
                 },
                 vec![lprt!(lbop!(
@@ -842,21 +845,21 @@ fn test_when_stmt() {
             ),
             (
                 WhenMatch::CatchAll {
-                    identifier: "_",
+                    ident: "_",
                     condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
                 },
                 vec![lprt!("foo")],
             ),
             (
                 WhenMatch::CatchAll {
-                    identifier: "_",
+                    ident: "_",
                     condition: None,
                 },
                 vec![lprt!("")],
             ),
             (
                 WhenMatch::VariadicList {
-                    identifiers: vec!["x", "y"],
+                    idents: vec!["x", "y"],
                     remainder: Some("xs"),
                     condition: None,
                 },
@@ -864,7 +867,7 @@ fn test_when_stmt() {
             ),
             (
                 WhenMatch::VariadicList {
-                    identifiers: vec!["x", "y"],
+                    idents: vec!["x", "y"],
                     remainder: Some("xs"),
                     condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
                 },
@@ -891,7 +894,7 @@ fn test_variadic_list_branch() {
     );
     let expected = (
         WhenMatch::VariadicList {
-            identifiers: vec!["x", "y"],
+            idents: vec!["x", "y"],
             remainder: Some("xs"),
             condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
         },
@@ -922,7 +925,7 @@ fn test_variadic_list_branch() {
     END"##,
     (
         WhenMatch::Singleton {
-            identifier: "x",
+            ident: "x",
             condition: None,
         },
         vec![lprt!(lbop!(
@@ -937,7 +940,7 @@ fn test_variadic_list_branch() {
     END"##,
     (
         WhenMatch::VariadicList {
-            identifiers: vec!["x", "y"],
+            idents: vec!["x", "y"],
             remainder: Some("xs"),
             condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
         },
@@ -950,7 +953,7 @@ fn test_variadic_list_branch() {
     END"##,
     (
         WhenMatch::VariadicList {
-            identifiers: vec!["x", "y"],
+            idents: vec!["x", "y"],
             remainder: Some("xs"),
             condition: None,
         },
@@ -963,7 +966,7 @@ fn test_variadic_list_branch() {
     END"##,
     (
         WhenMatch::CatchAll {
-            identifier: "_",
+            ident: "_",
             condition: None,
         },
         vec![lprt!("")],
@@ -975,7 +978,7 @@ fn test_variadic_list_branch() {
     END"##,
     (
         WhenMatch::CatchAll {
-            identifier: "_",
+            ident: "_",
             condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
         },
         vec![lprt!("")],
@@ -986,7 +989,7 @@ fn test_variadic_list_branch() {
     END"##,
     (
         WhenMatch::CatchAll {
-            identifier: "_",
+            ident: "_",
             condition: Some(lbop!(lv!("x"), BinOp::Eq, lv!("y"))),
         },
         vec![],

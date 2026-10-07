@@ -42,7 +42,7 @@ pub enum LexStmt<'a> {
     Impl(Impl<'a>),
     Import(Import<'a>),
     VariableReassignment {
-        identifier: &'a str,
+        ident: &'a str,
         reassignment: Option<BinOp>,
         new_value: LexExpr<'a>,
     },
@@ -64,7 +64,7 @@ pub enum LexStmt<'a> {
         body: Vec<Self>,
     },
     FunctionInvocation {
-        identifier: &'a str,
+        ident: &'a str,
         arguments: Vec<LexExpr<'a>>,
     },
     Break,
@@ -73,19 +73,19 @@ pub enum LexStmt<'a> {
         value: Option<LexExpr<'a>>,
     },
     For {
-        start_stmt: Box<Self>,
+        start_stmt: VariableDeclarationAssignment<'a>,
         condition: LexExpr<'a>,
-        incrementer: LexExpr<'a>,
+        incrementer: VariableDeclarationAssignment<'a>,
         body: Vec<Self>,
     },
     StructFieldReassignment {
-        identifier: &'a str,
+        ident: &'a str,
         field: &'a str,
         reassignment: Option<BinOp>,
         new_value: LexExpr<'a>,
     },
     WhenStatement {
-        identifier: &'a str,
+        ident: &'a str,
         branches: Vec<(WhenMatch<'a>, Vec<Self>)>,
     },
 }
@@ -188,7 +188,10 @@ impl<'a> LexStmt<'a> {
         )))
     }
 
-    pub fn new_struct_unpack(identifiers: Vec<&'a str>, value: LexExpr<'a>) -> Self {
+    pub fn new_struct_unpack(
+        identifiers: Vec<(Option<&'a str>, &'a str)>,
+        value: LexExpr<'a>,
+    ) -> Self {
         Self::Decl(Decl::StrUnpk(StructUnpacking::new(identifiers, value)))
     }
 
@@ -206,7 +209,7 @@ impl<'a> LexStmt<'a> {
 
     pub fn new_trait_impl(
         trait_identifier: &'a str,
-        type_identifier: &'a str,
+        type_identifier: Vec<&'a str>,
         body: Vec<LexStmt<'a>>,
     ) -> Self {
         Self::Impl(Impl::new_trait(trait_identifier, type_identifier, body))

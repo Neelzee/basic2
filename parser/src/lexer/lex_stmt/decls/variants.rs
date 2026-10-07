@@ -26,8 +26,8 @@ impl<'a> VariableDeclaration<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TupleUnpacking<'a> {
-    identifiers: Vec<&'a str>,
-    value: LexExpr<'a>,
+    pub identifiers: Vec<&'a str>,
+    pub value: LexExpr<'a>,
 }
 
 impl<'a> TupleUnpacking<'a> {
@@ -38,21 +38,21 @@ impl<'a> TupleUnpacking<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct StructUnpacking<'a> {
-    identifiers: Vec<&'a str>,
-    value: LexExpr<'a>,
+    pub identifiers: Vec<(Option<&'a str>, &'a str)>,
+    pub value: LexExpr<'a>,
 }
 
 impl<'a> StructUnpacking<'a> {
-    pub fn new(identifiers: Vec<&'a str>, value: LexExpr<'a>) -> Self {
+    pub fn new(identifiers: Vec<(Option<&'a str>, &'a str)>, value: LexExpr<'a>) -> Self {
         Self { identifiers, value }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ListUnpacking<'a> {
-    identifiers: Vec<&'a str>,
-    remainder: Option<&'a str>,
-    value: LexExpr<'a>,
+    pub identifiers: Vec<&'a str>,
+    pub remainder: Option<&'a str>,
+    pub value: LexExpr<'a>,
 }
 
 impl<'a> ListUnpacking<'a> {
@@ -67,9 +67,9 @@ impl<'a> ListUnpacking<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableDeclarationAssignment<'a> {
-    identifier: &'a str,
-    variable_type: Option<LexType<'a>>,
-    value: LexExpr<'a>,
+    pub identifier: &'a str,
+    pub variable_type: Option<LexType<'a>>,
+    pub value: LexExpr<'a>,
 }
 
 impl<'a> VariableDeclarationAssignment<'a> {
@@ -108,12 +108,15 @@ impl<'a> From<VariableDeclaration<'a>> for VariableDeclarationAssignment<'a> {
     }
 }
 
+/* NOTE: Should I turn this into an enum, and have the builtins be specific
+  enums? Like PRINT, LEN, etc?
+*/
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunctionDeclaration<'a> {
-    identifier: &'a str,
-    parameters: Vec<LexType<'a>>,
-    generics: Vec<(&'a str, Vec<&'a str>)>,
-    return_type: Option<LexType<'a>>,
+    pub identifier: &'a str,
+    pub parameters: Vec<LexType<'a>>,
+    pub generics: Vec<(&'a str, Vec<&'a str>)>,
+    pub return_type: Option<LexType<'a>>,
 }
 
 impl<'a> FunctionDeclaration<'a> {
@@ -155,9 +158,9 @@ impl<'a> AsB2Type<'a> for FunctionDeclaration<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct StructDeclaration<'a> {
-    identifier: &'a str,
-    generics: Vec<(&'a str, Vec<&'a str>)>,
-    fields: HashMap<&'a str, LexType<'a>>,
+    pub identifier: &'a str,
+    pub generics: Vec<(&'a str, Vec<&'a str>)>,
+    pub fields: HashMap<&'a str, LexType<'a>>,
 }
 
 impl<'a> StructDeclaration<'a> {
@@ -190,9 +193,9 @@ impl<'a> AsB2Type<'a> for StructDeclaration<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypeAlias<'a> {
-    identifier: &'a str,
-    generics: Vec<(&'a str, Vec<&'a str>)>,
-    b2_type: LexType<'a>,
+    pub identifier: &'a str,
+    pub generics: Vec<(&'a str, Vec<&'a str>)>,
+    pub b2_type: LexType<'a>,
 }
 
 impl<'a> TypeAlias<'a> {
@@ -217,9 +220,9 @@ impl<'a> AsB2Type<'a> for TypeAlias<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct EnumDeclaration<'a> {
-    identifier: &'a str,
-    generics: Vec<(&'a str, Vec<&'a str>)>,
-    enumerations: Vec<(&'a str, Vec<LexType<'a>>)>,
+    pub identifier: &'a str,
+    pub generics: Vec<(&'a str, Vec<&'a str>)>,
+    pub enumerations: Vec<(&'a str, Vec<LexType<'a>>)>,
 }
 
 impl<'a> EnumDeclaration<'a> {
@@ -238,10 +241,10 @@ impl<'a> EnumDeclaration<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TraitDecl<'a> {
-    identifier: &'a str,
-    restrictions: Vec<&'a str>,
-    decls: Vec<FunDeclComps<'a>>,
-    impls: Vec<FunImplComps<'a>>,
+    pub identifier: &'a str,
+    pub restrictions: Vec<&'a str>,
+    pub decls: Vec<FunDeclComps<'a>>,
+    pub impls: Vec<FunImplComps<'a>>,
 }
 
 impl<'a> TraitDecl<'a> {

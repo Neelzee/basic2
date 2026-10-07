@@ -9,15 +9,18 @@ pub enum Impl<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunctionImplementation<'a> {
     pub identifier: &'a str,
+    /// Function parameters, an identifier, and an optional default value
     pub parameters: Vec<(&'a str, Option<LexExpr<'a>>)>,
     pub body: Vec<LexStmt<'a>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TraitImpl<'a> {
-    trait_identifier: &'a str,
-    type_identifier: &'a str,
-    body: Vec<LexStmt<'a>>,
+    /// Trait identifier?
+    pub trait_identifier: &'a str,
+    /// What is this?
+    pub type_identifier: Vec<&'a str>,
+    pub body: Vec<LexStmt<'a>>,
 }
 
 impl<'a> Impl<'a> {
@@ -49,7 +52,7 @@ impl<'a> Impl<'a> {
 
     pub fn new_trait(
         trait_identifier: &'a str,
-        type_identifier: &'a str,
+        type_identifier: Vec<&'a str>,
         body: Vec<LexStmt<'a>>,
     ) -> Self {
         Self::TraitImpl(TraitImpl {

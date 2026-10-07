@@ -29,18 +29,18 @@ pub enum WhenMatch<'a> {
     EmptyList { condition: Option<LexExpr<'a>> },
     /// [x]
     Singleton {
-        identifier: &'a str,
+        ident: &'a str,
         condition: Option<LexExpr<'a>>,
     },
     /// [a, b, ...xs]
     VariadicList {
-        identifiers: Vec<&'a str>,
+        idents: Vec<&'a str>,
         remainder: Option<&'a str>,
         condition: Option<LexExpr<'a>>,
     },
     /// x
     CatchAll {
-        identifier: &'a str,
+        ident: &'a str,
         condition: Option<LexExpr<'a>>,
     },
     /// IS INT
@@ -132,7 +132,7 @@ impl<'a> WhenMatch<'a> {
         .map(|(identifier, (condition, stmts))| {
             (
                 Self::Singleton {
-                    identifier,
+                    ident: identifier,
                     condition,
                 },
                 stmts,
@@ -181,7 +181,7 @@ impl<'a> WhenMatch<'a> {
         .map(|((identifiers, remainder), (condition, stmts))| {
             (
                 Self::VariadicList {
-                    identifiers,
+                    idents: identifiers,
                     remainder,
                     condition,
                 },
@@ -205,7 +205,7 @@ impl<'a> WhenMatch<'a> {
         .map(|(identifier, (condition, stmts))| {
             (
                 Self::CatchAll {
-                    identifier,
+                    ident: identifier,
                     condition,
                 },
                 stmts,

@@ -32,6 +32,7 @@ pub enum LexMonoType<'a> {
     ///   RETURN Num.One;
     /// ```
     EnumVariant(&'a str, &'a str),
+    StructType(&'a str),
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,5 +1,3 @@
-use std::process::id;
-
 use crate::{
     common::ToB2,
     lexer::{
@@ -59,6 +57,10 @@ impl<'a> LexType<'a> {
     pub fn var(identifier: &'a str) -> Self {
         Self::Mono(LexMonoType::TypeVar(identifier))
     }
+
+    pub fn r#struct(identifier: &'a str) -> Self {
+        Self::Mono(LexMonoType::StructType(identifier))
+    }
 }
 
 impl<'a> ToB2 for LexType<'a> {
@@ -97,6 +99,7 @@ impl<'a> ToB2 for LexMonoType<'a> {
                 items.join(FUNCTION_GENERICS_DELIMITER)
             ),
             LexMonoType::EnumVariant(id, var) => format!("{id}{ENUM_INDEXING}{var}"),
+            LexMonoType::StructType(ident) => ident.to_string(),
         }
     }
 }
