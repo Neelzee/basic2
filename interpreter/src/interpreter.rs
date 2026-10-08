@@ -220,29 +220,43 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
             field,
             reassignment,
             new_value,
-        } => {
-            match gst.lookup_var(ident) {
-                Some(VariableDeclarationAssignment {
-                    value:
-                        LexExpr::Struct {
-                            field_implementations,
-                            ..
-                        },
-                    ..
-                }) => {
-                    todo!()
+        } => match gst.lookup_var(ident) {
+            Some(VariableDeclarationAssignment {
+                value:
+                    LexExpr::Struct {
+                        ident: struct_ident,
+                        field_implementations,
+                        ..
+                    },
+                ..
+            }) => match gst.lookup_struct_decl(struct_ident) {
+                Some(decl) => {
+                    if decl.has_field(field) {
+                        let mut field_implementations = field_implementations.clone();
+                        field_implementations.insert(field, new_value);
+                        IR::Ok {
+                            gst: gst.clone().insert_var_ass(
+                                ident,
+                                VariableDeclarationAssignment {
+                                    identifier: ident,
+                                    variable_type: Some(LexType::r#struct(struct_ident)),
+                                    value: LexExpr::Struct {
+                                        ident: *struct_ident,
+                                        field_implementations,
+                                    },
+                                },
+                            ),
+                            val: LexExpr::Nil,
+                        }
+                    } else {
+                        IR::Err(IE::StructAccessingOnNonExistingField { ident, field })
+                    }
                 }
-                Some(_) => todo!(),
-                None => todo!(),
-            }
-            /*match gst.lookup_struct_decl(identifier) {
-                Some(_) => match gst.lookup_var(identifier),
-                None => IR::Err(IE::StructAccessingOnNonExistingStruct {
-                    ident: identifier,
-                    field
-                }),
-            }*/
-        }
+                None => IR::Err(IE::StructAccessingOnNonExistingStruct { ident, field }),
+            },
+            Some(_) => todo!("Catch on non-struct?"),
+            None => IR::Err(IE::MissingVariableDeclaration(ident)),
+        },
         LexStmt::WhenStatement { ident, branches } => match gst.lookup_var(ident) {
             Some(VariableDeclarationAssignment {
                 value: LexExpr::List(xs),
@@ -321,7 +335,11 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                                 acc.and_then(|(gst, _)| interpret(gst, stmt))
                                             },
                                         )
-                                    }).and_then(|(gst, val)| IR::Ok { gst: gst.drop_scope(), val });
+                                    })
+                                    .and_then(|(gst, val)| IR::Ok {
+                                        gst: gst.drop_scope(),
+                                        val,
+                                    });
                                 }
                                 None => {
                                     return IR::Ok {
@@ -338,7 +356,11 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                                 acc.and_then(|(gst, _)| interpret(gst, stmt))
                                             },
                                         )
-                                    }).and_then(|(gst, val)| IR::Ok { gst: gst.drop_scope(), val });
+                                    })
+                                    .and_then(|(gst, val)| IR::Ok {
+                                        gst: gst.drop_scope(),
+                                        val,
+                                    });
                                 }
                                 Some(Ok(LexExpr::Literal(Primitive::Bool(_)))) => continue,
                                 Some(_) => todo!("Invalid type"),
@@ -351,25 +373,132 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                 condition,
                             },
                             _,
-                        ) => todo!(),
-                        (WhenMatch::CatchAll { ident, condition }, _) => todo!(),
-                        (ref m @ WhenMatch::Type { ref b2_type, .. }, _) => {
-                            return IR::Err(IE::WhenErrorExpectedTypeGotList {
-                                r#match: m.clone(),
-                                list: xs.to_vec(),
-                                r#type: b2_type.clone(),
-                            });
+                        ) => {
+                            let ident_count = idents.len();
+                            let expr_count = xs.len();
+
+                            if ident_count > expr_count {
+                                return IR::Err(IE::UnpackingCountMissmatch {
+                                    ident_count,
+                                    expr_count,
+                                });
+                            }
+
+                            let mut ys = xs.clone();
+                            ys.reverse();
+                            let mut gst = gst.clone().scope();
+
+                            loop {
+                                match idents.first() {
+                                    Some(ident) => {
+                                        gst = gst.insert_var_ass(
+                                            ident,
+                                            VariableDeclarationAssignment {
+                                                identifier: ident,
+                                                variable_type: None,
+                                                value: ys.pop().unwrap().clone(),
+                                            },
+                                        );
+                                    }
+                                    None => {
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if let Some(ident) = remainder {
+                                ys.reverse();
+                                gst = gst.insert_var_ass(
+                                    ident,
+                                    VariableDeclarationAssignment {
+                                        identifier: ident,
+                                        variable_type: None,
+                                        value: LexExpr::List(ys),
+                                    },
+                                );
+                            }
+
+                            match condition
+                                .map(|expr| eval_expr(&gst, expr))
+                                .unwrap_or_else(|| Ok(LexExpr::bool(true)))
+                            {
+                                Ok(LexExpr::Literal(Primitive::Bool(b))) => {
+                                    if b {
+                                        return body
+                                            .into_iter()
+                                            .fold(
+                                                IR::Ok {
+                                                    gst,
+                                                    val: LexExpr::Nil,
+                                                },
+                                                move |acc, stmt| {
+                                                    acc.and_then(|(gst, _)| interpret(gst, stmt))
+                                                },
+                                            )
+                                            .and_then(|(gst, val)| IR::Ok {
+                                                gst: gst.drop_scope(),
+                                                val,
+                                            });
+                                    } else {
+                                        continue;
+                                    }
+                                }
+                                Ok(_) => todo!(),
+                                Err(err) => {
+                                    return IR::Err(err);
+                                }
+                            }
                         }
-                        (ref m @ WhenMatch::StructField { .. }, _) => {
-                            return IR::Err(IE::WhenErrorExpectedStructGotList {
-                                r#match: m.clone(),
-                                list: xs.to_vec(),
-                            });
+                        (WhenMatch::CatchAll { ident, condition }, _) => {
+                            let gst = gst.clone().scope().insert_var_ass(
+                                ident,
+                                VariableDeclarationAssignment {
+                                    identifier: ident,
+                                    variable_type: None,
+                                    value: LexExpr::List(xs.clone()),
+                                },
+                            );
+                            match condition
+                                .map(|expr| eval_expr(&gst, expr))
+                                .unwrap_or_else(|| Ok(LexExpr::bool(true)))
+                            {
+                                Ok(LexExpr::Literal(Primitive::Bool(b))) => {
+                                    if b {
+                                        return body
+                                            .into_iter()
+                                            .fold(
+                                                IR::Ok {
+                                                    gst,
+                                                    val: LexExpr::Nil,
+                                                },
+                                                move |acc, stmt| {
+                                                    acc.and_then(|(gst, _)| interpret(gst, stmt))
+                                                },
+                                            )
+                                            .and_then(|(gst, val)| IR::Ok {
+                                                gst: gst.drop_scope(),
+                                                val,
+                                            });
+                                    } else {
+                                        continue;
+                                    }
+                                }
+                                Ok(_) => todo!(),
+                                Err(err) => {
+                                    return IR::Err(err);
+                                }
+                            }
                         }
-                        _ => continue,
+                        _ => {
+                            continue;
+                        }
                     }
                 }
-                todo!()
+
+                IR::Ok {
+                    gst,
+                    val: LexExpr::Nil,
+                }
             }
             Some(_) => todo!(),
             None => todo!(),
