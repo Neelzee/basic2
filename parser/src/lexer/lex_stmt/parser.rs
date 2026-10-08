@@ -642,10 +642,7 @@ impl<'a> LexStmt<'a> {
                                 Self::_parse_variable_declaration_assignment,
                                 delimited(multispace0, LexExpr::parse_expr, tag(END_STMT_KW)),
                                 // TODO: REASISGMNENT
-                                preceded(
-                                    multispace0,
-                                    Self::_parse_variable_reassignment,
-                                ),
+                                preceded(multispace0, Self::_parse_variable_reassignment),
                             ),
                             (multispace0, tag(FOR_CONDITION_END_KW)),
                         ),

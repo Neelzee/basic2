@@ -10,6 +10,7 @@ use nom::{
     Parser,
     bytes::complete::tag,
     character::complete::multispace0,
+    combinator::verify,
     error::context,
     sequence::{delimited, preceded},
 };
@@ -37,33 +38,36 @@ impl<'a> LexModule<'a> {
     pub fn parse_program(input: Span<'a>) -> B2LexResult<'a, Self> {
         context(
             "module",
-            (
-                context(
-                    "module-start-identifier",
-                    preceded(
-                        (
-                            tag(BEGIN_MODULE_KW),
-                            tag(ONE_SPACE),
-                            tag(MODULE_KW),
-                            tag(ONE_SPACE),
-                        ),
-                        parse_identifier,
-                    )
-                    .map(|s| s.to_string()),
-                ),
-                context("module-statements", parse_statements),
-                context(
-                    "module-end-identifier",
-                    preceded(
-                        multispace0,
-                        delimited(
-                            (tag(MODULE_KW), tag(ONE_SPACE)),
+            verify(
+                (
+                    context(
+                        "module-start-identifier",
+                        preceded(
+                            (
+                                tag(BEGIN_MODULE_KW),
+                                tag(ONE_SPACE),
+                                tag(MODULE_KW),
+                                tag(ONE_SPACE),
+                            ),
                             parse_identifier,
-                            (tag(ONE_SPACE), tag(END_MODULE_KW)),
-                        ),
-                    )
-                    .map(|s| s.to_string()),
+                        )
+                        .map(|s| s.to_string()),
+                    ),
+                    context("module-statements", parse_statements),
+                    context(
+                        "module-end-identifier",
+                        preceded(
+                            multispace0,
+                            delimited(
+                                (tag(MODULE_KW), tag(ONE_SPACE)),
+                                parse_identifier,
+                                (tag(ONE_SPACE), tag(END_MODULE_KW)),
+                            ),
+                        )
+                        .map(|s| s.to_string()),
+                    ),
                 ),
+                |(si, _, ei)| si == ei,
             ),
         )
         .map(|(start_identifier, statements, end_identifier)| Self {

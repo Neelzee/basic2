@@ -1,0 +1,7 @@
+BEGIN MODULE IfClosedWithEnd
+# Assumption under test: IF is the one block that closes with FI, not END,
+# unlike every other THEN/DO-opened block. This should fail to parse.
+IF (TRUE) THEN
+  INVOKE PRINT("hello");
+END
+MODULE IfClosedWithEnd END

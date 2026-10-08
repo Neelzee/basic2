@@ -113,8 +113,8 @@ pub const INDEX_END_KW: &str = "]";
 
 pub const UNPACK_KW: &str = "><";
 
-pub const MULTI_LINE_COMMENT_START: &str = "#-";
-pub const MULTI_LINE_COMMENT_END: &str = "-#";
+pub const MULTI_LINE_COMMENT_START: &str = "-#";
+pub const MULTI_LINE_COMMENT_END: &str = "#-";
 
 pub const FOR_START_KW: &str = "FOR";
 pub const FOR_CONDITION_START_KW: &str = "(";

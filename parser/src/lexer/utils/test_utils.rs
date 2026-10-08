@@ -125,9 +125,9 @@ fn test_parse_statements(#[case] input: &str, #[case] expected: Vec<LexStmt>) {
 
 #[test]
 fn test_parse_multi_comment() {
-    const INPUT: &str = r##"#-
+    const INPUT: &str = r##"-#
             Multi-line comment
-            -#
+            #-
         "##;
     let input = Span::new(INPUT);
     let res = parse_comments(input);

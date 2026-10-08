@@ -1,0 +1,11 @@
+BEGIN MODULE UnterminatedComment
+# Assumption under test: an unterminated multi-line comment should be a
+# parse error. This used to silently succeed: parse_comments tries
+# parse_multi_comment first, and when MULTI_LINE_COMMENT_START was a
+# prefix of SINGLE_LINE_COMMENT ("#-" vs "#"), a failed multi-line match
+# fell back to being read as a single-line comment instead of erroring.
+# Swapping the delimiters (MULTI_LINE_COMMENT_START = "-#", _END = "#-")
+# fixed it, since "-#" no longer shares a prefix with "#" - confirmed,
+# this now correctly fails to parse.
+-# this multi-line comment never closes
+MODULE UnterminatedComment END

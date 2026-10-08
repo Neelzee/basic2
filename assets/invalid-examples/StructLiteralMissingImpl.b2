@@ -1,0 +1,12 @@
+BEGIN MODULE StructLiteralMissingImpl
+# Assumption under test: struct literal fields require the IMPL keyword
+# (`IMPL x = 1;`), mirroring function IMPL - bare `x = 1;` should fail.
+STRUCTURE Point WHERE
+  DECL x : INT;
+  DECL y : INT;
+END
+LET p = STRUCTURE Point WITH
+  x = 1;
+  y = 2;
+END;
+MODULE StructLiteralMissingImpl END

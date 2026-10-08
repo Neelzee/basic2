@@ -1,0 +1,13 @@
+BEGIN MODULE LegacyTeachKeyword
+# Assumption under test: TEACH/TO was fully replaced by `KNOWS ... WITH`
+# when skills were renamed - the old syntax should no longer parse.
+SKILL Orderable WHERE
+  DECL gt(IT, IT) : BOOL;
+END
+
+TEACH Orderable TO INT
+  IMPL gt(a, b) DOES
+    RETURN a > b;
+  END
+END
+MODULE LegacyTeachKeyword END

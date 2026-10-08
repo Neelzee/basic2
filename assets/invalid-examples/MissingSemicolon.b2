@@ -1,0 +1,5 @@
+BEGIN MODULE MissingSemicolon
+# Assumption under test: statements must be terminated with `;` (basic
+# canary case - every statement form requires it).
+LET x = 5
+MODULE MissingSemicolon END

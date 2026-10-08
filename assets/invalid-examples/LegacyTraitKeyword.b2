@@ -1,0 +1,7 @@
+BEGIN MODULE LegacyTraitKeyword
+# Assumption under test: TRAIT was fully replaced by SKILL - the old
+# keyword should no longer parse.
+TRAIT Orderable WHERE
+  DECL gt(IT, IT) : BOOL;
+END
+MODULE LegacyTraitKeyword END

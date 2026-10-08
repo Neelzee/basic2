@@ -1,0 +1,9 @@
+BEGIN MODULE MismatchedModuleName
+# Assumption under test: the name after BEGIN MODULE and the name before
+# the closing END must match. NOTE: last time I checked the source,
+# LexModule::parse_program captures start_identifier and end_identifier
+# separately but never compares them (idents() has no callers), so this
+# is expected to currently PARSE SUCCESSFULLY - i.e. this test is expected
+# to fail, as a marker for when that check gets added.
+LET x = 1;
+MODULE SomeOtherName END

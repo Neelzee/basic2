@@ -1,0 +1,6 @@
+BEGIN MODULE BareFunctionCallWithoutInvoke
+# Assumption under test: there is no "expression statement" form - a function
+# call used only for its side effect must go through INVOKE. This should
+# fail to parse as a statement.
+PRINT("hello");
+MODULE BareFunctionCallWithoutInvoke END

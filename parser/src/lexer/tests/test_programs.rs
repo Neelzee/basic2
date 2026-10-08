@@ -74,3 +74,19 @@ fn test_can_parse_trait_and_generics(
         convert_error(input, result.unwrap_err())
     );
 }
+
+#[rstest]
+fn test_cannot_parse_invalid_examples(
+    #[base_dir = "../assets/invalid-examples/"]
+    #[mode = str]
+    #[files("*.b2")]
+    content: &str,
+) {
+    let input = Span::new(content);
+    let result = LexModule::parse_program(input);
+
+    assert!(
+        result.is_err(),
+        "expected this program to fail parsing, but it parsed successfully"
+    );
+}

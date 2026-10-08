@@ -1,0 +1,7 @@
+BEGIN MODULE BarePostfixIncrement
+# Assumption under test: ++ / -- are postfix *expression* operators only -
+# there's no statement form, so `i++;` alone (not inside a larger
+# expression, e.g. on the right of `=`) should fail to parse.
+LET i = 0;
+i++;
+MODULE BarePostfixIncrement END
