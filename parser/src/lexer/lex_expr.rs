@@ -305,6 +305,10 @@ impl<'a> LexExpr<'a> {
         })
         .parse(input)
     }
+
+    pub fn bool(bool: bool) -> Self {
+        Self::Literal(Primitive::Bool(bool))
+    }
 }
 
 impl<'a> ToB2 for LexExpr<'a> {
