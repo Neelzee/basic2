@@ -1,5 +1,5 @@
 use crate::interpreter::gst::GlobalSymbolTable;
-use parser::lexer::{
+use parser::{
     lex_stmt::decls::variants::FunctionDeclaration,
     lex_type::{LexMonoType, LexType},
 };

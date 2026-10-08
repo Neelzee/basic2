@@ -1,4 +1,4 @@
-use crate::lexer::{
+use crate::{
     lex_type::{LexMonoType, LexPolyType, LexType},
     utils::{
         B2LexError, B2LexResult, Span,

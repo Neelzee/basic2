@@ -2,7 +2,7 @@ use crate::{
     interpreter::{gst::GlobalSymbolTable, interpret},
     stdlib::{PRINT_IDENT, add_stdlib},
 };
-use parser::lexer::{lex_mod::LexModule, utils::Span};
+use parser::{lex_mod::LexModule, utils::Span};
 use std::{fs::File, io::Read};
 
 #[test]

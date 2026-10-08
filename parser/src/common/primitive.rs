@@ -1,11 +1,9 @@
 use crate::{
     common::{AsB2Type, ToB2},
-    lexer::{
-        lex_type::LexType,
-        utils::{
-            B2LexResult, Span,
-            consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
-        },
+    lex_type::LexType,
+    utils::{
+        B2LexResult, Span,
+        consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
     },
 };
 use nom::{

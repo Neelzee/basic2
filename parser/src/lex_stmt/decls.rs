@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::lexer::{
+use crate::{
     lex_stmt::{
         FunDeclComps, FunImplComps,
         decls::variants::{

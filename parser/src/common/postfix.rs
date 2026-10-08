@@ -1,11 +1,9 @@
 use crate::{
     common::ToB2,
-    lexer::{
-        lex_expr::LexExpr,
-        utils::{
-            B2LexResult, Span,
-            consts::{DECR_KW, INCR_KW, LIST_END, LIST_START},
-        },
+    lex_expr::LexExpr,
+    utils::{
+        B2LexResult, Span,
+        consts::{DECR_KW, INCR_KW, LIST_END, LIST_START},
     },
 };
 use nom::{

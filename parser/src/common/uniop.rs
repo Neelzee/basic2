@@ -1,6 +1,6 @@
 use crate::{
     common::ToB2,
-    lexer::utils::{B2LexResult, Span, consts::NEGATION_KW},
+    utils::{B2LexResult, Span, consts::NEGATION_KW},
 };
 use nom::{Parser, bytes::complete::tag};
 

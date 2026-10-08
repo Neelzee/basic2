@@ -2,11 +2,9 @@ use std::collections::HashMap;
 
 use crate::{
     common::AsB2Type,
-    lexer::{
-        lex_expr::LexExpr,
-        lex_stmt::{FunDeclComps, FunImplComps},
-        lex_type::{LexMonoType, LexPolyType, LexType},
-    },
+    lex_expr::LexExpr,
+    lex_stmt::{FunDeclComps, FunImplComps},
+    lex_type::{LexMonoType, LexPolyType, LexType},
 };
 
 #[derive(Debug, PartialEq, Clone)]

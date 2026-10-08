@@ -1,6 +1,6 @@
 use crate::{
     common::ToB2,
-    lexer::utils::{
+    utils::{
         B2LexResult, Span,
         consts::{
             ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LEQ_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW,

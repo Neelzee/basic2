@@ -1,6 +1,6 @@
 use crate::{
     common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
-    lexer::utils::{
+    utils::{
         B2LexError, B2LexResult, Span,
         consts::{
             ADD_KW, AND_KW, DIV_KW, ENUM_INDEXING, EQ_KW, FUNCTION_CALL_DELIMITER,

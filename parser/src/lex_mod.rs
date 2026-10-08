@@ -1,4 +1,4 @@
-use crate::lexer::{
+use crate::{
     lex_stmt::LexStmt,
     utils::{
         B2LexResult, Span,

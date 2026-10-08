@@ -2,21 +2,19 @@ use std::collections::HashMap;
 
 use crate::{
     common::binop::BinOp,
-    lexer::{
-        lex_expr::LexExpr,
-        lex_stmt::{
-            decls::{
-                Decl,
-                variants::{
-                    EnumDeclaration, FunctionDeclaration, ListUnpacking, StructUnpacking,
-                    TupleUnpacking, VariableDeclaration, VariableDeclarationAssignment,
-                },
+    lex_expr::LexExpr,
+    lex_stmt::{
+        decls::{
+            Decl,
+            variants::{
+                EnumDeclaration, FunctionDeclaration, ListUnpacking, StructUnpacking,
+                TupleUnpacking, VariableDeclaration, VariableDeclarationAssignment,
             },
-            impls::Impl,
-            when_match::WhenMatch,
         },
-        lex_type::LexType,
+        impls::Impl,
+        when_match::WhenMatch,
     },
+    lex_type::LexType,
 };
 
 pub mod decls;

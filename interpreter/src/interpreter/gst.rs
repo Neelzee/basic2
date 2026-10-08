@@ -1,21 +1,19 @@
 use crate::symbol_table::SymbolTable;
 use parser::{
     common::{AsB2Type, ToB2},
-    lexer::{
-        lex_mod::LexModule,
-        lex_stmt::{
-            LexStmt,
-            decls::{
-                Decl,
-                variants::{
-                    EnumDeclaration, FunctionDeclaration, StructDeclaration, TraitDecl,
-                    TupleUnpacking, TypeAlias, VariableDeclaration, VariableDeclarationAssignment,
-                },
+    lex_mod::LexModule,
+    lex_stmt::{
+        LexStmt,
+        decls::{
+            Decl,
+            variants::{
+                EnumDeclaration, FunctionDeclaration, StructDeclaration, TraitDecl, TupleUnpacking,
+                TypeAlias, VariableDeclaration, VariableDeclarationAssignment,
             },
-            impls::{FunctionImplementation, Impl, TraitImpl},
         },
-        lex_type::LexType,
+        impls::{FunctionImplementation, Impl, TraitImpl},
     },
+    lex_type::LexType,
 };
 
 #[derive(Debug, Clone)]

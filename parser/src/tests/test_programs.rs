@@ -1,4 +1,4 @@
-use crate::lexer::{
+use crate::{
     lex_mod::LexModule,
     utils::{Span, consts::test_const::EMPTY_PROGRAM_PATH, convert_error},
 };

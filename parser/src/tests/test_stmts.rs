@@ -1,22 +1,20 @@
 use crate::{
     common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive},
-    lexer::{
-        lex_expr::LexExpr,
-        lex_stmt::{
-            LexStmt,
-            decls::{
-                Decl,
-                variants::{
-                    EnumDeclaration, ListUnpacking, StructUnpacking, TypeAlias,
-                    VariableDeclarationAssignment,
-                },
+    lex_expr::LexExpr,
+    lex_stmt::{
+        LexStmt,
+        decls::{
+            Decl,
+            variants::{
+                EnumDeclaration, ListUnpacking, StructUnpacking, TypeAlias,
+                VariableDeclarationAssignment,
             },
-            impls::Impl,
-            when_match::WhenMatch,
         },
-        lex_type::{LexMonoType, LexPolyType, LexType},
-        utils::{Span, convert_error},
+        impls::Impl,
+        when_match::WhenMatch,
     },
+    lex_type::{LexMonoType, LexPolyType, LexType},
+    utils::{Span, convert_error},
 };
 use p_macros::{
     b2, create_return_type, hashmap, lbop, leel, lfin, lfne, lg, lprt, ltype, lv, lvda, lvdar, rt,

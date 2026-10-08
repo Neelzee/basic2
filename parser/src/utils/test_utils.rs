@@ -1,14 +1,12 @@
 use crate::{
     common::{B2Op, binop::BinOp},
-    lexer::{
-        lex_expr::LexExpr,
-        lex_stmt::LexStmt,
-        lex_type::{LexMonoType, LexType},
-        utils::{
-            B2LexResult, Span, convert_error,
-            helper_parsers::{
-                parse_comments, parse_identifier, parse_poly_list_with, parse_statements,
-            },
+    lex_expr::LexExpr,
+    lex_stmt::LexStmt,
+    lex_type::{LexMonoType, LexType},
+    utils::{
+        B2LexResult, Span, convert_error,
+        helper_parsers::{
+            parse_comments, parse_identifier, parse_poly_list_with, parse_statements,
         },
     },
 };

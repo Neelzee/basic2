@@ -7,23 +7,21 @@ use parser::{
         AsB2Type, B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive,
         uniop::UniOp,
     },
-    lexer::{
-        lex_expr::LexExpr,
-        lex_stmt::{
-            Import, LexStmt,
-            decls::{
-                Decl::{self, FnDecl},
-                variants::{
-                    EnumDeclaration, FunctionDeclaration, ListUnpacking, StructDeclaration,
-                    StructUnpacking, TraitDecl, TupleUnpacking, TypeAlias, VariableDeclaration,
-                    VariableDeclarationAssignment,
-                },
+    lex_expr::LexExpr,
+    lex_stmt::{
+        Import, LexStmt,
+        decls::{
+            Decl::{self, FnDecl},
+            variants::{
+                EnumDeclaration, FunctionDeclaration, ListUnpacking, StructDeclaration,
+                StructUnpacking, TraitDecl, TupleUnpacking, TypeAlias, VariableDeclaration,
+                VariableDeclarationAssignment,
             },
-            impls::{FunctionImplementation, Impl, TraitImpl},
-            when_match::WhenMatch,
         },
-        lex_type::{LexMonoType, LexPolyType, LexType},
+        impls::{FunctionImplementation, Impl, TraitImpl},
+        when_match::WhenMatch,
     },
+    lex_type::{LexMonoType, LexPolyType, LexType},
 };
 use std::collections::HashMap;
 

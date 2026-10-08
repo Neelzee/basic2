@@ -1,5 +1,5 @@
 use crate::interpreter::gst::GlobalSymbolTable;
-use parser::lexer::{lex_expr::LexExpr, lex_stmt::when_match::WhenMatch, lex_type::LexType};
+use parser::{lex_expr::LexExpr, lex_stmt::when_match::WhenMatch, lex_type::LexType};
 
 #[derive(Debug)]
 pub enum IE<'a> {

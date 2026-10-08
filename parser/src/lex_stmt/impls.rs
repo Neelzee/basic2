@@ -1,4 +1,4 @@
-use crate::lexer::{lex_expr::LexExpr, lex_stmt::LexStmt};
+use crate::{lex_expr::LexExpr, lex_stmt::LexStmt};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Impl<'a> {

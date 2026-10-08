@@ -1,9 +1,7 @@
 use crate::{
     common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive},
-    lexer::{
-        lex_expr::LexExpr,
-        utils::{Span, convert_error},
-    },
+    lex_expr::LexExpr,
+    utils::{Span, convert_error},
 };
 use nom::Parser;
 use p_macros::{hashmap, lai, lbop, lfne, lg, lv};
