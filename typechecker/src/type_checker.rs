@@ -9,8 +9,7 @@ use crate::b2::{
     typ::B2Type,
 };
 use parser::{
-    common::{B2OpInner, postfix::Postfix, primitive::Primitive},
-    lexer::{lex_expr::LexExpr, lex_mod::LexModule, lex_stmt::LexStmt},
+    common::{B2OpInner, postfix::Postfix, primitive::Primitive}, lexer::{lex_expr::LexExpr, lex_mod::LexModule, lex_stmt::LexStmt, lex_type::LexType},
 };
 use std::collections::HashMap;
 
@@ -30,135 +29,35 @@ pub fn typecheck_statement<'a>(
     st: SymbolTable<'a>,
 ) -> B2Result<'a, (SymbolTable<'a>, B2Stmt<'a>)> {
     match stmt {
-        LexStmt::EnumDeclaration { identifier, .. }
-        | LexStmt::TraitDecl { identifier, .. }
-        | LexStmt::TypeAlias { identifier, .. }
-        | LexStmt::ImportModule { identifier }
-        | LexStmt::StructDeclaration { identifier, .. }
-        | LexStmt::FunctionDeclaration { identifier, .. }
-        | LexStmt::VariableDeclarationAssignment { identifier, .. }
-        | LexStmt::VariableDeclaration { identifier, .. }
-            if st.contains_ident(identifier) =>
-        {
-            Err(B2Error::IdentifierExists {
-                ident: identifier,
-                st,
-            })
-        }
-        LexStmt::TupleUnpacking { identifiers, .. }
-        | LexStmt::StructUnpacking { identifiers, .. }
-        | LexStmt::ListUnpacking { identifiers, .. }
-            if identifiers.iter().any(|i| st.contains_ident(i)) =>
-        {
-            Err(B2Error::IdentifierExists {
-                ident: identifiers.iter().find(|i| st.contains_ident(i)).unwrap(),
-                st,
-            })
-        }
-        LexStmt::VariableReassignment {
-            ident: identifier, ..
-        } if !st.contains_ident(identifier) => Err(B2Error::IdentifierDoesNotExist {
-            ident: identifier,
-            st,
-        }),
-        LexStmt::ListReassignment {
-            indexee,
-            index,
-            reassignment,
-            new_value,
-        } => todo!(),
+        LexStmt::Decl(decl) => todo!(),
+        LexStmt::Impl(_) => todo!(),
+        LexStmt::Import(import) => todo!(),
+        LexStmt::VariableReassignment { ident, reassignment, new_value } => todo!(),
+        LexStmt::ListReassignment { indexee, index, reassignment, new_value } => todo!(),
         LexStmt::If { condition, body } => todo!(),
         LexStmt::While { condition, body } => todo!(),
-        LexStmt::FunctionImplementation {
-            identifier,
-            parameters,
-            body,
-        } => todo!(),
         LexStmt::Block { body } => todo!(),
-        LexStmt::FunctionInvocation {
-            identifier,
-            arguments,
-        } => todo!(),
+        LexStmt::FunctionInvocation { ident, arguments } => todo!(),
         LexStmt::Break => todo!(),
         LexStmt::Continue => todo!(),
         LexStmt::Return { value } => todo!(),
-        LexStmt::For {
-            start_stmt,
-            condition,
-            incrementer,
-            body,
-        } => todo!(),
-        LexStmt::StructFieldReassignment {
-            identifier,
-            field,
-            reassignment,
-            new_value,
-        } => todo!(),
-        LexStmt::WhenStatement {
-            identifier,
-            branches,
-        } => todo!(),
-        LexStmt::TraitImpl {
-            trait_identifier,
-            type_identifier,
-            body,
-        } => todo!(),
-        LexStmt::VariableDeclaration {
-            identifier,
-            variable_type,
-        } => todo!(),
-        LexStmt::VariableDeclarationAssignment {
-            identifier,
-            variable_type,
-            value,
-        } => todo!(),
-        LexStmt::FunctionDeclaration {
-            identifier,
-            parameters,
-            generics,
-            return_type,
-        } => todo!(),
-        LexStmt::StructDeclaration { identifier, fields } => todo!(),
-        LexStmt::TypeAlias {
-            identifier,
-            b2_type,
-        } => todo!(),
-        LexStmt::ImportModule { identifier } => todo!(),
-        LexStmt::EnumDeclaration {
-            identifier,
-            enumerations,
-        } => todo!(),
-        LexStmt::TraitDecl {
-            identifier,
-            restrictions,
-            decls,
-            impls,
-        } => todo!(),
-        LexStmt::TupleUnpacking { identifiers, value } => todo!(),
-        LexStmt::StructUnpacking { identifiers, value } => todo!(),
-        LexStmt::ListUnpacking {
-            identifiers,
-            remainder,
-            value,
-        } => todo!(),
-        LexStmt::VariableReassignment {
-            ident: identifier,
-            reassignment,
-            new_value,
-        } => todo!(),
+        LexStmt::For { start_stmt, condition, incrementer, body } => todo!(),
+        LexStmt::StructFieldReassignment { ident, field, reassignment, new_value } => todo!(),
+        LexStmt::WhenStatement { ident, branches } => todo!(),
     }
 }
 
 pub fn infer_type<'a>(expr: &'a LexExpr<'a>, st: &'a SymbolTable<'a>) -> Option<B2Type<'a>> {
     match expr {
+        LexExpr::Nil => todo!(),
         LexExpr::Literal(p) => match p {
-            Primitive::Int(_) => Some(B2Type::Int),
-            Primitive::Float(_) => Some(B2Type::Float),
-            Primitive::Str(_) => Some(B2Type::Str),
-            Primitive::Bool(_) => Some(B2Type::Bool),
+            Primitive::Int(_) => Some(B2Type::int()),
+            Primitive::Float(_) => Some(B2Type::float()),
+            Primitive::Str(_) => Some(B2Type::str()),
+            Primitive::Bool(_) => Some(B2Type::bool()),
         },
         LexExpr::Tuple(fst, snd) => infer_type(fst, st)
-            .and_then(|f| infer_type(snd, st).map(|s| B2Type::Tuple(Box::new(f), Box::new(s)))),
+            .and_then(|f| infer_type(snd, st).map(|s| B2Type::tuple(f, s))),
         LexExpr::List(xs) => xs.last().and_then(|x| infer_type(x, st)),
         LexExpr::Variable(i) => st.lookup_var(i).and_then(|v| {
             v.get_type()
@@ -167,8 +66,8 @@ pub fn infer_type<'a>(expr: &'a LexExpr<'a>, st: &'a SymbolTable<'a>) -> Option<
         }),
         LexExpr::Group(i) => infer_type(i, st),
         LexExpr::FunctionCall {
-            ident: identifier, ..
-        } => st.lookup_fn(identifier).map(|f| f.get_return()).cloned(),
+            ident: ident, ..
+        } => st.lookup_fn(ident).map(|f| f.get_return()).cloned(),
         LexExpr::Op(op) => match op.inner() {
             B2OpInner::Prefix(_, e) => infer_type(e, st),
             B2OpInner::Postfix(e, o) => match o {
@@ -178,16 +77,17 @@ pub fn infer_type<'a>(expr: &'a LexExpr<'a>, st: &'a SymbolTable<'a>) -> Option<
             B2OpInner::Binary(_, _, _) => todo!(),
         },
         LexExpr::Struct {
-            ident: identifier,
+            ident: ident,
             field_implementations,
         } => todo!(),
         LexExpr::StructFieldAccessing {
-            ident: identifier,
+            ident: ident,
             field,
         } => todo!(),
         LexExpr::Enum {
-            ident: identifier,
+            ident,
             instance,
+            values,
         } => todo!(),
     }
 }
