@@ -9,7 +9,8 @@ use crate::b2::{
     typ::B2Type,
 };
 use parser::{
-    common::{B2OpInner, postfix::Postfix, primitive::Primitive}, lexer::{lex_expr::LexExpr, lex_mod::LexModule, lex_stmt::LexStmt, lex_type::LexType},
+    common::{B2OpInner, postfix::Postfix, primitive::Primitive},
+    lexer::{lex_expr::LexExpr, lex_mod::LexModule, lex_stmt::LexStmt, lex_type::LexType},
 };
 use std::collections::HashMap;
 
@@ -32,8 +33,17 @@ pub fn typecheck_statement<'a>(
         LexStmt::Decl(decl) => todo!(),
         LexStmt::Impl(_) => todo!(),
         LexStmt::Import(import) => todo!(),
-        LexStmt::VariableReassignment { ident, reassignment, new_value } => todo!(),
-        LexStmt::ListReassignment { indexee, index, reassignment, new_value } => todo!(),
+        LexStmt::VariableReassignment {
+            ident,
+            reassignment,
+            new_value,
+        } => todo!(),
+        LexStmt::ListReassignment {
+            indexee,
+            index,
+            reassignment,
+            new_value,
+        } => todo!(),
         LexStmt::If { condition, body } => todo!(),
         LexStmt::While { condition, body } => todo!(),
         LexStmt::Block { body } => todo!(),
@@ -41,8 +51,18 @@ pub fn typecheck_statement<'a>(
         LexStmt::Break => todo!(),
         LexStmt::Continue => todo!(),
         LexStmt::Return { value } => todo!(),
-        LexStmt::For { start_stmt, condition, incrementer, body } => todo!(),
-        LexStmt::StructFieldReassignment { ident, field, reassignment, new_value } => todo!(),
+        LexStmt::For {
+            start_stmt,
+            condition,
+            incrementer,
+            body,
+        } => todo!(),
+        LexStmt::StructFieldReassignment {
+            ident,
+            field,
+            reassignment,
+            new_value,
+        } => todo!(),
         LexStmt::WhenStatement { ident, branches } => todo!(),
     }
 }
@@ -56,8 +76,9 @@ pub fn infer_type<'a>(expr: &'a LexExpr<'a>, st: &'a SymbolTable<'a>) -> Option<
             Primitive::Str(_) => Some(B2Type::str()),
             Primitive::Bool(_) => Some(B2Type::bool()),
         },
-        LexExpr::Tuple(fst, snd) => infer_type(fst, st)
-            .and_then(|f| infer_type(snd, st).map(|s| B2Type::tuple(f, s))),
+        LexExpr::Tuple(fst, snd) => {
+            infer_type(fst, st).and_then(|f| infer_type(snd, st).map(|s| B2Type::tuple(f, s)))
+        }
         LexExpr::List(xs) => xs.last().and_then(|x| infer_type(x, st)),
         LexExpr::Variable(i) => st.lookup_var(i).and_then(|v| {
             v.get_type()
@@ -65,9 +86,9 @@ pub fn infer_type<'a>(expr: &'a LexExpr<'a>, st: &'a SymbolTable<'a>) -> Option<
                 .or_else(|| v.get_expr().map(|x| x.get_type(st)))
         }),
         LexExpr::Group(i) => infer_type(i, st),
-        LexExpr::FunctionCall {
-            ident: ident, ..
-        } => st.lookup_fn(ident).map(|f| f.get_return()).cloned(),
+        LexExpr::FunctionCall { ident: ident, .. } => {
+            st.lookup_fn(ident).map(|f| f.get_return()).cloned()
+        }
         LexExpr::Op(op) => match op.inner() {
             B2OpInner::Prefix(_, e) => infer_type(e, st),
             B2OpInner::Postfix(e, o) => match o {
