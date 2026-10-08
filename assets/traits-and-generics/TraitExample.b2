@@ -1,23 +1,23 @@
-BEGIN MODULE traits
+BEGIN MODULE SkillExample
 DECL id[T](T) : T;
 IMPL id(n) RETURN n;
 
-TRAIT Orderable WHERE
+SKILL Orderable WHERE
   DECL gt(IT, IT) : BOOL;
 END
 
-TEACH Orderable TO INT
+INT KNOWS Orderable WITH
   IMPL gt(a, b) DOES
     RETURN a > b;
   END
 END
 
-TRAIT Magma WHERE
+SKILL Magma WHERE
   DECL binop(IT, IT) : IT;
 END
 
-TRAIT Semigroup KNOWS Magma WHERE
-  DECL combine(IT, IT) : Semigroup;
+SKILL Semigroup KNOWS Magma WHERE
+  DECL combine(IT, IT) : IT;
 END
 
 DECL print2[T KNOWS SHOWABLE]([T]) : NIL;
@@ -40,4 +40,4 @@ STRUCTURE List[T] WHERE
   DECL tail : [List[T]];
 END
 
-MODULE traits END
+MODULE SkillExample END

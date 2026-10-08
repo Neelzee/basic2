@@ -1,6 +1,6 @@
 BEGIN MODULE GenericType
 DECL id[T](T) : T;
-IMPL id(t) RETURN T;
+IMPL id(t) RETURN t;
 DECL foo[T KNOWS SHOWABLE](T) : NIL;
 IMPL foo(v) INVOKE PRINT(v);
 LET _ = foo(10);

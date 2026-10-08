@@ -1,7 +1,7 @@
 BEGIN MODULE IsPrime
 INVOKE PRINT("Input a number to check for if its a prime:");
 LET rawInp: STR = INPUT("> ");
-LET n = LEN(rawInp);
+LET n = PARSE_INT(rawInp);
 LET prime: [BOOL] = [];
 FOR (LET i = 0; i <= (n + 1); i++;) THEN
   prime = ADD(TRUE, prime);
