@@ -1,0 +1,22 @@
+BEGIN MODULE Operators
+LET a = 5;
+LET b = 2;
+LET sum = a + b;
+LET diff = a - b;
+LET prod = a * b;
+LET quot = a / b;
+LET rem = a % b;
+LET power = a ^ b;
+LET isEq = a == b;
+LET isNeq = a != b;
+LET isLt = a < b;
+LET isLeq = a <= b;
+LET isGt = a > b;
+LET isGeq = a >= b;
+LET both = isEq && isNeq;
+LET either = isEq || isNeq;
+LET notEq = !isEq;
+LET counter = 0;
+LET postIncr = counter++;
+LET postDecr = counter--;
+MODULE Operators END

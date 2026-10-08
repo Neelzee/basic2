@@ -1,0 +1,6 @@
+BEGIN MODULE ForLoop
+LET total = 0;
+FOR (LET i = 0; i < 5; i = i + 1;) THEN
+  total = total + i;
+END
+MODULE ForLoop END

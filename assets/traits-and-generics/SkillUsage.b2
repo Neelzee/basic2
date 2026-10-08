@@ -1,0 +1,14 @@
+BEGIN MODULE SkillUsage
+SKILL Greeter WHERE
+  DECL greet(IT) : STR;
+END
+
+INT KNOWS Greeter WITH
+  IMPL greet(n) DOES
+    RETURN "Hello!";
+  END
+END
+
+LET message = greet(5);
+INVOKE PRINT(message);
+MODULE SkillUsage END

@@ -1,0 +1,13 @@
+BEGIN MODULE WhenTypeExample
+LET foo = [1];
+
+WHEN foo THEN
+  IS [INT] FOLLOWS
+    INVOKE PRINT("foo is a list of ints");
+  END
+  _ FOLLOWS
+    INVOKE PRINT("something else");
+  END
+END
+
+MODULE WhenTypeExample END
