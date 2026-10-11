@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 pub type Key<'a> = (usize, &'a str);
 #[derive(Debug, Clone)]
-pub struct SymbolTable<'a, T: Clone> {
+pub struct SymbolTable<'a, T> {
     symbols: HashMap<usize, HashMap<&'a str, T>>,
 }
 
-impl<'a, T: Clone> SymbolTable<'a, T> {
+impl<'a, T> SymbolTable<'a, T> {
     pub fn new() -> Self {
         Self {
             symbols: HashMap::new(),
@@ -25,9 +25,7 @@ impl<'a, T: Clone> SymbolTable<'a, T> {
     }
 
     pub fn insert(mut self, (scope, ident): Key<'a>, value: T) -> Self {
-        let mut inner_scope = self.symbols.get(&scope).cloned().unwrap_or(HashMap::new());
-        inner_scope.insert(ident, value);
-        self.symbols.insert(scope, inner_scope);
+        self.symbols.entry(scope).or_default().insert(ident, value);
         self
     }
 
