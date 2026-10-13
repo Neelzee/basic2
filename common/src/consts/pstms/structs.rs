@@ -1,0 +1,9 @@
+pub const STRUCT_KW: &str = "STRUCTURE";
+pub const STRUCT_DECL_KW: &str = "WHERE";
+pub const STRUCT_START_KW: &str = "WITH";
+pub const STRUCT_FIELD_DECL_KW: &str = "DECL";
+pub const STRUCT_FIELD_IMPL_KW: &str = "IMPL";
+pub const STRUCT_FIELD_ASSIGNMENT: &str = "=";
+pub const STRUCT_END_KW: &str = "END";
+pub const STRUCT_FIELD_END: &str = ";";
+pub const STRUCT_FIELD_ACCESS_KW: &str = "::";

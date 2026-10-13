@@ -1,0 +1,9 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+nom = { workspace = true }
+nom-language = { workspace = true }
+nom_locate = { workspace = true }
