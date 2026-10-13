@@ -1,15 +1,12 @@
-use std::collections::HashMap;
-use crate::{
-    pstmt::{
-        FunDeclComps, FunImplComps,
-        decls::variants::{
-            EnumDeclaration, FunctionDeclaration, ListUnpacking, StructDeclaration,
-            StructUnpacking, TraitDecl, TupleUnpacking, TypeAlias, VariableDeclaration,
-            VariableDeclarationAssignment,
-        },
+use crate::pstmt::{
+    FunDeclComps, FunImplComps,
+    decls::variants::{
+        EnumDeclaration, FunctionDeclaration, ListUnpacking, StructDeclaration, StructUnpacking,
+        TraitDecl, TupleUnpacking, TypeAlias, VariableDeclaration, VariableDeclarationAssignment,
     },
 };
 use common::types::Type;
+use std::collections::HashMap;
 
 pub mod variants;
 

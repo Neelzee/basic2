@@ -1,9 +1,9 @@
-use crate::{
-    utils::{
-        B2PResult, Span,
-    },
+use crate::utils::{B2PResult, Span};
+use common::{
+    AsB2Type, ToB2,
+    consts::pexprs::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
+    types::Type,
 };
-use common::{AsB2Type, ToB2, consts::pexprs::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW}, types::Type};
 use nom::{
     Parser,
     branch::alt,

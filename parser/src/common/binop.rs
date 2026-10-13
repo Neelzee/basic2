@@ -1,10 +1,11 @@
 use crate::{
     common::ToB2,
-    utils::{
-        B2PResult, Span,
-    },
+    utils::{B2PResult, Span},
 };
-use common::consts::ops::{ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LEQ_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW, SUB_KW};
+use common::consts::ops::{
+    ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LEQ_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW,
+    POW_KW, SUB_KW,
+};
 use nom::{
     Parser, branch::alt, bytes::complete::tag, character::complete::space0, sequence::preceded,
 };

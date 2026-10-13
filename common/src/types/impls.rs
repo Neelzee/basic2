@@ -1,4 +1,20 @@
-use crate::{ToB2, consts::{pstms::{ENUM_INDEXING, fns::{FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_START, FUNCTION_GENERICS_END, FUNCTION_TYPE_START, FUNCTION_TYPE_END, FUNCTION_TYPE_ARROW_KW}}, types::{BOOL_TYPE_KW, FLOAT_TYPE_KW, INT_TYPE_KW, NIL_TYPE_KW, SELF_TYPE_KW, STR_TYPE_KW, TUPLE_START, TUPLE_DELIMITER, TUPLE_END, LIST_START, LIST_END}}, types::{MonoType, PolyType, Type}};
+use crate::{
+    ToB2,
+    consts::{
+        pstms::{
+            ENUM_INDEXING,
+            fns::{
+                FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_END, FUNCTION_GENERICS_START,
+                FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END, FUNCTION_TYPE_START,
+            },
+        },
+        types::{
+            BOOL_TYPE_KW, FLOAT_TYPE_KW, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW,
+            SELF_TYPE_KW, STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+        },
+    },
+    types::{MonoType, PolyType, Type},
+};
 
 impl<'a> Type<'a> {
     pub fn nil() -> Self {

@@ -1,8 +1,8 @@
 use crate::{
-    ptypes::TypeParser,
     common::{B2Op, binop::BinOp},
     pexpr::PExpr,
     pstmt::PStmt,
+    ptypes::TypeParser,
     utils::{
         B2PResult, Span, convert_error,
         helper_parsers::{

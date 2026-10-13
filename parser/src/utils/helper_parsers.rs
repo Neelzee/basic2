@@ -1,11 +1,12 @@
 use crate::{
     pexpr::PExpr,
     pstmt::PStmt,
-    utils::{
-        B2PResult, Span,
-    },
+    utils::{B2PResult, Span},
 };
-use common::consts::pstms::{ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT, SINGLE_LINE_COMMENT_END, UNUSED_IDENTIFIER};
+use common::consts::pstms::{
+    ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT,
+    SINGLE_LINE_COMMENT_END, UNUSED_IDENTIFIER,
+};
 use nom::{
     Parser,
     branch::{alt, permutation},

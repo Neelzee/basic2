@@ -1,8 +1,13 @@
-use std::collections::HashMap;
 use crate::{
-    pexpr::PExpr, pstmt::{FunDeclComps, FunImplComps}, ptypes::TypeParser,
+    pexpr::PExpr,
+    pstmt::{FunDeclComps, FunImplComps},
+    ptypes::TypeParser,
 };
-use common::{AsB2Type, types::{MonoType, PolyType, Type}};
+use common::{
+    AsB2Type,
+    types::{MonoType, PolyType, Type},
+};
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableDeclaration<'a> {
@@ -68,11 +73,7 @@ pub struct VariableDeclarationAssignment<'a> {
 }
 
 impl<'a> VariableDeclarationAssignment<'a> {
-    pub fn new(
-        identifier: &'a str,
-        variable_type: Option<Type<'a>>,
-        value: PExpr<'a>,
-    ) -> Self {
+    pub fn new(identifier: &'a str, variable_type: Option<Type<'a>>, value: PExpr<'a>) -> Self {
         Self {
             identifier,
             variable_type,

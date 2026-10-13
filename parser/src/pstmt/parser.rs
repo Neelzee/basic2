@@ -1,8 +1,12 @@
 use crate::{
-    common::binop::BinOp, pexpr::PExpr, pstmt::{
-        FunDeclComps, FunImplComps, Import, PStmt,
-        decls::variants::VariableDeclarationAssignment, when_match::WhenMatch,
-    }, ptypes::TypeParser, utils::{
+    common::binop::BinOp,
+    pexpr::PExpr,
+    pstmt::{
+        FunDeclComps, FunImplComps, Import, PStmt, decls::variants::VariableDeclarationAssignment,
+        when_match::WhenMatch,
+    },
+    ptypes::TypeParser,
+    utils::{
         B2PError, B2PResult, Span,
         helper_parsers::{
             parse_comments, parse_identifier, parse_parameters, parse_poly_list_with,
@@ -10,7 +14,42 @@ use crate::{
         },
     },
 };
-use common::{consts::{pexprs::{LIST_UNPACKING_KW, UNPACK_KW}, pstms::{ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW, CONTINUE_STMT_KW, END_STMT_KW, ENUM_END_KW, ENUM_START_KW, FOR_BODY_START_KW, FOR_CONDITION_END_KW, FOR_CONDITION_START_KW, FOR_END_KW, FOR_START_KW, IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW, IMPORT_MODULE_KW, RETURN_STMT_KW, TYPE_ALIAS_KW, VARIABLE_DECLARATION, VARIABLE_REASIGNMENT, VARIABLE_TYPE_START, WHILE_STATEMENT_BODY_START_KW, WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW, fns::{FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_GENERIC_SKILL_KW, FUNCTION_GENERIC_SKILL_SEP, FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_END, FUNCTION_GENERICS_START, FUNCTION_IMPLEMENTATION_KW, FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END, FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START}, skill::{SKILL_DECL_BODY_END_KW, SKILL_DECL_BODY_START_KW, SKILL_DECL_KW, SKILL_IMPL_BODY_END_KW, SKILL_IMPL_BODY_START_KW, SKILL_IMPL_KW, SKILL_RESTRICTION_KW, SKILL_RESTRICTION_SEP_KW}, structs::{STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW, STRUCT_KW}, when::{WHEN_STATEMENT_BODY_END_KW, WHEN_STATEMENT_BODY_START_KW, WHEN_STATEMENT_START_KW}}, types::{LIST_DELIMITER, LIST_END, LIST_START, TUPLE_DELIMITER, TUPLE_END, TUPLE_START}}, types::Type};
+use common::{
+    consts::{
+        pexprs::{LIST_UNPACKING_KW, UNPACK_KW},
+        pstms::{
+            ASSIGNMENT_KW, BLOCK_STATEMENT_END_KW, BLOCK_STATEMENT_START_KW, BREAK_STMT_KW,
+            CONTINUE_STMT_KW, END_STMT_KW, ENUM_END_KW, ENUM_START_KW, FOR_BODY_START_KW,
+            FOR_CONDITION_END_KW, FOR_CONDITION_START_KW, FOR_END_KW, FOR_START_KW,
+            IF_STATEMENT_BODY_START_KW, IF_STATEMENT_END_KW, IF_STATEMENT_START_KW,
+            IMPORT_MODULE_KW, RETURN_STMT_KW, TYPE_ALIAS_KW, VARIABLE_DECLARATION,
+            VARIABLE_REASIGNMENT, VARIABLE_TYPE_START, WHILE_STATEMENT_BODY_START_KW,
+            WHILE_STATEMENT_END_KW, WHILE_STATEMENT_START_KW,
+            fns::{
+                FUNCTION_BODY_END_KW, FUNCTION_DECLARATION_KW, FUNCTION_GENERIC_SKILL_KW,
+                FUNCTION_GENERIC_SKILL_SEP, FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_END,
+                FUNCTION_GENERICS_START, FUNCTION_IMPLEMENTATION_KW,
+                FUNCTION_IMPLEMENTATION_START_KW, FUNCTION_INVOCATION_END,
+                FUNCTION_INVOCATION_START_KW, FUNCTION_PARAMETERS_DELIMITER,
+                FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START,
+            },
+            skill::{
+                SKILL_DECL_BODY_END_KW, SKILL_DECL_BODY_START_KW, SKILL_DECL_KW,
+                SKILL_IMPL_BODY_END_KW, SKILL_IMPL_BODY_START_KW, SKILL_IMPL_KW,
+                SKILL_RESTRICTION_KW, SKILL_RESTRICTION_SEP_KW,
+            },
+            structs::{
+                STRUCT_DECL_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_DECL_KW,
+                STRUCT_KW,
+            },
+            when::{
+                WHEN_STATEMENT_BODY_END_KW, WHEN_STATEMENT_BODY_START_KW, WHEN_STATEMENT_START_KW,
+            },
+        },
+        types::{LIST_DELIMITER, LIST_END, LIST_START, TUPLE_DELIMITER, TUPLE_END, TUPLE_START},
+    },
+    types::Type,
+};
 use nom::{
     Parser,
     branch::alt,
@@ -455,9 +494,7 @@ impl<'a> PStmt<'a> {
         .parse(input)
     }
 
-    pub fn parse_struct_field_statement(
-        input: Span<'a>,
-    ) -> B2PResult<'a, (&'a str, Type<'a>)> {
+    pub fn parse_struct_field_statement(input: Span<'a>) -> B2PResult<'a, (&'a str, Type<'a>)> {
         pair(
             pair(
                 preceded(
@@ -640,10 +677,7 @@ impl<'a> PStmt<'a> {
         context(
             "list-reassignment",
             (
-                context(
-                    "indexee",
-                    alt((PExpr::parse_list, PExpr::parse_variable)),
-                ),
+                context("indexee", alt((PExpr::parse_list, PExpr::parse_variable))),
                 context(
                     "index",
                     delimited(

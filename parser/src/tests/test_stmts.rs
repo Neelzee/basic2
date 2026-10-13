@@ -32,10 +32,7 @@ fn test_variable_declaration() {
         "{}",
         convert_error(input, result.unwrap_err())
     );
-    assert_eq!(
-        result.unwrap().1,
-        PStmt::new_var_decl("FOO", ltype!(NIL),)
-    );
+    assert_eq!(result.unwrap().1, PStmt::new_var_decl("FOO", ltype!(NIL),));
 }
 
 #[rstest]

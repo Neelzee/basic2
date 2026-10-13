@@ -1,10 +1,26 @@
 use crate::{
-    pexpr::PExpr, pstmt::PStmt, ptypes::TypeParser, utils::{
+    pexpr::PExpr,
+    pstmt::PStmt,
+    ptypes::TypeParser,
+    utils::{
         B2PResult, Span,
         helper_parsers::{parse_identifier, parse_poly_list_with, parse_statements},
     },
 };
-use common::{consts::{pexprs::LIST_UNPACKING_KW, pstms::{structs::STRUCT_FIELD_ACCESS_KW, when::{WHEN_STATEMENT_BRANCH_END, WHEN_STATEMENT_CONDITION_END_KW, WHEN_STATEMENT_CONDITION_START_KW, WHEN_STATEMENT_TYPE_START_KW}}, types::{LIST_DELIMITER, LIST_END, LIST_START}}, types::Type};
+use common::{
+    consts::{
+        pexprs::LIST_UNPACKING_KW,
+        pstms::{
+            structs::STRUCT_FIELD_ACCESS_KW,
+            when::{
+                WHEN_STATEMENT_BRANCH_END, WHEN_STATEMENT_CONDITION_END_KW,
+                WHEN_STATEMENT_CONDITION_START_KW, WHEN_STATEMENT_TYPE_START_KW,
+            },
+        },
+        types::{LIST_DELIMITER, LIST_END, LIST_START},
+    },
+    types::Type,
+};
 use nom::{
     Parser,
     branch::{alt, permutation},

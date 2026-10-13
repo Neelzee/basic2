@@ -23,11 +23,7 @@ pub mod impls;
 mod parser;
 pub mod when_match;
 
-type FunImplComps<'a> = (
-    &'a str,
-    Vec<(&'a str, Option<PExpr<'a>>)>,
-    Vec<PStmt<'a>>,
-);
+type FunImplComps<'a> = (&'a str, Vec<(&'a str, Option<PExpr<'a>>)>, Vec<PStmt<'a>>);
 type FunDeclComps<'a> = (
     &'a str,
     Vec<(&'a str, Vec<&'a str>)>,

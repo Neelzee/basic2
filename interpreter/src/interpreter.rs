@@ -4,9 +4,9 @@ use crate::interpreter::{
 };
 use common::types::{MonoType, Type};
 use parser::{
-    common::{
-        B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp,
-    }, pexpr::PExpr, pstmt::{
+    common::{B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
+    pexpr::PExpr,
+    pstmt::{
         Import, PStmt,
         decls::{
             Decl::{self, FnDecl},
@@ -18,7 +18,8 @@ use parser::{
         },
         impls::{FunctionImplementation, Impl, TraitImpl},
         when_match::WhenMatch,
-    }, ptypes::TypeParser,
+    },
+    ptypes::TypeParser,
 };
 use std::collections::HashMap;
 
@@ -805,30 +806,26 @@ pub fn unpack_expr<'a>(
                     .cloned()
                     .unwrap_or_else(|| infer_type(gst, var.value()));
                 match b2_type {
-                    Type::Mono(MonoType::TypeVar(ident)) => {
-                        match gst.lookup_struct_decl(ident) {
-                            Some(struct_decl) => match struct_decl.has_field(field) {
-                                true => match var.value() {
-                                    PExpr::Struct {
-                                        field_implementations,
-                                        ..
-                                    } => match field_implementations.get(field) {
-                                        Some(expr) => unpack_expr(gst, expr.clone()),
-                                        None => unreachable!(
-                                            "Struct was checked for the field: {field}'s existance in an earlier branch, but did not exist: {var:?}"
-                                        ),
-                                    },
-                                    v => unreachable!(
-                                        "Struct was either typed or inferred as a struct, it was: {v:?}"
+                    Type::Mono(MonoType::TypeVar(ident)) => match gst.lookup_struct_decl(ident) {
+                        Some(struct_decl) => match struct_decl.has_field(field) {
+                            true => match var.value() {
+                                PExpr::Struct {
+                                    field_implementations,
+                                    ..
+                                } => match field_implementations.get(field) {
+                                    Some(expr) => unpack_expr(gst, expr.clone()),
+                                    None => unreachable!(
+                                        "Struct was checked for the field: {field}'s existance in an earlier branch, but did not exist: {var:?}"
                                     ),
                                 },
-                                false => {
-                                    Err(IE::StructAccessingOnNonExistingField { ident, field })
-                                }
+                                v => unreachable!(
+                                    "Struct was either typed or inferred as a struct, it was: {v:?}"
+                                ),
                             },
-                            None => Err(IE::StructAccessingOnNonStruct(identifier, field, b2_type)),
-                        }
-                    }
+                            false => Err(IE::StructAccessingOnNonExistingField { ident, field }),
+                        },
+                        None => Err(IE::StructAccessingOnNonStruct(identifier, field, b2_type)),
+                    },
                     _ => Err(IE::StructAccessingOnNonStruct(identifier, field, b2_type)),
                 }
             }
@@ -848,9 +845,7 @@ fn infer_type<'a>(gst: &GlobalSymbolTable<'a>, value: &PExpr<'a>) -> Type<'a> {
             Primitive::Bool(_) => Type::bool(),
         },
         PExpr::Tuple(fst, snd) => Type::tuple(infer_type(gst, fst), infer_type(gst, snd)),
-        PExpr::List(xs) => {
-            Type::list(xs.first().map(|x| infer_type(gst, x)).unwrap_or_default())
-        }
+        PExpr::List(xs) => Type::list(xs.first().map(|x| infer_type(gst, x)).unwrap_or_default()),
         PExpr::Variable(var) => match gst.lookup_var(var) {
             Some(var) => var
                 .b2_type()

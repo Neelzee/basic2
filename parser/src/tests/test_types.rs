@@ -1,5 +1,6 @@
 use crate::{
-    ptypes::TypeParser, utils::{Span, convert_error},
+    ptypes::TypeParser,
+    utils::{Span, convert_error},
 };
 use common::types::{MonoType, PolyType, Type};
 use p_macros::ltype;

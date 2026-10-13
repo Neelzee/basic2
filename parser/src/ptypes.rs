@@ -1,4 +1,23 @@
-use common::{consts::{pstms::{ENUM_INDEXING, fns::{FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_END, FUNCTION_GENERICS_START, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END, FUNCTION_TYPE_START}}, types::{BOOL_TYPE_KW, FLOAT_TYPE_KW, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW, SELF_TYPE_KW, STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START}}, types::{MonoType, PolyType, Type}};
+use crate::utils::{
+    B2PError, B2PResult, Span,
+    helper_parsers::{parse_identifier, parse_poly_list_with},
+};
+use common::{
+    consts::{
+        pstms::{
+            ENUM_INDEXING,
+            fns::{
+                FUNCTION_GENERICS_DELIMITER, FUNCTION_GENERICS_END, FUNCTION_GENERICS_START,
+                FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END, FUNCTION_TYPE_START,
+            },
+        },
+        types::{
+            BOOL_TYPE_KW, FLOAT_TYPE_KW, INT_TYPE_KW, LIST_END, LIST_START, NIL_TYPE_KW,
+            SELF_TYPE_KW, STR_TYPE_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
+        },
+    },
+    types::{MonoType, PolyType, Type},
+};
 use nom::{
     Parser,
     branch::alt,
@@ -8,13 +27,16 @@ use nom::{
     multi::separated_list1,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
-use crate::utils::{B2PError, B2PResult, Span, helper_parsers::{parse_identifier, parse_poly_list_with}};
 
 pub struct TypeParser;
 
 impl<'a> TypeParser {
     pub fn parse_type(input: Span<'a>) -> B2PResult<'a, Type> {
-        alt((TypeParser::parse_function_type, TypeParser::parse_type_excl_fn)).parse(input)
+        alt((
+            TypeParser::parse_function_type,
+            TypeParser::parse_type_excl_fn,
+        ))
+        .parse(input)
     }
 
     pub fn parse_type_excl_fn(input: Span<'a>) -> B2PResult<'a, Type> {
@@ -132,7 +154,10 @@ impl<'a> TypeParser {
                 delimited(
                     (tag(FUNCTION_TYPE_START), multispace0),
                     separated_pair(
-                        context("input-type", TypeParser::parse_type_excl_fn.map(|t| Box::new(t))),
+                        context(
+                            "input-type",
+                            TypeParser::parse_type_excl_fn.map(|t| Box::new(t)),
+                        ),
                         context(
                             "function-arrow",
                             (multispace0, tag(FUNCTION_TYPE_ARROW_KW), multispace0),
