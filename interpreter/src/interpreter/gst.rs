@@ -1,5 +1,4 @@
-use crate::symbol_table::SymbolTable;
-use common::{AsB2Type, ToB2, types::Type};
+use common::{AsB2Type, ToB2, symbol_table::SymbolTable, types::Type};
 use parser::{
     pmod::LexModule,
     pstmt::{
