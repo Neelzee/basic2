@@ -1,7 +1,7 @@
 use crate::{
-    ltype::{LexMonoType, LexPolyType, LexType},
-    utils::{Span, convert_error},
+    ptypes::TypeParser, utils::{Span, convert_error},
 };
+use common::types::{MonoType, PolyType, Type};
 use p_macros::ltype;
 use rstest::rstest;
 
@@ -23,9 +23,9 @@ use rstest::rstest;
     ltype!((STR, ltype!((STR, ltype!((INT, ltype!((STR, ltype!((INT, ltype!((STR, INT))))))))))))
     ,
 )]
-fn test_parse_tuple_types(#[case] input: &str, #[case] expected: LexType) {
+fn test_parse_tuple_types(#[case] input: &str, #[case] expected: Type) {
     let input = Span::new(input);
-    let result = LexType::parse_tuple_type(input);
+    let result = TypeParser::parse_tuple_type(input);
     assert!(
         result.is_ok(),
         "{}",
@@ -37,7 +37,7 @@ fn test_parse_tuple_types(#[case] input: &str, #[case] expected: LexType) {
 #[test]
 fn test_parse_function_type() {
     let input = Span::new("{INT => INT}");
-    let result = LexType::parse_function_type(input);
+    let result = TypeParser::parse_function_type(input);
     let expected = ltype!(INT => INT);
     assert!(
         result.is_ok(),
@@ -68,9 +68,9 @@ fn test_parse_function_type() {
     "{STR => INT => INT => BOOL => {INT => BOOL}}",
     ltype!(STR => INT => INT => BOOL => INT => BOOL)
 )]
-fn test_parse_multi_function_type(#[case] input: &str, #[case] expected: LexType) {
+fn test_parse_multi_function_type(#[case] input: &str, #[case] expected: Type) {
     let input = Span::new(input);
-    let result = LexType::parse_function_type(input);
+    let result = TypeParser::parse_function_type(input);
     assert!(
         result.is_ok(),
         "{}",
@@ -82,7 +82,7 @@ fn test_parse_multi_function_type(#[case] input: &str, #[case] expected: LexType
 #[test]
 fn test_parse_enum() {
     let input = Span::new("Days.Saturday");
-    let result = LexType::parse_type(input);
+    let result = TypeParser::parse_type(input);
     assert!(
         result.is_ok(),
         "{}",

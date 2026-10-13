@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use crate::{
     pstmt::{
         FunDeclComps, FunImplComps,
@@ -9,8 +8,8 @@ use crate::{
             VariableDeclarationAssignment,
         },
     },
-    ltype::LexType,
 };
+use common::types::Type;
 
 pub mod variants;
 
@@ -102,7 +101,7 @@ impl<'a> Decl<'a> {
     pub fn new_struct(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        fields: HashMap<&'a str, LexType<'a>>,
+        fields: HashMap<&'a str, Type<'a>>,
     ) -> Self {
         Self::StructDecl(StructDeclaration::new(identifier, generics, fields))
     }
@@ -110,7 +109,7 @@ impl<'a> Decl<'a> {
     pub fn new_type(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        b2_type: LexType<'a>,
+        b2_type: Type<'a>,
     ) -> Self {
         Self::TypeDecl(TypeAlias::new(identifier, generics, b2_type))
     }
@@ -126,9 +125,9 @@ impl<'a> Decl<'a> {
 
     pub fn new_fn(
         identifier: &'a str,
-        parameters: Vec<LexType<'a>>,
+        parameters: Vec<Type<'a>>,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        return_type: Option<LexType<'a>>,
+        return_type: Option<Type<'a>>,
     ) -> Self {
         Self::FnDecl(FunctionDeclaration::new(
             identifier,

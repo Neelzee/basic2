@@ -1,6 +1,6 @@
 use crate::{
     pmod::LexModule,
-    utils::{Span, consts::test_const::EMPTY_PROGRAM_PATH, convert_error},
+    utils::{Span, convert_error},
 };
 use anyhow::{Context, Result};
 use rstest::rstest;
@@ -8,7 +8,7 @@ use std::{fs::File, io::Read, path::PathBuf};
 
 #[rstest]
 fn test_can_parse_empty_program() -> Result<()> {
-    let path: PathBuf = EMPTY_PROGRAM_PATH.into();
+    let path: PathBuf = "../assets/basic-examples/EmptyExample.b2".into();
     let path = path.canonicalize().with_context(|| format!("{path:?}"))?;
     let mut file = File::open(&path).with_context(|| format!("{path:?}"))?;
     let mut buf = String::new();

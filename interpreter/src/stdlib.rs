@@ -1,8 +1,8 @@
 use crate::interpreter::gst::GlobalSymbolTable;
 use parser::{
     pstmt::decls::variants::FunctionDeclaration,
-    ltype::{LexMonoType, LexType},
 };
+use common::types::{Type, MonoType};
 
 pub const PRINT_IDENT: &'static str = "PRINT";
 
@@ -11,7 +11,7 @@ pub fn add_stdlib(mut gst: GlobalSymbolTable) -> GlobalSymbolTable {
         PRINT_IDENT,
         FunctionDeclaration::new(
             PRINT_IDENT,
-            vec![LexType::Mono(LexMonoType::TypeVarGen(
+            vec![Type::Mono(MonoType::TypeVarGen(
                 "T",
                 vec!["SHOWABLE"],
             ))],

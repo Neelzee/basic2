@@ -1,11 +1,9 @@
 use crate::{
-    common::{AsB2Type, ToB2},
-    ltype::LexType,
     utils::{
-        B2LexResult, Span,
-        consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},
+        B2PResult, Span,
     },
 };
+use common::{AsB2Type, ToB2, consts::pexprs::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW}, types::Type};
 use nom::{
     Parser,
     branch::alt,
@@ -27,7 +25,7 @@ pub enum Primitive<'a> {
 }
 
 impl<'a> Primitive<'a> {
-    pub fn parse_primitive(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_primitive(input: Span<'a>) -> B2PResult<'a, Self> {
         alt((
             Self::parse_str,
             Self::parse_float,
@@ -37,7 +35,7 @@ impl<'a> Primitive<'a> {
         .parse(input)
     }
 
-    pub fn parse_bool(input: Span) -> B2LexResult<Self> {
+    pub fn parse_bool(input: Span) -> B2PResult<Self> {
         alt((
             tag("TRUE").map(|_| Self::Bool(true)),
             tag("FALSE").map(|_| Self::Bool(false)),
@@ -45,7 +43,7 @@ impl<'a> Primitive<'a> {
         .parse(input)
     }
 
-    pub fn parse_int(input: Span) -> B2LexResult<Self> {
+    pub fn parse_int(input: Span) -> B2PResult<Self> {
         let (i, negative) = is_negative.parse(input)?;
         digit1
             .map(|i: Span| {
@@ -59,7 +57,7 @@ impl<'a> Primitive<'a> {
             .parse(i)
     }
 
-    pub fn parse_float(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_float(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "primitive-float",
             (
@@ -79,7 +77,7 @@ impl<'a> Primitive<'a> {
         .parse(input)
     }
 
-    pub fn parse_str(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_str(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "string-primitive",
             delimited(
@@ -105,7 +103,7 @@ impl<'a> ToB2 for Primitive<'a> {
     }
 }
 
-fn is_negative(input: Span) -> B2LexResult<bool> {
+fn is_negative(input: Span) -> B2PResult<bool> {
     opt(alt((tag("+"), tag("-"))))
         .map(|o| o.is_some_and(|s: Span| s.to_string() == "-"))
         .parse(input)
@@ -130,12 +128,12 @@ impl<'a> From<bool> for Primitive<'a> {
 }
 
 impl<'a> AsB2Type<'a> for Primitive<'a> {
-    fn as_b2_type(&self) -> LexType<'a> {
+    fn as_b2_type(&self) -> Type<'a> {
         match self {
-            Primitive::Int(_) => LexType::int(),
-            Primitive::Float(_) => LexType::float(),
-            Primitive::Str(_) => LexType::str(),
-            Primitive::Bool(_) => LexType::bool(),
+            Primitive::Int(_) => Type::int(),
+            Primitive::Float(_) => Type::float(),
+            Primitive::Str(_) => Type::str(),
+            Primitive::Bool(_) => Type::bool(),
         }
     }
 }

@@ -1,26 +1,27 @@
 use crate::{
+    ptypes::TypeParser,
     common::{B2Op, binop::BinOp},
-    pexpr::LexExpr,
-    pstmt::LexStmt,
-    ltype::{LexMonoType, LexType},
+    pexpr::PExpr,
+    pstmt::PStmt,
     utils::{
-        B2LexResult, Span, convert_error,
+        B2PResult, Span, convert_error,
         helper_parsers::{
             parse_comments, parse_identifier, parse_poly_list_with, parse_statements,
         },
     },
 };
+use common::types::{MonoType, Type};
 use nom::Parser;
 use p_macros::{lbop, ltype, lv};
 use rstest::rstest;
 
 #[rstest]
-#[case("(", ",", ")", LexType::parse_type, "()", Vec::new(), "")]
+#[case("(", ",", ")", TypeParser::parse_type, "()", Vec::new(), "")]
 #[case(
     "(",
     ",",
     ")",
-    LexType::parse_type,
+    TypeParser::parse_type,
     "(INT, INT)",
     vec![ltype!(INT), ltype!(INT)],
     ""
@@ -29,7 +30,7 @@ use rstest::rstest;
     "(",
     ",",
     ")",
-    LexExpr::parse_expr,
+    PExpr::parse_expr,
     r##"("Before: " + global)"##,
     vec![
         lbop!("Before: ", BinOp::Add, lv!("global"))
@@ -46,7 +47,7 @@ fn test_parse_poly_list_with<'a, P, O>(
     #[case] remainder: &'static str,
 ) where
     O: std::fmt::Debug + PartialEq,
-    P: Fn(Span<'a>) -> B2LexResult<'a, O> + Clone,
+    P: Fn(Span<'a>) -> B2PResult<'a, O> + Clone,
 {
     let input = Span::new(input);
     let result = parse_poly_list_with(start, delimiter, end, parser).parse(input);
@@ -110,9 +111,9 @@ fn test_parse_comments_only_consumes_single_line() {
     # Statements have to end with ;
     END
     "##,
-    vec![LexStmt::Block { body: Vec::new() }]
+    vec![PStmt::Block { body: Vec::new() }]
 )]
-fn test_parse_statements(#[case] input: &str, #[case] expected: Vec<LexStmt>) {
+fn test_parse_statements(#[case] input: &str, #[case] expected: Vec<PStmt>) {
     let input = Span::new(input);
     let res = parse_statements(input);
     assert!(res.is_ok(), "{}", convert_error(input, res.unwrap_err()));

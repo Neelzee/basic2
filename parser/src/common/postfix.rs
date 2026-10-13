@@ -1,11 +1,11 @@
 use crate::{
     common::ToB2,
-    pexpr::LexExpr,
+    pexpr::PExpr,
     utils::{
-        B2LexResult, Span,
-        consts::{DECR_KW, INCR_KW, LIST_END, LIST_START},
+        B2PResult, Span,
     },
 };
+use common::consts::{ops::{DECR_KW, INCR_KW}, types::{LIST_END, LIST_START}};
 use nom::{
     Parser, branch::alt, bytes::complete::tag, character::complete::multispace0, error::context,
     sequence::delimited,
@@ -15,11 +15,11 @@ use nom::{
 pub enum Postfix<'a> {
     Incr,
     Decr,
-    Index(LexExpr<'a>),
+    Index(PExpr<'a>),
 }
 
 impl<'a> Postfix<'a> {
-    pub fn parse_postfix(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_postfix(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "post-fix",
             alt((
@@ -31,12 +31,12 @@ impl<'a> Postfix<'a> {
         .parse(input)
     }
 
-    pub fn parse_index(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_index(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "post-fix-index",
             delimited(
                 tag(LIST_START).and(multispace0),
-                LexExpr::parse_expr,
+                PExpr::parse_expr,
                 multispace0.and(tag(LIST_END)),
             ),
         )

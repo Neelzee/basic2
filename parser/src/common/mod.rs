@@ -1,8 +1,8 @@
 use crate::{
     common::{binop::BinOp, postfix::Postfix, uniop::UniOp},
-    pexpr::LexExpr,
-    ltype::LexType,
+    pexpr::PExpr,
 };
+use common::ToB2;
 use nom_language::precedence::Operation;
 
 pub mod binop;
@@ -10,28 +10,20 @@ pub mod postfix;
 pub mod primitive;
 pub mod uniop;
 
-pub trait ToB2 {
-    fn to_b2(&self) -> String;
-}
-
-pub trait AsB2Type<'a> {
-    fn as_b2_type(&self) -> LexType<'a>;
-}
-
-pub type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, LexExpr<'a>>;
+pub type B2OpInner<'a> = Operation<UniOp, Postfix<'a>, BinOp, PExpr<'a>>;
 
 pub struct B2Op<'a>(B2OpInner<'a>);
 
 impl<'a> B2Op<'a> {
-    pub fn prefix(op: UniOp, expr: LexExpr<'a>) -> Self {
+    pub fn prefix(op: UniOp, expr: PExpr<'a>) -> Self {
         Self(B2OpInner::Prefix(op, expr))
     }
 
-    pub fn postfix(expr: LexExpr<'a>, op: Postfix<'a>) -> Self {
+    pub fn postfix(expr: PExpr<'a>, op: Postfix<'a>) -> Self {
         Self(B2OpInner::Postfix(expr, op))
     }
 
-    pub fn binary(l: LexExpr<'a>, op: BinOp, r: LexExpr<'a>) -> Self {
+    pub fn binary(l: PExpr<'a>, op: BinOp, r: PExpr<'a>) -> Self {
         Self(B2OpInner::Binary(l, op, r))
     }
 

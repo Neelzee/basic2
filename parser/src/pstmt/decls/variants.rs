@@ -1,20 +1,17 @@
 use std::collections::HashMap;
-
 use crate::{
-    common::AsB2Type,
-    pexpr::LexExpr,
-    pstmt::{FunDeclComps, FunImplComps},
-    ltype::{LexMonoType, LexPolyType, LexType},
+    pexpr::PExpr, pstmt::{FunDeclComps, FunImplComps}, ptypes::TypeParser,
 };
+use common::{AsB2Type, types::{MonoType, PolyType, Type}};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableDeclaration<'a> {
     pub identifier: &'a str,
-    pub variable_type: LexType<'a>,
+    pub variable_type: Type<'a>,
 }
 
 impl<'a> VariableDeclaration<'a> {
-    pub fn new(identifier: &'a str, variable_type: LexType<'a>) -> Self {
+    pub fn new(identifier: &'a str, variable_type: Type<'a>) -> Self {
         Self {
             identifier,
             variable_type,
@@ -25,11 +22,11 @@ impl<'a> VariableDeclaration<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct TupleUnpacking<'a> {
     pub identifiers: Vec<&'a str>,
-    pub value: LexExpr<'a>,
+    pub value: PExpr<'a>,
 }
 
 impl<'a> TupleUnpacking<'a> {
-    pub fn new(identifiers: Vec<&'a str>, value: LexExpr<'a>) -> Self {
+    pub fn new(identifiers: Vec<&'a str>, value: PExpr<'a>) -> Self {
         Self { identifiers, value }
     }
 }
@@ -37,11 +34,11 @@ impl<'a> TupleUnpacking<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct StructUnpacking<'a> {
     pub identifiers: Vec<(Option<&'a str>, &'a str)>,
-    pub value: LexExpr<'a>,
+    pub value: PExpr<'a>,
 }
 
 impl<'a> StructUnpacking<'a> {
-    pub fn new(identifiers: Vec<(Option<&'a str>, &'a str)>, value: LexExpr<'a>) -> Self {
+    pub fn new(identifiers: Vec<(Option<&'a str>, &'a str)>, value: PExpr<'a>) -> Self {
         Self { identifiers, value }
     }
 }
@@ -50,11 +47,11 @@ impl<'a> StructUnpacking<'a> {
 pub struct ListUnpacking<'a> {
     pub identifiers: Vec<&'a str>,
     pub remainder: Option<&'a str>,
-    pub value: LexExpr<'a>,
+    pub value: PExpr<'a>,
 }
 
 impl<'a> ListUnpacking<'a> {
-    pub fn new(identifiers: Vec<&'a str>, remainder: Option<&'a str>, value: LexExpr<'a>) -> Self {
+    pub fn new(identifiers: Vec<&'a str>, remainder: Option<&'a str>, value: PExpr<'a>) -> Self {
         Self {
             identifiers,
             remainder,
@@ -66,15 +63,15 @@ impl<'a> ListUnpacking<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableDeclarationAssignment<'a> {
     pub identifier: &'a str,
-    pub variable_type: Option<LexType<'a>>,
-    pub value: LexExpr<'a>,
+    pub variable_type: Option<Type<'a>>,
+    pub value: PExpr<'a>,
 }
 
 impl<'a> VariableDeclarationAssignment<'a> {
     pub fn new(
         identifier: &'a str,
-        variable_type: Option<LexType<'a>>,
-        value: LexExpr<'a>,
+        variable_type: Option<Type<'a>>,
+        value: PExpr<'a>,
     ) -> Self {
         Self {
             identifier,
@@ -87,11 +84,11 @@ impl<'a> VariableDeclarationAssignment<'a> {
         self.identifier
     }
 
-    pub fn value(&self) -> &LexExpr<'a> {
+    pub fn value(&self) -> &PExpr<'a> {
         &self.value
     }
 
-    pub fn b2_type(&self) -> Option<&LexType<'a>> {
+    pub fn b2_type(&self) -> Option<&Type<'a>> {
         self.variable_type.as_ref()
     }
 }
@@ -101,7 +98,7 @@ impl<'a> From<VariableDeclaration<'a>> for VariableDeclarationAssignment<'a> {
         Self {
             identifier: value.identifier,
             variable_type: Some(value.variable_type),
-            value: LexExpr::default(),
+            value: PExpr::default(),
         }
     }
 }
@@ -112,17 +109,17 @@ impl<'a> From<VariableDeclaration<'a>> for VariableDeclarationAssignment<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunctionDeclaration<'a> {
     pub identifier: &'a str,
-    pub parameters: Vec<LexType<'a>>,
+    pub parameters: Vec<Type<'a>>,
     pub generics: Vec<(&'a str, Vec<&'a str>)>,
-    pub return_type: Option<LexType<'a>>,
+    pub return_type: Option<Type<'a>>,
 }
 
 impl<'a> FunctionDeclaration<'a> {
     pub fn new(
         identifier: &'a str,
-        parameters: Vec<LexType<'a>>,
+        parameters: Vec<Type<'a>>,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        return_type: Option<LexType<'a>>,
+        return_type: Option<Type<'a>>,
     ) -> Self {
         Self {
             identifier,
@@ -134,20 +131,20 @@ impl<'a> FunctionDeclaration<'a> {
 }
 
 impl<'a> AsB2Type<'a> for FunctionDeclaration<'a> {
-    fn as_b2_type(&self) -> LexType<'a> {
+    fn as_b2_type(&self) -> Type<'a> {
         match self.parameters.first() {
             Some(input) => {
                 let mut pars = vec![input.clone()];
                 let mut parameters = self.parameters.clone();
                 pars.append(&mut parameters);
                 pars.push(self.return_type.clone().unwrap_or_default());
-                LexType::fold_funs(pars).unwrap_or(LexType::Poly(LexPolyType::FnType {
-                    input: Box::new(LexType::default()),
+                TypeParser::fold_funs(pars).unwrap_or(Type::Poly(PolyType::FnType {
+                    input: Box::new(Type::default()),
                     output: Box::new(self.return_type.clone().unwrap_or_default()),
                 }))
             }
-            None => LexType::Poly(LexPolyType::FnType {
-                input: Box::new(LexType::default()),
+            None => Type::Poly(PolyType::FnType {
+                input: Box::new(Type::default()),
                 output: Box::new(self.return_type.clone().unwrap_or_default()),
             }),
         }
@@ -158,14 +155,14 @@ impl<'a> AsB2Type<'a> for FunctionDeclaration<'a> {
 pub struct StructDeclaration<'a> {
     pub identifier: &'a str,
     pub generics: Vec<(&'a str, Vec<&'a str>)>,
-    pub fields: HashMap<&'a str, LexType<'a>>,
+    pub fields: HashMap<&'a str, Type<'a>>,
 }
 
 impl<'a> StructDeclaration<'a> {
     pub fn new(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        fields: HashMap<&'a str, LexType<'a>>,
+        fields: HashMap<&'a str, Type<'a>>,
     ) -> Self {
         Self {
             identifier,
@@ -178,14 +175,14 @@ impl<'a> StructDeclaration<'a> {
         self.fields.contains_key(field)
     }
 
-    pub fn get_field(&self, field: &str) -> Option<&LexType<'a>> {
+    pub fn get_field(&self, field: &str) -> Option<&Type<'a>> {
         self.fields.get(field)
     }
 }
 
 impl<'a> AsB2Type<'a> for StructDeclaration<'a> {
-    fn as_b2_type(&self) -> LexType<'a> {
-        LexType::Mono(LexMonoType::TypeVar(self.identifier))
+    fn as_b2_type(&self) -> Type<'a> {
+        Type::Mono(MonoType::TypeVar(self.identifier))
     }
 }
 
@@ -193,14 +190,14 @@ impl<'a> AsB2Type<'a> for StructDeclaration<'a> {
 pub struct TypeAlias<'a> {
     pub identifier: &'a str,
     pub generics: Vec<(&'a str, Vec<&'a str>)>,
-    pub b2_type: LexType<'a>,
+    pub b2_type: Type<'a>,
 }
 
 impl<'a> TypeAlias<'a> {
     pub fn new(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        b2_type: LexType<'a>,
+        b2_type: Type<'a>,
     ) -> Self {
         Self {
             identifier,
@@ -211,7 +208,7 @@ impl<'a> TypeAlias<'a> {
 }
 
 impl<'a> AsB2Type<'a> for TypeAlias<'a> {
-    fn as_b2_type(&self) -> LexType<'a> {
+    fn as_b2_type(&self) -> Type<'a> {
         self.b2_type.clone()
     }
 }
@@ -220,14 +217,14 @@ impl<'a> AsB2Type<'a> for TypeAlias<'a> {
 pub struct EnumDeclaration<'a> {
     pub identifier: &'a str,
     pub generics: Vec<(&'a str, Vec<&'a str>)>,
-    pub enumerations: Vec<(&'a str, Vec<LexType<'a>>)>,
+    pub enumerations: Vec<(&'a str, Vec<Type<'a>>)>,
 }
 
 impl<'a> EnumDeclaration<'a> {
     pub fn new(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        enumerations: Vec<(&'a str, Vec<LexType<'a>>)>,
+        enumerations: Vec<(&'a str, Vec<Type<'a>>)>,
     ) -> Self {
         Self {
             identifier,

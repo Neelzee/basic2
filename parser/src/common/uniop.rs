@@ -1,7 +1,8 @@
 use crate::{
     common::ToB2,
-    utils::{B2LexResult, Span, consts::NEGATION_KW},
+    utils::{B2PResult, Span},
 };
+use common::consts::ops::NEGATION_KW;
 use nom::{Parser, bytes::complete::tag};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -11,7 +12,7 @@ pub enum UniOp {
 }
 
 impl UniOp {
-    pub fn parse_unary_operation_symbol(input: Span) -> B2LexResult<Self> {
+    pub fn parse_unary_operation_symbol(input: Span) -> B2PResult<Self> {
         tag(NEGATION_KW).map(|_| Self::Neg).parse(input)
     }
 }

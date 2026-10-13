@@ -1,11 +1,11 @@
 use crate::{
-    pstmt::LexStmt,
+    pstmt::PStmt,
     utils::{
-        B2LexResult, Span,
-        consts::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW, ONE_SPACE},
+        B2PResult, Span,
         helper_parsers::{parse_identifier, parse_statements},
     },
 };
+use common::consts::pstms::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW, ONE_SPACE};
 use nom::{
     Parser,
     bytes::complete::tag,
@@ -19,7 +19,7 @@ use nom::{
 pub struct LexModule<'a> {
     start_identifier: String,
     end_identifier: String,
-    statements: Vec<LexStmt<'a>>,
+    statements: Vec<PStmt<'a>>,
 }
 
 impl<'a> LexModule<'a> {
@@ -27,15 +27,15 @@ impl<'a> LexModule<'a> {
         (&self.start_identifier, &self.end_identifier)
     }
 
-    pub fn get_statements(&self) -> &[LexStmt<'a>] {
+    pub fn get_statements(&self) -> &[PStmt<'a>] {
         &self.statements
     }
 
-    pub fn statements(self) -> Vec<LexStmt<'a>> {
+    pub fn statements(self) -> Vec<PStmt<'a>> {
         self.statements
     }
 
-    pub fn parse_program(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_program(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "module",
             verify(

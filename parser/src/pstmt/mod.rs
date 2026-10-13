@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use common::types::Type;
+
 use crate::{
     common::binop::BinOp,
-    pexpr::LexExpr,
+    pexpr::PExpr,
     pstmt::{
         decls::{
             Decl,
@@ -14,7 +16,6 @@ use crate::{
         impls::Impl,
         when_match::WhenMatch,
     },
-    ltype::LexType,
 };
 
 pub mod decls;
@@ -24,38 +25,38 @@ pub mod when_match;
 
 type FunImplComps<'a> = (
     &'a str,
-    Vec<(&'a str, Option<LexExpr<'a>>)>,
-    Vec<LexStmt<'a>>,
+    Vec<(&'a str, Option<PExpr<'a>>)>,
+    Vec<PStmt<'a>>,
 );
 type FunDeclComps<'a> = (
     &'a str,
     Vec<(&'a str, Vec<&'a str>)>,
-    Vec<LexType<'a>>,
-    Option<LexType<'a>>,
+    Vec<Type<'a>>,
+    Option<Type<'a>>,
 );
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum LexStmt<'a> {
+pub enum PStmt<'a> {
     Decl(Decl<'a>),
     Impl(Impl<'a>),
     Import(Import<'a>),
     VariableReassignment {
         ident: &'a str,
         reassignment: Option<BinOp>,
-        new_value: LexExpr<'a>,
+        new_value: PExpr<'a>,
     },
     ListReassignment {
-        indexee: LexExpr<'a>,
-        index: LexExpr<'a>,
+        indexee: PExpr<'a>,
+        index: PExpr<'a>,
         reassignment: Option<BinOp>,
-        new_value: LexExpr<'a>,
+        new_value: PExpr<'a>,
     },
     If {
-        condition: LexExpr<'a>,
+        condition: PExpr<'a>,
         body: Vec<Self>,
     },
     While {
-        condition: LexExpr<'a>,
+        condition: PExpr<'a>,
         body: Vec<Self>,
     },
     Block {
@@ -63,16 +64,16 @@ pub enum LexStmt<'a> {
     },
     FunctionInvocation {
         ident: &'a str,
-        arguments: Vec<LexExpr<'a>>,
+        arguments: Vec<PExpr<'a>>,
     },
     Break,
     Continue,
     Return {
-        value: Option<LexExpr<'a>>,
+        value: Option<PExpr<'a>>,
     },
     For {
         start_stmt: VariableDeclarationAssignment<'a>,
-        condition: LexExpr<'a>,
+        condition: PExpr<'a>,
         incrementer: VariableDeclarationAssignment<'a>,
         body: Vec<Self>,
     },
@@ -80,7 +81,7 @@ pub enum LexStmt<'a> {
         ident: &'a str,
         field: &'a str,
         reassignment: Option<BinOp>,
-        new_value: LexExpr<'a>,
+        new_value: PExpr<'a>,
     },
     WhenStatement {
         ident: &'a str,
@@ -98,7 +99,7 @@ impl<'a> Import<'a> {
     }
 }
 
-impl<'a> LexStmt<'a> {
+impl<'a> PStmt<'a> {
     pub fn as_decl(self) -> Option<Decl<'a>> {
         match self {
             Self::Decl(d) => Some(d),
@@ -113,7 +114,7 @@ impl<'a> LexStmt<'a> {
         }
     }
 
-    pub fn new_var_decl(identifier: &'a str, variable_type: LexType<'a>) -> Self {
+    pub fn new_var_decl(identifier: &'a str, variable_type: Type<'a>) -> Self {
         Self::Decl(Decl::VarDecl(VariableDeclaration::new(
             identifier,
             variable_type,
@@ -122,8 +123,8 @@ impl<'a> LexStmt<'a> {
 
     pub fn new_var_decl_ass(
         identifier: &'a str,
-        variable_type: Option<LexType<'a>>,
-        value: LexExpr<'a>,
+        variable_type: Option<Type<'a>>,
+        value: PExpr<'a>,
     ) -> Self {
         Self::Decl(Decl::VarDeclAss(VariableDeclarationAssignment::new(
             identifier,
@@ -134,9 +135,9 @@ impl<'a> LexStmt<'a> {
 
     pub fn new_fn_decl(
         identifier: &'a str,
-        parameters: Vec<LexType<'a>>,
+        parameters: Vec<Type<'a>>,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        return_type: Option<LexType<'a>>,
+        return_type: Option<Type<'a>>,
     ) -> Self {
         Self::Decl(Decl::FnDecl(FunctionDeclaration::new(
             identifier,
@@ -148,7 +149,7 @@ impl<'a> LexStmt<'a> {
 
     pub fn new_fn_impl(
         identifier: &'a str,
-        parameters: Vec<(&'a str, Option<LexExpr<'a>>)>,
+        parameters: Vec<(&'a str, Option<PExpr<'a>>)>,
         body: Vec<Self>,
     ) -> Self {
         Self::Impl(Impl::new_fn(identifier, parameters, body))
@@ -157,7 +158,7 @@ impl<'a> LexStmt<'a> {
     pub fn new_struct_decl(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        fields: HashMap<&'a str, LexType<'a>>,
+        fields: HashMap<&'a str, Type<'a>>,
     ) -> Self {
         Self::Decl(Decl::new_struct(identifier, generics, fields))
     }
@@ -165,19 +166,19 @@ impl<'a> LexStmt<'a> {
     pub fn new_type_alias(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        b2_type: LexType<'a>,
+        b2_type: Type<'a>,
     ) -> Self {
         Self::Decl(Decl::new_type(identifier, generics, b2_type))
     }
 
-    pub fn new_tuple_unpack(identifiers: Vec<&'a str>, value: LexExpr<'a>) -> Self {
+    pub fn new_tuple_unpack(identifiers: Vec<&'a str>, value: PExpr<'a>) -> Self {
         Self::Decl(Decl::TupUnpk(TupleUnpacking::new(identifiers, value)))
     }
 
     pub fn new_list_unpack(
         identifiers: Vec<&'a str>,
         remainder: Option<&'a str>,
-        value: LexExpr<'a>,
+        value: PExpr<'a>,
     ) -> Self {
         Self::Decl(Decl::LstUnpk(ListUnpacking::new(
             identifiers,
@@ -188,7 +189,7 @@ impl<'a> LexStmt<'a> {
 
     pub fn new_struct_unpack(
         identifiers: Vec<(Option<&'a str>, &'a str)>,
-        value: LexExpr<'a>,
+        value: PExpr<'a>,
     ) -> Self {
         Self::Decl(Decl::StrUnpk(StructUnpacking::new(identifiers, value)))
     }
@@ -196,7 +197,7 @@ impl<'a> LexStmt<'a> {
     pub fn new_enum_decl(
         identifier: &'a str,
         generics: Vec<(&'a str, Vec<&'a str>)>,
-        enumerations: Vec<(&'a str, Vec<LexType<'a>>)>,
+        enumerations: Vec<(&'a str, Vec<Type<'a>>)>,
     ) -> Self {
         Self::Decl(Decl::EnumDecl(EnumDeclaration::new(
             identifier,
@@ -208,7 +209,7 @@ impl<'a> LexStmt<'a> {
     pub fn new_trait_impl(
         trait_identifier: &'a str,
         type_identifier: Vec<&'a str>,
-        body: Vec<LexStmt<'a>>,
+        body: Vec<PStmt<'a>>,
     ) -> Self {
         Self::Impl(Impl::new_trait(trait_identifier, type_identifier, body))
     }

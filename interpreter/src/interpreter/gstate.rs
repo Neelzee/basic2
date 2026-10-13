@@ -1,29 +1,30 @@
 use crate::interpreter::gst::GlobalSymbolTable;
-use parser::{pexpr::LexExpr, pstmt::when_match::WhenMatch, ltype::LexType};
+use common::types::Type;
+use parser::{pexpr::PExpr, pstmt::when_match::WhenMatch};
 
 #[derive(Debug)]
 pub enum IE<'a> {
     WhenErrorExpectedTypeGotList {
         r#match: WhenMatch<'a>,
-        list: Vec<LexExpr<'a>>,
-        r#type: LexType<'a>,
+        list: Vec<PExpr<'a>>,
+        r#type: Type<'a>,
     },
     WhenErrorExpectedStructGotList {
         r#match: WhenMatch<'a>,
-        list: Vec<LexExpr<'a>>,
+        list: Vec<PExpr<'a>>,
     },
-    ExpectedBoolGot(LexExpr<'a>),
-    UnpackingNonUnpackableType(LexType<'a>),
+    ExpectedBoolGot(PExpr<'a>),
+    UnpackingNonUnpackableType(Type<'a>),
     IndexingErrorOutOfBounds {
         index: isize,
         bounds: usize,
     },
     IndexingErrorInvalidIndexee {
-        indexee: LexExpr<'a>,
+        indexee: PExpr<'a>,
     },
     IndexingErrorInvalidType {
-        index: LexExpr<'a>,
-        indexee: LexExpr<'a>,
+        index: PExpr<'a>,
+        indexee: PExpr<'a>,
     },
     UnpackingCountMissmatch {
         ident_count: usize,
@@ -34,7 +35,7 @@ pub enum IE<'a> {
     FnErrMissingImplementation(&'a str),
     FnErrMissingDeclaration(&'a str),
     FnErrArgumentMissMatch(&'a str, usize, usize),
-    StructAccessingOnNonStruct(&'a str, &'a str, LexType<'a>),
+    StructAccessingOnNonStruct(&'a str, &'a str, Type<'a>),
     StructAccessingOnNonExistingField {
         ident: &'a str,
         field: &'a str,
@@ -46,8 +47,8 @@ pub enum IE<'a> {
     TraitErrMissingDeclaration(&'a str),
     MoreArgumentsSuppliedToFunctionThanExpected(
         &'a str,
-        Vec<LexExpr<'a>>,
-        Vec<(&'a str, Option<LexExpr<'a>>)>,
+        Vec<PExpr<'a>>,
+        Vec<(&'a str, Option<PExpr<'a>>)>,
     ),
     // NOTE: Needed?
     MissingVariableDeclaration(&'a str),

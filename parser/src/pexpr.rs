@@ -1,21 +1,12 @@
 use crate::{
-    common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
+    common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp},
     utils::{
-        B2LexError, B2LexResult, Span,
-        consts::{
-            ADD_KW, AND_KW, DIV_KW, ENUM_INDEXING, EQ_KW, FUNCTION_CALL_DELIMITER,
-            FUNCTION_CALL_END, FUNCTION_CALL_START, FUNCTION_PARAMETERS_DELIMITER,
-            FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START, GEQ_KW, GROUP_END, GROUP_START,
-            GT_KW, LEQ_KW, LIST_DELIMITER, LIST_END, LIST_START, LT_KW, MOD_KW, MUL_KW, NEQ_KW,
-            NIL_VAL_KW, OR_KW, POW_KW, STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW,
-            STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW,
-            STRUCT_START_KW, SUB_KW, TUPLE_DELIMITER, TUPLE_END, TUPLE_START,
-            WHEN_STATEMENT_CONDITION_END_KW,
-        },
+        B2PError, B2PResult, Span,
         helper_parsers::{parse_identifier, parse_poly_list_with},
     },
 };
 use anyhow::Result;
+use common::{ToB2, consts::{ops::{ADD_KW, AND_KW, DIV_KW, EQ_KW, GEQ_KW, GT_KW, LEQ_KW, LT_KW, MOD_KW, MUL_KW, NEQ_KW, OR_KW, POW_KW, SUB_KW}, pexprs::{FUNCTION_CALL_DELIMITER, FUNCTION_CALL_END, FUNCTION_CALL_START, GROUP_END, GROUP_START, NIL_VAL_KW}, pstms::{ENUM_INDEXING, fns::{FUNCTION_PARAMETERS_DELIMITER, FUNCTION_PARAMETERS_END, FUNCTION_PARAMETERS_START}, structs::{STRUCT_END_KW, STRUCT_FIELD_ACCESS_KW, STRUCT_FIELD_ASSIGNMENT, STRUCT_FIELD_END, STRUCT_FIELD_IMPL_KW, STRUCT_KW, STRUCT_START_KW}, when::WHEN_STATEMENT_CONDITION_END_KW}, types::{LIST_DELIMITER, LIST_END, LIST_START, TUPLE_DELIMITER, TUPLE_END, TUPLE_START}}};
 use nom::{
     Parser,
     branch::{alt, permutation},
@@ -30,7 +21,7 @@ use nom_language::precedence::{Assoc, binary_op, precedence, unary_op};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone, Default)]
-pub enum LexExpr<'a> {
+pub enum PExpr<'a> {
     #[default]
     Nil,
     Literal(Primitive<'a>),
@@ -58,8 +49,8 @@ pub enum LexExpr<'a> {
     },
 }
 
-impl<'a> LexExpr<'a> {
-    pub fn parse_expr(input: Span<'a>) -> B2LexResult<'a, Self> {
+impl<'a> PExpr<'a> {
+    pub fn parse_expr(input: Span<'a>) -> B2PResult<'a, Self> {
         alt((
             Self::parse_enum,
             Self::parse_struct_field_accessing,
@@ -75,15 +66,15 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_precedence(i: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_precedence(i: Span<'a>) -> B2PResult<'a, Self> {
         let expr_parser = alt((
-            LexExpr::parse_literal,
-            LexExpr::parse_function_call,
-            LexExpr::parse_group,
-            LexExpr::parse_tuple,
-            LexExpr::parse_list,
-            LexExpr::parse_struct,
-            LexExpr::parse_variable,
+            PExpr::parse_literal,
+            PExpr::parse_function_call,
+            PExpr::parse_group,
+            PExpr::parse_tuple,
+            PExpr::parse_list,
+            PExpr::parse_struct,
+            PExpr::parse_variable,
         ));
 
         context(
@@ -120,13 +111,13 @@ impl<'a> LexExpr<'a> {
         .parse(i)
     }
 
-    pub fn parse_literal(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_literal(input: Span<'a>) -> B2PResult<'a, Self> {
         Primitive::parse_primitive
             .map(|p| Self::Literal(p))
             .parse(input)
     }
 
-    pub fn parse_tuple(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_tuple(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "tuple-expr",
             separated_pair(
@@ -145,7 +136,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_list(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_list(input: Span<'a>) -> B2PResult<'a, Self> {
         terminated(
             preceded(
                 context("list-start", tag(LIST_START)),
@@ -163,7 +154,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_variable(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_variable(input: Span<'a>) -> B2PResult<'a, Self> {
         match parse_identifier.parse(input)? {
             // TODO: Figure out a better way to not allow keywords as identifiers
             (_, ident)
@@ -172,7 +163,7 @@ impl<'a> LexExpr<'a> {
                     STRUCT_KW | WHEN_STATEMENT_CONDITION_END_KW
                 ) =>
             {
-                Err(nom::Err::Error(B2LexError::from_external_error(
+                Err(nom::Err::Error(B2PError::from_external_error(
                     input,
                     ErrorKind::Fail,
                     "not valid identifier",
@@ -182,13 +173,13 @@ impl<'a> LexExpr<'a> {
         }
     }
 
-    pub fn parse_group(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_group(input: Span<'a>) -> B2PResult<'a, Self> {
         let (rem, expr) =
             delimited(tag(GROUP_START), Self::parse_expr, tag(GROUP_END)).parse(input)?;
         Ok((rem, Self::Group(Box::new(expr))))
     }
 
-    pub fn parse_function_call(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_function_call(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "parse-function-call",
             (
@@ -222,7 +213,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_struct(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_struct(input: Span<'a>) -> B2PResult<'a, Self> {
         let (i, ident) =
             preceded(tag(STRUCT_KW), preceded(space0, parse_identifier)).parse(input)?;
         let (rem, field_implementations) = terminated(
@@ -245,7 +236,7 @@ impl<'a> LexExpr<'a> {
         ))
     }
 
-    pub fn parse_struct_field_accessing(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_struct_field_accessing(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "struct-field-accessing",
             (
@@ -261,7 +252,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_struct_field(input: Span<'a>) -> B2LexResult<'a, (&'a str, Self)> {
+    pub fn parse_struct_field(input: Span<'a>) -> B2PResult<'a, (&'a str, Self)> {
         pair(
             pair(
                 preceded(
@@ -282,7 +273,7 @@ impl<'a> LexExpr<'a> {
         .parse(input)
     }
 
-    pub fn parse_enum(input: Span<'a>) -> B2LexResult<'a, Self> {
+    pub fn parse_enum(input: Span<'a>) -> B2PResult<'a, Self> {
         context(
             "enum",
             (
@@ -311,11 +302,11 @@ impl<'a> LexExpr<'a> {
     }
 }
 
-impl<'a> ToB2 for LexExpr<'a> {
+impl<'a> ToB2 for PExpr<'a> {
     fn to_b2(&self) -> String {
         match self {
-            LexExpr::Literal(primitive) => primitive.to_b2(),
-            LexExpr::Tuple(fst, snd) => format!(
+            PExpr::Literal(primitive) => primitive.to_b2(),
+            PExpr::Tuple(fst, snd) => format!(
                 "{}{}{}{}{}",
                 TUPLE_START,
                 fst.to_b2(),
@@ -323,7 +314,7 @@ impl<'a> ToB2 for LexExpr<'a> {
                 snd.to_b2(),
                 TUPLE_END
             ),
-            LexExpr::List(xs) => format!(
+            PExpr::List(xs) => format!(
                 "{}{}{}",
                 LIST_START,
                 xs.iter()
@@ -332,9 +323,9 @@ impl<'a> ToB2 for LexExpr<'a> {
                     .join(LIST_DELIMITER),
                 LIST_END
             ),
-            LexExpr::Variable(xs) => xs.to_string(),
-            LexExpr::Group(x) => format!("{}{}{}", GROUP_START, x.to_b2(), GROUP_END),
-            LexExpr::FunctionCall {
+            PExpr::Variable(xs) => xs.to_string(),
+            PExpr::Group(x) => format!("{}{}{}", GROUP_START, x.to_b2(), GROUP_END),
+            PExpr::FunctionCall {
                 ident: identifier,
                 arguments,
             } => format!(
@@ -348,8 +339,8 @@ impl<'a> ToB2 for LexExpr<'a> {
                     .join(FUNCTION_CALL_DELIMITER),
                 FUNCTION_CALL_END
             ),
-            LexExpr::Op(op) => op.to_b2(),
-            LexExpr::Struct {
+            PExpr::Op(op) => op.to_b2(),
+            PExpr::Struct {
                 ident: identifier,
                 field_implementations,
             } => format!(
@@ -360,13 +351,13 @@ impl<'a> ToB2 for LexExpr<'a> {
                     .collect::<Vec<_>>()
                     .join(STRUCT_FIELD_END)
             ),
-            LexExpr::StructFieldAccessing {
+            PExpr::StructFieldAccessing {
                 ident: identifier,
                 field,
             } => {
                 format!("{identifier}{STRUCT_FIELD_ACCESS_KW}{field}")
             }
-            LexExpr::Enum {
+            PExpr::Enum {
                 ident: identifier,
                 instance,
                 values,
@@ -384,36 +375,36 @@ impl<'a> ToB2 for LexExpr<'a> {
                     )
                 }
             }
-            LexExpr::Nil => NIL_VAL_KW.to_string(),
+            PExpr::Nil => NIL_VAL_KW.to_string(),
         }
     }
 }
 
-impl<'a> From<&'a str> for LexExpr<'a> {
+impl<'a> From<&'a str> for PExpr<'a> {
     fn from(value: &'a str) -> Self {
-        LexExpr::Literal(value.into())
+        PExpr::Literal(value.into())
     }
 }
 
-impl<'a> From<i32> for LexExpr<'a> {
+impl<'a> From<i32> for PExpr<'a> {
     fn from(value: i32) -> Self {
-        LexExpr::Literal(value.into())
+        PExpr::Literal(value.into())
     }
 }
 
-impl<'a> From<bool> for LexExpr<'a> {
+impl<'a> From<bool> for PExpr<'a> {
     fn from(value: bool) -> Self {
-        LexExpr::Literal(value.into())
+        PExpr::Literal(value.into())
     }
 }
 
-impl<'a, T: Into<LexExpr<'a>>> From<Vec<T>> for LexExpr<'a> {
+impl<'a, T: Into<PExpr<'a>>> From<Vec<T>> for PExpr<'a> {
     fn from(value: Vec<T>) -> Self {
         Self::List(value.into_iter().map(|i| i.into()).collect())
     }
 }
 
-impl<'a, F: Into<LexExpr<'a>>, S: Into<LexExpr<'a>>> From<(F, S)> for LexExpr<'a> {
+impl<'a, F: Into<PExpr<'a>>, S: Into<PExpr<'a>>> From<(F, S)> for PExpr<'a> {
     fn from((f, s): (F, S)) -> Self {
         Self::Tuple(Box::new(f.into()), Box::new(s.into()))
     }

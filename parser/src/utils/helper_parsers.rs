@@ -1,14 +1,11 @@
 use crate::{
-    pexpr::LexExpr,
-    pstmt::LexStmt,
+    pexpr::PExpr,
+    pstmt::PStmt,
     utils::{
-        B2LexResult, Span,
-        consts::{
-            ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT,
-            SINGLE_LINE_COMMENT_END, UNUSED_IDENTIFIER,
-        },
+        B2PResult, Span,
     },
 };
+use common::consts::pstms::{ASSIGNMENT_KW, MULTI_LINE_COMMENT_END, MULTI_LINE_COMMENT_START, SINGLE_LINE_COMMENT, SINGLE_LINE_COMMENT_END, UNUSED_IDENTIFIER};
 use nom::{
     Parser,
     branch::{alt, permutation},
@@ -20,7 +17,7 @@ use nom::{
     sequence::{delimited, pair, preceded, terminated},
 };
 
-pub fn parse_identifier<'a>(input: Span<'a>) -> B2LexResult<'a, &'a str> {
+pub fn parse_identifier<'a>(input: Span<'a>) -> B2PResult<'a, &'a str> {
     context(
         "identifier",
         recognize((
@@ -34,28 +31,29 @@ pub fn parse_identifier<'a>(input: Span<'a>) -> B2LexResult<'a, &'a str> {
 
 /// Parses a list-like input, with a specified start, end and delimiter. The delimiter includes multispace0
 /// ```rust
-/// use parser::lexer::{utils::{helper_parsers::parse_poly_list_with, Span}, lex_type::{LexType, LexMonoType}};
+/// use parser::{utils::{helper_parsers::parse_poly_list_with, Span}, ptypes::TypeParser};
+/// use common::types::{Type, MonoType};
 /// use nom::Parser;
 ///
 /// let input = "(INT, STR, BOOL)";
-/// let result = parse_poly_list_with("(", ",", ")", LexType::parse_type).parse(Span::new(input));
+/// let result = parse_poly_list_with("(", ",", ")", TypeParser::parse_type).parse(Span::new(input));
 /// assert!(result.is_ok(), "{result:?}");
 /// assert_eq!(result.unwrap().0.to_string(), "");
 ///
 /// let other_input = "(INT, STR, BOOL) some-other-string";
-/// let result = parse_poly_list_with("(", ",", ")", LexType::parse_type).parse(Span::new(other_input));
+/// let result = parse_poly_list_with("(", ",", ")", TypeParser::parse_type).parse(Span::new(other_input));
 /// assert!(result.is_ok(), "{result:?}");
 /// assert_eq!(result.unwrap().0.to_string(), " some-other-string");
 ///
 ///
 /// let other_input = "(INT) some-other-string";
-/// let result = parse_poly_list_with("(", ",", ")", LexType::parse_type).parse(Span::new(other_input));
+/// let result = parse_poly_list_with("(", ",", ")", TypeParser::parse_type).parse(Span::new(other_input));
 /// assert!(result.is_ok(), "{result:?}");
-/// assert_eq!(result.unwrap().1, vec![LexType::Mono(LexMonoType::Int)]);
+/// assert_eq!(result.unwrap().1, vec![Type::Mono(MonoType::Int)]);
 ///
 ///
 /// let other_input = "INT some-other-string";
-/// let result = parse_poly_list_with("(", ",", ")", LexType::parse_type).parse(Span::new(other_input));
+/// let result = parse_poly_list_with("(", ",", ")", TypeParser::parse_type).parse(Span::new(other_input));
 /// assert!(result.is_err(), "{result:?}");
 ///
 /// ```
@@ -80,7 +78,7 @@ where
     )
 }
 
-pub fn parse_parameters<'a>(input: Span<'a>) -> B2LexResult<'a, (&'a str, Option<LexExpr<'a>>)> {
+pub fn parse_parameters<'a>(input: Span<'a>) -> B2PResult<'a, (&'a str, Option<PExpr<'a>>)> {
     context(
         "parse-parameters",
         pair(
@@ -91,7 +89,7 @@ pub fn parse_parameters<'a>(input: Span<'a>) -> B2LexResult<'a, (&'a str, Option
                     space0,
                     preceded(
                         context("parameter-default-argument-assignment", tag(ASSIGNMENT_KW)),
-                        preceded(space0, LexExpr::parse_expr),
+                        preceded(space0, PExpr::parse_expr),
                     ),
                 )),
             ),
@@ -100,7 +98,7 @@ pub fn parse_parameters<'a>(input: Span<'a>) -> B2LexResult<'a, (&'a str, Option
     .parse(input)
 }
 
-pub fn parse_comments(input: Span) -> B2LexResult<Span> {
+pub fn parse_comments(input: Span) -> B2PResult<Span> {
     context(
         "parse-comments",
         alt((parse_multi_comment, parse_single_comment)),
@@ -108,7 +106,7 @@ pub fn parse_comments(input: Span) -> B2LexResult<Span> {
     .parse(input)
 }
 
-pub fn parse_multi_comment(input: Span) -> B2LexResult<Span> {
+pub fn parse_multi_comment(input: Span) -> B2PResult<Span> {
     context(
         "parse-multi-comment",
         delimited(
@@ -120,7 +118,7 @@ pub fn parse_multi_comment(input: Span) -> B2LexResult<Span> {
     .parse(input)
 }
 
-pub fn parse_single_comment(input: Span) -> B2LexResult<Span> {
+pub fn parse_single_comment(input: Span) -> B2PResult<Span> {
     context(
         "parse-single-comment",
         terminated(
@@ -137,19 +135,19 @@ pub fn parse_single_comment(input: Span) -> B2LexResult<Span> {
     .parse(input)
 }
 
-pub fn parse_statements(input: Span) -> B2LexResult<Vec<LexStmt>> {
+pub fn parse_statements(input: Span) -> B2PResult<Vec<PStmt>> {
     context(
         "multi-statement",
         many0(alt((
             consume_comments_and_multispace.map(|_| None),
-            context("-statement", LexStmt::parse_statement).map(|x| Some(x)),
+            context("-statement", PStmt::parse_statement).map(|x| Some(x)),
         ))),
     )
     .map(|xs| xs.into_iter().filter_map(|x| x).collect())
     .parse(input)
 }
 
-pub fn consume_comments_and_multispace(input: Span) -> B2LexResult<()> {
+pub fn consume_comments_and_multispace(input: Span) -> B2PResult<()> {
     context(
         "consume-comments-multiline",
         alt((multispace1, parse_comments)),

@@ -2,14 +2,12 @@ use crate::interpreter::{
     gst::GlobalSymbolTable,
     gstate::{IE, IR},
 };
+use common::types::{MonoType, Type};
 use parser::{
     common::{
-        AsB2Type, B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive,
-        uniop::UniOp,
-    },
-    pexpr::LexExpr,
-    pstmt::{
-        Import, LexStmt,
+        B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive, uniop::UniOp,
+    }, pexpr::PExpr, pstmt::{
+        Import, PStmt,
         decls::{
             Decl::{self, FnDecl},
             variants::{
@@ -20,8 +18,7 @@ use parser::{
         },
         impls::{FunctionImplementation, Impl, TraitImpl},
         when_match::WhenMatch,
-    },
-    ltype::{LexMonoType, LexPolyType, LexType},
+    }, ptypes::TypeParser,
 };
 use std::collections::HashMap;
 
@@ -35,20 +32,20 @@ pub mod gstate;
 pub fn index_expr<'a>(
     gst: &GlobalSymbolTable<'a>,
     i: i32,
-    indexee: LexExpr<'a>,
-    new_value: LexExpr<'a>,
-) -> Result<LexExpr<'a>, IE<'a>> {
+    indexee: PExpr<'a>,
+    new_value: PExpr<'a>,
+) -> Result<PExpr<'a>, IE<'a>> {
     match indexee {
-        LexExpr::Nil
-        | LexExpr::Literal(_)
-        | LexExpr::Op(_)
-        | LexExpr::Struct { .. }
-        | LexExpr::Enum { .. } => Err(IE::IndexingErrorInvalidIndexee { indexee }),
+        PExpr::Nil
+        | PExpr::Literal(_)
+        | PExpr::Op(_)
+        | PExpr::Struct { .. }
+        | PExpr::Enum { .. } => Err(IE::IndexingErrorInvalidIndexee { indexee }),
 
         /* NOTE: This changes the tree, technically, by removing the group, does
            it matter? I dont think so.
         */
-        LexExpr::Group(inner) => index_expr(gst, i, *inner, new_value),
+        PExpr::Group(inner) => index_expr(gst, i, *inner, new_value),
 
         /* NOTE: Maybe stupid to allow this:
         LET (foo, bar, qaz) >< (1, (2, 3));
@@ -62,16 +59,16 @@ pub fn index_expr<'a>(
 
         but idk.
         */
-        LexExpr::Tuple(l, r) => match i {
-            0 => Ok(LexExpr::Tuple(Box::new(new_value), r)),
-            1 => Ok(LexExpr::Tuple(l, Box::new(new_value))),
+        PExpr::Tuple(l, r) => match i {
+            0 => Ok(PExpr::Tuple(Box::new(new_value), r)),
+            1 => Ok(PExpr::Tuple(l, Box::new(new_value))),
             _ => Err(IE::IndexingErrorOutOfBounds {
                 bounds: 2,
                 index: i as isize,
             }),
         },
 
-        LexExpr::List(mut xs) => {
+        PExpr::List(mut xs) => {
             let bounds = xs.len();
             if i < 0 || i as usize <= bounds {
                 return Err(IE::IndexingErrorOutOfBounds {
@@ -81,23 +78,23 @@ pub fn index_expr<'a>(
             }
             xs[i as usize] = new_value;
 
-            Ok(LexExpr::List(xs))
+            Ok(PExpr::List(xs))
         }
 
-        LexExpr::Variable(ident) => match gst.lookup_var(ident).cloned() {
+        PExpr::Variable(ident) => match gst.lookup_var(ident).cloned() {
             Some(VariableDeclarationAssignment { value, .. }) => {
                 index_expr(gst, i, value, new_value)
             }
             None => Err(IE::MissingVariableDeclaration(ident)),
         },
 
-        LexExpr::FunctionCall {
+        PExpr::FunctionCall {
             ident: identifier,
             arguments,
         } => invoke_function(gst, identifier, arguments)
             .and_then(|idxe| index_expr(gst, i, idxe, new_value)),
 
-        LexExpr::StructFieldAccessing {
+        PExpr::StructFieldAccessing {
             ident: identifier,
             field,
         } => {
@@ -106,12 +103,12 @@ pub fn index_expr<'a>(
     }
 }
 
-pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, LexExpr<'a>> {
+pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: PStmt<'a>) -> IR<'a, PExpr<'a>> {
     match stmt {
-        LexStmt::Decl(dcl) => interpret_decl(gst, dcl).map(|_| LexExpr::Nil),
-        LexStmt::Impl(ipl) => interpret_impl(gst, ipl).map(|_| LexExpr::Nil),
-        LexStmt::Import(import) => import_module(gst, import).map(|_| LexExpr::Nil),
-        LexStmt::VariableReassignment {
+        PStmt::Decl(dcl) => interpret_decl(gst, dcl).map(|_| PExpr::Nil),
+        PStmt::Impl(ipl) => interpret_impl(gst, ipl).map(|_| PExpr::Nil),
+        PStmt::Import(import) => import_module(gst, import).map(|_| PExpr::Nil),
+        PStmt::VariableReassignment {
             ident: identifier,
             reassignment,
             new_value,
@@ -124,96 +121,96 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                     value: new_value,
                 },
             ),
-            val: LexExpr::Nil,
+            val: PExpr::Nil,
         },
-        LexStmt::ListReassignment {
+        PStmt::ListReassignment {
             indexee,
             index,
             reassignment,
             new_value,
         } => match &index {
-            LexExpr::Literal(Primitive::Int(i)) => match index_expr(&gst, *i, indexee, new_value) {
+            PExpr::Literal(Primitive::Int(i)) => match index_expr(&gst, *i, indexee, new_value) {
                 Ok(val) => IR::Ok { gst, val },
                 Err(err) => IR::Err(err),
             },
-            LexExpr::Variable(_) => todo!(),
-            LexExpr::Group(lex_expr) => todo!(),
-            LexExpr::FunctionCall {
+            PExpr::Variable(_) => todo!(),
+            PExpr::Group(lex_expr) => todo!(),
+            PExpr::FunctionCall {
                 ident: identifier,
                 arguments,
             } => todo!(),
-            LexExpr::StructFieldAccessing {
+            PExpr::StructFieldAccessing {
                 ident: identifier,
                 field,
             } => todo!(),
 
-            LexExpr::Nil
-            | LexExpr::Tuple(_, _)
-            | LexExpr::List(_)
-            | LexExpr::Op(_)
-            | LexExpr::Struct { .. }
-            | LexExpr::Literal(_)
-            | LexExpr::Enum { .. } => IR::Err(IE::IndexingErrorInvalidType { indexee, index }),
+            PExpr::Nil
+            | PExpr::Tuple(_, _)
+            | PExpr::List(_)
+            | PExpr::Op(_)
+            | PExpr::Struct { .. }
+            | PExpr::Literal(_)
+            | PExpr::Enum { .. } => IR::Err(IE::IndexingErrorInvalidType { indexee, index }),
         },
-        LexStmt::If { condition, body } => match eval_expr(&gst, condition) {
-            Ok(LexExpr::Literal(Primitive::Bool(b))) if b => IR::Ok {
+        PStmt::If { condition, body } => match eval_expr(&gst, condition) {
+            Ok(PExpr::Literal(Primitive::Bool(b))) if b => IR::Ok {
                 gst,
-                val: LexExpr::Nil,
+                val: PExpr::Nil,
             }
             .scope(|(gst, _)| {
                 body.into_iter().fold(
                     IR::Ok {
                         gst,
-                        val: LexExpr::Nil,
+                        val: PExpr::Nil,
                     },
                     |acc, stmt| acc.and_then(|(gst_prime, _)| interpret(gst_prime, stmt)),
                 )
             }),
-            Ok(LexExpr::Literal(Primitive::Bool(_))) => IR::Ok {
+            Ok(PExpr::Literal(Primitive::Bool(_))) => IR::Ok {
                 gst,
-                val: LexExpr::Nil,
+                val: PExpr::Nil,
             },
             Ok(v) => IR::Err(IE::ExpectedBoolGot(v)),
             Err(err) => IR::Err(err),
         },
-        LexStmt::While { condition, body } => IR::Ok {
+        PStmt::While { condition, body } => IR::Ok {
             gst,
-            val: LexExpr::Nil,
+            val: PExpr::Nil,
         }
         .scope(|(gst, _)| interpret_while(gst, condition, body)),
-        LexStmt::Block { body } => IR::Ok {
+        PStmt::Block { body } => IR::Ok {
             gst,
-            val: LexExpr::Nil,
+            val: PExpr::Nil,
         }
         .scope(|(gst, val)| {
             body.into_iter().fold(IR::Ok { gst, val }, |acc, cur| {
                 acc.and_then(|(gst, _)| interpret(gst, cur))
             })
         }),
-        LexStmt::FunctionInvocation { ident, arguments } => invoke_function(&gst, ident, arguments)
+        PStmt::FunctionInvocation { ident, arguments } => invoke_function(&gst, ident, arguments)
             .map(|val| IR::Ok { gst, val })
             .into(),
-        LexStmt::Break => todo!(),
-        LexStmt::Continue => todo!(),
-        LexStmt::Return { value } => IR::Ok {
+        PStmt::Break => todo!(),
+        PStmt::Continue => todo!(),
+        PStmt::Return { value } => IR::Ok {
             gst,
             val: value.unwrap_or_default(),
         },
-        LexStmt::For {
+        PStmt::For {
             start_stmt,
             condition,
             incrementer,
             body,
         } => IR::Ok {
             gst,
-            val: LexExpr::Nil,
+            val: PExpr::Nil,
         }
         .scope(|(gst, _)| {
             let ident = start_stmt.identifier;
             let gst = gst.insert_var_ass(ident, start_stmt);
             interpret_for(gst, ident, incrementer, condition, body)
         }),
-        LexStmt::StructFieldReassignment {
+        PStmt::StructFieldReassignment {
             ident,
             field,
             reassignment,
@@ -221,7 +218,7 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
         } => match gst.lookup_var(ident) {
             Some(VariableDeclarationAssignment {
                 value:
-                    LexExpr::Struct {
+                    PExpr::Struct {
                         ident: struct_ident,
                         field_implementations,
                         ..
@@ -237,14 +234,14 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                 ident,
                                 VariableDeclarationAssignment {
                                     identifier: ident,
-                                    variable_type: Some(LexType::r#struct(struct_ident)),
-                                    value: LexExpr::Struct {
+                                    variable_type: Some(Type::r#struct(struct_ident)),
+                                    value: PExpr::Struct {
                                         ident: *struct_ident,
                                         field_implementations,
                                     },
                                 },
                             ),
-                            val: LexExpr::Nil,
+                            val: PExpr::Nil,
                         }
                     } else {
                         IR::Err(IE::StructAccessingOnNonExistingField { ident, field })
@@ -255,9 +252,9 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
             Some(_) => todo!("Catch on non-struct?"),
             None => IR::Err(IE::MissingVariableDeclaration(ident)),
         },
-        LexStmt::WhenStatement { ident, branches } => match gst.lookup_var(ident) {
+        PStmt::WhenStatement { ident, branches } => match gst.lookup_var(ident) {
             Some(VariableDeclarationAssignment {
-                value: LexExpr::List(xs),
+                value: PExpr::List(xs),
                 ..
             }) => {
                 for (mtch, body) in branches {
@@ -267,16 +264,16 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                 Some(Err(err)) => {
                                     return IR::Err(err);
                                 }
-                                Some(Ok(LexExpr::Literal(Primitive::Bool(b)))) if b => {
+                                Some(Ok(PExpr::Literal(Primitive::Bool(b)))) if b => {
                                     return IR::Ok {
                                         gst,
-                                        val: LexExpr::Nil,
+                                        val: PExpr::Nil,
                                     }
                                     .scope(|(gst, _)| {
                                         body.into_iter().fold(
                                             IR::Ok {
                                                 gst,
-                                                val: LexExpr::Nil,
+                                                val: PExpr::Nil,
                                             },
                                             move |acc, stmt| {
                                                 acc.and_then(|(gst, _)| interpret(gst, stmt))
@@ -287,13 +284,13 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                 None => {
                                     return IR::Ok {
                                         gst,
-                                        val: LexExpr::Nil,
+                                        val: PExpr::Nil,
                                     }
                                     .scope(|(gst, _)| {
                                         body.into_iter().fold(
                                             IR::Ok {
                                                 gst,
-                                                val: LexExpr::Nil,
+                                                val: PExpr::Nil,
                                             },
                                             move |acc, stmt| {
                                                 acc.and_then(|(gst, _)| interpret(gst, stmt))
@@ -301,7 +298,7 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                         )
                                     });
                                 }
-                                Some(Ok(LexExpr::Literal(Primitive::Bool(_)))) => continue,
+                                Some(Ok(PExpr::Literal(Primitive::Bool(_)))) => continue,
                                 Some(_) => todo!("Invalid type"),
                             }
                         }
@@ -318,16 +315,16 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                 Some(Err(err)) => {
                                     return IR::Err(err);
                                 }
-                                Some(Ok(LexExpr::Literal(Primitive::Bool(b)))) if b => {
+                                Some(Ok(PExpr::Literal(Primitive::Bool(b)))) if b => {
                                     return IR::Ok {
                                         gst,
-                                        val: LexExpr::Nil,
+                                        val: PExpr::Nil,
                                     }
                                     .scope(|(gst, _)| {
                                         body.into_iter().fold(
                                             IR::Ok {
                                                 gst,
-                                                val: LexExpr::Nil,
+                                                val: PExpr::Nil,
                                             },
                                             move |acc, stmt| {
                                                 acc.and_then(|(gst, _)| interpret(gst, stmt))
@@ -342,13 +339,13 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                 None => {
                                     return IR::Ok {
                                         gst,
-                                        val: LexExpr::Nil,
+                                        val: PExpr::Nil,
                                     }
                                     .scope(|(gst, _)| {
                                         body.into_iter().fold(
                                             IR::Ok {
                                                 gst,
-                                                val: LexExpr::Nil,
+                                                val: PExpr::Nil,
                                             },
                                             move |acc, stmt| {
                                                 acc.and_then(|(gst, _)| interpret(gst, stmt))
@@ -360,7 +357,7 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                         val,
                                     });
                                 }
-                                Some(Ok(LexExpr::Literal(Primitive::Bool(_)))) => continue,
+                                Some(Ok(PExpr::Literal(Primitive::Bool(_)))) => continue,
                                 Some(_) => todo!("Invalid type"),
                             }
                         }
@@ -411,23 +408,23 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                     VariableDeclarationAssignment {
                                         identifier: ident,
                                         variable_type: None,
-                                        value: LexExpr::List(ys),
+                                        value: PExpr::List(ys),
                                     },
                                 );
                             }
 
                             match condition
                                 .map(|expr| eval_expr(&gst, expr))
-                                .unwrap_or_else(|| Ok(LexExpr::bool(true)))
+                                .unwrap_or_else(|| Ok(PExpr::bool(true)))
                             {
-                                Ok(LexExpr::Literal(Primitive::Bool(b))) => {
+                                Ok(PExpr::Literal(Primitive::Bool(b))) => {
                                     if b {
                                         return body
                                             .into_iter()
                                             .fold(
                                                 IR::Ok {
                                                     gst,
-                                                    val: LexExpr::Nil,
+                                                    val: PExpr::Nil,
                                                 },
                                                 move |acc, stmt| {
                                                     acc.and_then(|(gst, _)| interpret(gst, stmt))
@@ -453,21 +450,21 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
                                 VariableDeclarationAssignment {
                                     identifier: ident,
                                     variable_type: None,
-                                    value: LexExpr::List(xs.clone()),
+                                    value: PExpr::List(xs.clone()),
                                 },
                             );
                             match condition
                                 .map(|expr| eval_expr(&gst, expr))
-                                .unwrap_or_else(|| Ok(LexExpr::bool(true)))
+                                .unwrap_or_else(|| Ok(PExpr::bool(true)))
                             {
-                                Ok(LexExpr::Literal(Primitive::Bool(b))) => {
+                                Ok(PExpr::Literal(Primitive::Bool(b))) => {
                                     if b {
                                         return body
                                             .into_iter()
                                             .fold(
                                                 IR::Ok {
                                                     gst,
-                                                    val: LexExpr::Nil,
+                                                    val: PExpr::Nil,
                                                 },
                                                 move |acc, stmt| {
                                                     acc.and_then(|(gst, _)| interpret(gst, stmt))
@@ -495,7 +492,7 @@ pub fn interpret<'a>(gst: GlobalSymbolTable<'a>, stmt: LexStmt<'a>) -> IR<'a, Le
 
                 IR::Ok {
                     gst,
-                    val: LexExpr::Nil,
+                    val: PExpr::Nil,
                 }
             }
             Some(_) => todo!(),
@@ -508,27 +505,27 @@ fn interpret_for<'a>(
     gst: GlobalSymbolTable<'a>,
     ident: &'a str,
     incrementer: VariableDeclarationAssignment<'a>,
-    condition: LexExpr<'a>,
-    body: Vec<LexStmt<'a>>,
-) -> IR<'a, LexExpr<'a>> {
+    condition: PExpr<'a>,
+    body: Vec<PStmt<'a>>,
+) -> IR<'a, PExpr<'a>> {
     match eval_expr(&gst, condition) {
-        Ok(LexExpr::Literal(Primitive::Bool(b))) if b => body
+        Ok(PExpr::Literal(Primitive::Bool(b))) if b => body
             .clone()
             .into_iter()
             .fold(
                 IR::Ok {
                     gst,
-                    val: LexExpr::Nil,
+                    val: PExpr::Nil,
                 },
                 |acc, cur| acc.and_then(|(gst, _)| interpret(gst, cur)),
             )
             .and_then(|(gst, _)| IR::Ok {
                 gst: gst.insert_var_ass(ident, incrementer),
-                val: LexExpr::Nil,
+                val: PExpr::Nil,
             }),
-        Ok(LexExpr::Literal(Primitive::Bool(_))) => IR::Ok {
+        Ok(PExpr::Literal(Primitive::Bool(_))) => IR::Ok {
             gst,
-            val: LexExpr::Nil,
+            val: PExpr::Nil,
         },
         Ok(_) => unreachable!("non-bool should not appear as condition in for-stmt"),
         Err(err) => IR::Err(err),
@@ -537,24 +534,24 @@ fn interpret_for<'a>(
 
 fn interpret_while<'a>(
     gst: GlobalSymbolTable<'a>,
-    condition: LexExpr<'a>,
-    body: Vec<LexStmt<'a>>,
-) -> IR<'a, LexExpr<'a>> {
+    condition: PExpr<'a>,
+    body: Vec<PStmt<'a>>,
+) -> IR<'a, PExpr<'a>> {
     match eval_expr(&gst, condition.clone()) {
-        Ok(LexExpr::Literal(Primitive::Bool(b))) if b => body
+        Ok(PExpr::Literal(Primitive::Bool(b))) if b => body
             .clone()
             .into_iter()
             .fold(
                 IR::Ok {
                     gst,
-                    val: LexExpr::Nil,
+                    val: PExpr::Nil,
                 },
                 |acc, stmt| acc.and_then(|(gst_prime, _)| interpret(gst_prime, stmt)),
             )
             .and_then(|(gst, _)| interpret_while(gst, condition, body)),
-        Ok(LexExpr::Literal(Primitive::Bool(_))) => IR::Ok {
+        Ok(PExpr::Literal(Primitive::Bool(_))) => IR::Ok {
             gst,
-            val: LexExpr::Nil,
+            val: PExpr::Nil,
         },
         Ok(v) => IR::Err(IE::ExpectedBoolGot(v)),
         Err(err) => IR::Err(err),
@@ -602,7 +599,7 @@ pub fn interpret_decl<'a>(gst: GlobalSymbolTable<'a>, dcl: Decl<'a>) -> IR<'a, (
                                 VariableDeclarationAssignment {
                                     identifier: ident,
                                     variable_type: None,
-                                    value: LexExpr::List(
+                                    value: PExpr::List(
                                         exprs.into_iter().skip(ident_count).collect(),
                                     ),
                                 },
@@ -660,7 +657,7 @@ pub fn interpret_decl<'a>(gst: GlobalSymbolTable<'a>, dcl: Decl<'a>) -> IR<'a, (
             Err(err) => IR::Err(err),
         },
         Decl::StrUnpk(StructUnpacking { identifiers, value }) => match value {
-            LexExpr::Struct {
+            PExpr::Struct {
                 ident: identifier,
                 field_implementations,
             } => {
@@ -767,38 +764,38 @@ pub fn import_module<'a>(gst: GlobalSymbolTable<'a>, import: Import<'a>) -> IR<'
 
 pub fn unpack_expr<'a>(
     gst: &GlobalSymbolTable<'a>,
-    expr: LexExpr<'a>,
-) -> Result<Vec<LexExpr<'a>>, IE<'a>> {
+    expr: PExpr<'a>,
+) -> Result<Vec<PExpr<'a>>, IE<'a>> {
     match expr {
-        LexExpr::Nil => Err(IE::UnpackingNonUnpackableType(LexType::nil())),
-        LexExpr::Literal(p) => match p {
-            Primitive::Int(_) => Err(IE::UnpackingNonUnpackableType(LexType::int())),
-            Primitive::Float(_) => Err(IE::UnpackingNonUnpackableType(LexType::float())),
-            Primitive::Str(_) => Err(IE::UnpackingNonUnpackableType(LexType::str())),
-            Primitive::Bool(_) => Err(IE::UnpackingNonUnpackableType(LexType::bool())),
+        PExpr::Nil => Err(IE::UnpackingNonUnpackableType(Type::nil())),
+        PExpr::Literal(p) => match p {
+            Primitive::Int(_) => Err(IE::UnpackingNonUnpackableType(Type::int())),
+            Primitive::Float(_) => Err(IE::UnpackingNonUnpackableType(Type::float())),
+            Primitive::Str(_) => Err(IE::UnpackingNonUnpackableType(Type::str())),
+            Primitive::Bool(_) => Err(IE::UnpackingNonUnpackableType(Type::bool())),
         },
-        LexExpr::Tuple(fst, snd) => {
+        PExpr::Tuple(fst, snd) => {
             let mut fst_lst = unpack_expr(gst, *fst.clone()).unwrap_or(vec![]);
             let mut snd_lst = unpack_expr(gst, *snd.clone()).unwrap_or(vec![*snd.clone()]);
             fst_lst.append(&mut snd_lst);
             Ok(fst_lst)
         }
-        LexExpr::List(lst) => Ok(lst),
-        LexExpr::Variable(var) => match gst.lookup_var(var) {
+        PExpr::List(lst) => Ok(lst),
+        PExpr::Variable(var) => match gst.lookup_var(var) {
             Some(val) => unpack_expr(gst, val.value().clone()),
             None => Err(IE::UndefinedVariable(var)),
         },
-        LexExpr::Group(inner) => unpack_expr(gst, *inner),
-        LexExpr::FunctionCall {
+        PExpr::Group(inner) => unpack_expr(gst, *inner),
+        PExpr::FunctionCall {
             ident: identifier,
             arguments,
         } => unpack_expr(gst, invoke_function(&gst, identifier, arguments)?),
-        LexExpr::Op(b2_op) => Ok(vec![eval_operation(&gst, *b2_op)?]),
-        LexExpr::Struct {
+        PExpr::Op(b2_op) => Ok(vec![eval_operation(&gst, *b2_op)?]),
+        PExpr::Struct {
             field_implementations: _xs,
             ..
         } => todo!("Cant unpack struct"), //Ok(_xs.into_iter().map(|(_, x)| x).collect()),
-        LexExpr::StructFieldAccessing {
+        PExpr::StructFieldAccessing {
             ident: identifier,
             field,
         } => match gst.lookup_var(identifier) {
@@ -808,11 +805,11 @@ pub fn unpack_expr<'a>(
                     .cloned()
                     .unwrap_or_else(|| infer_type(gst, var.value()));
                 match b2_type {
-                    LexType::Mono(LexMonoType::TypeVar(ident)) => {
+                    Type::Mono(MonoType::TypeVar(ident)) => {
                         match gst.lookup_struct_decl(ident) {
                             Some(struct_decl) => match struct_decl.has_field(field) {
                                 true => match var.value() {
-                                    LexExpr::Struct {
+                                    PExpr::Struct {
                                         field_implementations,
                                         ..
                                     } => match field_implementations.get(field) {
@@ -837,45 +834,45 @@ pub fn unpack_expr<'a>(
             }
             None => Err(IE::UndefinedVariable(identifier)),
         },
-        LexExpr::Enum { values, .. } => Ok(values),
+        PExpr::Enum { values, .. } => Ok(values),
     }
 }
 
-fn infer_type<'a>(gst: &GlobalSymbolTable<'a>, value: &LexExpr<'a>) -> LexType<'a> {
+fn infer_type<'a>(gst: &GlobalSymbolTable<'a>, value: &PExpr<'a>) -> Type<'a> {
     match value {
-        LexExpr::Nil => LexType::nil(),
-        LexExpr::Literal(primitive) => match primitive {
-            Primitive::Int(_) => LexType::int(),
-            Primitive::Float(_) => LexType::float(),
-            Primitive::Str(_) => LexType::str(),
-            Primitive::Bool(_) => LexType::bool(),
+        PExpr::Nil => Type::nil(),
+        PExpr::Literal(primitive) => match primitive {
+            Primitive::Int(_) => Type::int(),
+            Primitive::Float(_) => Type::float(),
+            Primitive::Str(_) => Type::str(),
+            Primitive::Bool(_) => Type::bool(),
         },
-        LexExpr::Tuple(fst, snd) => LexType::tuple(infer_type(gst, fst), infer_type(gst, snd)),
-        LexExpr::List(xs) => {
-            LexType::list(xs.first().map(|x| infer_type(gst, x)).unwrap_or_default())
+        PExpr::Tuple(fst, snd) => Type::tuple(infer_type(gst, fst), infer_type(gst, snd)),
+        PExpr::List(xs) => {
+            Type::list(xs.first().map(|x| infer_type(gst, x)).unwrap_or_default())
         }
-        LexExpr::Variable(var) => match gst.lookup_var(var) {
+        PExpr::Variable(var) => match gst.lookup_var(var) {
             Some(var) => var
                 .b2_type()
                 .cloned()
                 .unwrap_or_else(|| infer_type(gst, var.value())),
             None => todo!(),
         },
-        LexExpr::Group(lex_expr) => infer_type(gst, lex_expr),
-        LexExpr::FunctionCall { arguments, .. } => {
+        PExpr::Group(lex_expr) => infer_type(gst, lex_expr),
+        PExpr::FunctionCall { arguments, .. } => {
             let xs = arguments
                 .iter()
                 .map(|x| infer_type(gst, x))
                 .collect::<Vec<_>>();
             match xs.as_slice() {
-                [] => LexType::fun(LexType::nil(), LexType::nil()),
-                [x] => LexType::fun(x.clone(), LexType::nil()),
-                [x, y] => LexType::fun(x.clone(), y.clone()),
-                xs => LexType::fold_funs(xs.to_vec())
-                    .unwrap_or_else(|_| LexType::fun(LexType::nil(), LexType::nil())),
+                [] => Type::fun(Type::nil(), Type::nil()),
+                [x] => Type::fun(x.clone(), Type::nil()),
+                [x, y] => Type::fun(x.clone(), y.clone()),
+                xs => TypeParser::fold_funs(xs.to_vec())
+                    .unwrap_or_else(|_| Type::fun(Type::nil(), Type::nil())),
             }
         }
-        LexExpr::Op(b2_op) => match b2_op.inner() {
+        PExpr::Op(b2_op) => match b2_op.inner() {
             B2OpInner::Prefix(o, x) => match o {
                 UniOp::Neg => infer_type(gst, x),
             },
@@ -885,17 +882,17 @@ fn infer_type<'a>(gst: &GlobalSymbolTable<'a>, value: &LexExpr<'a>) -> LexType<'
             B2OpInner::Binary(l, o, r) => match o {
                 BinOp::Mul | BinOp::Sub | BinOp::Add => {
                     match (infer_type(gst, l), infer_type(gst, r)) {
-                        (LexType::Mono(LexMonoType::Str), LexType::Mono(_)) => LexType::str(),
-                        (LexType::Mono(_), LexType::Mono(LexMonoType::Str)) => LexType::str(),
-                        (LexType::Mono(LexMonoType::Float), LexType::Mono(_)) => LexType::float(),
-                        (LexType::Mono(_), LexType::Mono(LexMonoType::Float)) => LexType::float(),
+                        (Type::Mono(MonoType::Str), Type::Mono(_)) => Type::str(),
+                        (Type::Mono(_), Type::Mono(MonoType::Str)) => Type::str(),
+                        (Type::Mono(MonoType::Float), Type::Mono(_)) => Type::float(),
+                        (Type::Mono(_), Type::Mono(MonoType::Float)) => Type::float(),
                         (l, _) => l,
                     }
                 }
-                BinOp::Mod => LexType::int(),
+                BinOp::Mod => Type::int(),
                 BinOp::Div | BinOp::Pow => match (infer_type(gst, l), infer_type(gst, r)) {
-                    (LexType::Mono(LexMonoType::Float), LexType::Mono(_)) => LexType::float(),
-                    (LexType::Mono(_), LexType::Mono(LexMonoType::Float)) => LexType::float(),
+                    (Type::Mono(MonoType::Float), Type::Mono(_)) => Type::float(),
+                    (Type::Mono(_), Type::Mono(MonoType::Float)) => Type::float(),
                     (l, _) => l,
                 },
                 BinOp::Eq
@@ -905,13 +902,13 @@ fn infer_type<'a>(gst: &GlobalSymbolTable<'a>, value: &LexExpr<'a>) -> LexType<'
                 | BinOp::Lt
                 | BinOp::Neq
                 | BinOp::And
-                | BinOp::Or => LexType::bool(),
+                | BinOp::Or => Type::bool(),
             },
         },
-        LexExpr::Struct {
+        PExpr::Struct {
             ident: identifier, ..
-        } => LexType::var(identifier),
-        LexExpr::StructFieldAccessing {
+        } => Type::var(identifier),
+        PExpr::StructFieldAccessing {
             ident: identifier,
             field,
         } => gst
@@ -919,19 +916,19 @@ fn infer_type<'a>(gst: &GlobalSymbolTable<'a>, value: &LexExpr<'a>) -> LexType<'
             .and_then(|d| d.get_field(field))
             .cloned()
             .unwrap_or_default(),
-        LexExpr::Enum {
+        PExpr::Enum {
             ident: identifier,
             instance,
             ..
-        } => LexType::r#enum(identifier, instance),
+        } => Type::r#enum(identifier, instance),
     }
 }
 
 fn invoke_function<'a>(
     gst: &GlobalSymbolTable<'a>,
     identifier: &'a str,
-    arguments: Vec<LexExpr<'a>>,
-) -> Result<LexExpr<'a>, IE<'a>> {
+    arguments: Vec<PExpr<'a>>,
+) -> Result<PExpr<'a>, IE<'a>> {
     let fun = gst
         .lookup_fn_impl(identifier)
         .ok_or(IE::FnErrMissingImplementation(identifier))?;
@@ -970,8 +967,8 @@ fn invoke_function<'a>(
 
     for stmt in fun.body.iter() {
         match stmt {
-            LexStmt::Return { value } => {
-                let val: LexExpr<'a> = eval_expr(&function_gst, value.clone().unwrap_or_default())?;
+            PStmt::Return { value } => {
+                let val: PExpr<'a> = eval_expr(&function_gst, value.clone().unwrap_or_default())?;
                 return Ok(val.clone());
             }
             _ => match interpret(function_gst.clone(), stmt.clone()) {
@@ -985,31 +982,31 @@ fn invoke_function<'a>(
         }
     }
 
-    Ok(LexExpr::Nil)
+    Ok(PExpr::Nil)
 }
 
-fn eval_operation<'a>(gst: &GlobalSymbolTable<'a>, op: B2Op<'a>) -> Result<LexExpr<'a>, IE<'a>> {
+fn eval_operation<'a>(gst: &GlobalSymbolTable<'a>, op: B2Op<'a>) -> Result<PExpr<'a>, IE<'a>> {
     todo!()
 }
 
-fn eval_expr<'a>(gst: &GlobalSymbolTable<'a>, expr: LexExpr<'a>) -> Result<LexExpr<'a>, IE<'a>> {
+fn eval_expr<'a>(gst: &GlobalSymbolTable<'a>, expr: PExpr<'a>) -> Result<PExpr<'a>, IE<'a>> {
     match expr {
-        LexExpr::Variable(ident) => match gst.lookup_var(ident) {
+        PExpr::Variable(ident) => match gst.lookup_var(ident) {
             Some(dcl) => eval_expr(gst, dcl.value().clone()),
             None => Err(IE::UndefinedVariable(ident)),
         },
-        LexExpr::Group(inner) => eval_expr(gst, *inner),
-        LexExpr::FunctionCall {
+        PExpr::Group(inner) => eval_expr(gst, *inner),
+        PExpr::FunctionCall {
             ident: identifier,
             arguments,
         } => invoke_function(&gst, identifier, arguments),
-        LexExpr::Op(op) => eval_operation(&gst, *op),
-        LexExpr::StructFieldAccessing {
+        PExpr::Op(op) => eval_operation(&gst, *op),
+        PExpr::StructFieldAccessing {
             ident: identifier,
             field,
         } => match gst.lookup_var(identifier) {
             Some(dcl) => match dcl.value() {
-                LexExpr::Struct {
+                PExpr::Struct {
                     field_implementations,
                     ..
                 } => field_implementations.get(field).cloned().ok_or_else(|| {
@@ -1029,11 +1026,11 @@ fn eval_expr<'a>(gst: &GlobalSymbolTable<'a>, expr: LexExpr<'a>) -> Result<LexEx
                 field,
             }),
         },
-        LexExpr::Nil
-        | LexExpr::Literal(_)
-        | LexExpr::Tuple(_, _)
-        | LexExpr::List(_)
-        | LexExpr::Struct { .. }
-        | LexExpr::Enum { .. } => Ok(expr),
+        PExpr::Nil
+        | PExpr::Literal(_)
+        | PExpr::Tuple(_, _)
+        | PExpr::List(_)
+        | PExpr::Struct { .. }
+        | PExpr::Enum { .. } => Ok(expr),
     }
 }

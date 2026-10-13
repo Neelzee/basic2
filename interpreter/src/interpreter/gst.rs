@@ -1,9 +1,9 @@
 use crate::symbol_table::SymbolTable;
+use common::{AsB2Type, ToB2, types::Type};
 use parser::{
-    common::{AsB2Type, ToB2},
     pmod::LexModule,
     pstmt::{
-        LexStmt,
+        PStmt,
         decls::{
             Decl,
             variants::{
@@ -13,7 +13,6 @@ use parser::{
         },
         impls::{FunctionImplementation, Impl, TraitImpl},
     },
-    ltype::LexType,
 };
 
 #[derive(Debug, Clone)]
@@ -73,7 +72,7 @@ impl<'a> GlobalSymbolTable<'a> {
         let mut gst = GlobalSymbolTable::new();
         for stmt in module.statements() {
             gst = match stmt {
-                LexStmt::Decl(decl) => match decl {
+                PStmt::Decl(decl) => match decl {
                     Decl::VarDecl(var @ VariableDeclaration { identifier, .. }) => {
                         gst.insert_var(identifier, var)
                     }
@@ -97,7 +96,7 @@ impl<'a> GlobalSymbolTable<'a> {
                     }
                     _ => gst,
                 },
-                LexStmt::Impl(impls) => match impls {
+                PStmt::Impl(impls) => match impls {
                     Impl::FnImpl(d @ FunctionImplementation { identifier, .. }) => {
                         gst.insert_fn_impl(identifier, d)
                     }
@@ -107,19 +106,19 @@ impl<'a> GlobalSymbolTable<'a> {
                         },
                     ) => gst.insert_trait_impl(trait_identifier, d),
                 },
-                LexStmt::VariableReassignment { .. }
-                | LexStmt::ListReassignment { .. }
-                | LexStmt::If { .. }
-                | LexStmt::While { .. }
-                | LexStmt::Import(_)
-                | LexStmt::Block { .. }
-                | LexStmt::FunctionInvocation { .. }
-                | LexStmt::Break
-                | LexStmt::Continue
-                | LexStmt::Return { .. }
-                | LexStmt::For { .. }
-                | LexStmt::StructFieldReassignment { .. }
-                | LexStmt::WhenStatement { .. } => gst,
+                PStmt::VariableReassignment { .. }
+                | PStmt::ListReassignment { .. }
+                | PStmt::If { .. }
+                | PStmt::While { .. }
+                | PStmt::Import(_)
+                | PStmt::Block { .. }
+                | PStmt::FunctionInvocation { .. }
+                | PStmt::Break
+                | PStmt::Continue
+                | PStmt::Return { .. }
+                | PStmt::For { .. }
+                | PStmt::StructFieldReassignment { .. }
+                | PStmt::WhenStatement { .. } => gst,
             };
         }
 
@@ -207,7 +206,7 @@ impl<'a> GlobalSymbolTable<'a> {
         self
     }
 
-    pub fn lookup_type(&self, ident: &'a str) -> Option<LexType<'a>> {
+    pub fn lookup_type(&self, ident: &'a str) -> Option<Type<'a>> {
         self.lookup_type_decl(ident)
             .map(AsB2Type::as_b2_type)
             .or_else(|| self.lookup_struct_decl(ident).map(AsB2Type::as_b2_type))

@@ -3,7 +3,6 @@ use nom_language::error::{VerboseError, VerboseErrorKind};
 use nom_locate::LocatedSpan;
 use std::fmt::Write;
 
-pub mod consts;
 pub mod helper_parsers;
 
 #[cfg(test)]
@@ -11,11 +10,11 @@ mod test_utils;
 
 pub type Span<'a> = LocatedSpan<&'a str>;
 
-pub type B2LexError<'a> = VerboseError<Span<'a>>;
+pub type B2PError<'a> = VerboseError<Span<'a>>;
 
-pub type B2LexResult<'a, O> = IResult<Span<'a>, O, B2LexError<'a>>;
+pub type B2PResult<'a, O> = IResult<Span<'a>, O, B2PError<'a>>;
 
-pub fn convert_error(input: Span, e: nom::Err<B2LexError>) -> String {
+pub fn convert_error(input: Span, e: nom::Err<B2PError>) -> String {
     match e {
         err @ nom::Err::Incomplete(_) => format!("non-verbose-error: {err:?}, Input: {input:?}"),
         nom::Err::Error(e) | nom::Err::Failure(e) => _convert_error(input, e),
@@ -23,7 +22,7 @@ pub fn convert_error(input: Span, e: nom::Err<B2LexError>) -> String {
 }
 
 /// Inlined convert_error
-fn _convert_error(input: Span, e: B2LexError) -> String {
+fn _convert_error(input: Span, e: B2PError) -> String {
     let mut result = String::new();
 
     for (i, (substring, kind)) in e.errors.iter().enumerate() {

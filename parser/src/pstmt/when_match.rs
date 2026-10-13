@@ -1,17 +1,10 @@
 use crate::{
-    pexpr::LexExpr,
-    pstmt::LexStmt,
-    ltype::LexType,
-    utils::{
-        B2LexResult, Span,
-        consts::{
-            LIST_DELIMITER, LIST_END, LIST_START, LIST_UNPACKING_KW, STRUCT_FIELD_ACCESS_KW,
-            WHEN_STATEMENT_BRANCH_END, WHEN_STATEMENT_CONDITION_END_KW,
-            WHEN_STATEMENT_CONDITION_START_KW, WHEN_STATEMENT_TYPE_START_KW,
-        },
+    pexpr::PExpr, pstmt::PStmt, ptypes::TypeParser, utils::{
+        B2PResult, Span,
         helper_parsers::{parse_identifier, parse_poly_list_with, parse_statements},
     },
 };
+use common::{consts::{pexprs::LIST_UNPACKING_KW, pstms::{structs::STRUCT_FIELD_ACCESS_KW, when::{WHEN_STATEMENT_BRANCH_END, WHEN_STATEMENT_CONDITION_END_KW, WHEN_STATEMENT_CONDITION_START_KW, WHEN_STATEMENT_TYPE_START_KW}}, types::{LIST_DELIMITER, LIST_END, LIST_START}}, types::Type};
 use nom::{
     Parser,
     branch::{alt, permutation},
@@ -26,37 +19,37 @@ use nom::{
 #[derive(Debug, PartialEq, Clone)]
 pub enum WhenMatch<'a> {
     /// [ ]
-    EmptyList { condition: Option<LexExpr<'a>> },
+    EmptyList { condition: Option<PExpr<'a>> },
     /// [x]
     Singleton {
         ident: &'a str,
-        condition: Option<LexExpr<'a>>,
+        condition: Option<PExpr<'a>>,
     },
     /// [a, b, ...xs]
     VariadicList {
         idents: Vec<&'a str>,
         remainder: Option<&'a str>,
-        condition: Option<LexExpr<'a>>,
+        condition: Option<PExpr<'a>>,
     },
     /// x
     CatchAll {
         ident: &'a str,
-        condition: Option<LexExpr<'a>>,
+        condition: Option<PExpr<'a>>,
     },
     /// IS INT
     /// Matches if the value is assignable to the specified type
     Type {
-        b2_type: LexType<'a>,
-        condition: Option<LexExpr<'a>>,
+        b2_type: Type<'a>,
+        condition: Option<PExpr<'a>>,
     },
     // [::field_a, ::field_b] AND field_a < field_b FOLLOWS ...
     StructField {
         fields: Vec<&'a str>,
-        condition: Option<LexExpr<'a>>,
+        condition: Option<PExpr<'a>>,
     },
 }
 
-type WMResult<'a> = B2LexResult<'a, (WhenMatch<'a>, Vec<LexStmt<'a>>)>;
+type WMResult<'a> = B2PResult<'a, (WhenMatch<'a>, Vec<PStmt<'a>>)>;
 
 impl<'a> WhenMatch<'a> {
     pub fn parse(input: Span<'a>) -> WMResult<'a> {
@@ -76,7 +69,7 @@ impl<'a> WhenMatch<'a> {
 
     fn parse_condition_and_stmt(
         input: Span<'a>,
-    ) -> B2LexResult<'a, (Option<LexExpr<'a>>, Vec<LexStmt<'a>>)> {
+    ) -> B2PResult<'a, (Option<PExpr<'a>>, Vec<PStmt<'a>>)> {
         context(
             "condition-and-statements",
             (
@@ -88,7 +81,7 @@ impl<'a> WhenMatch<'a> {
                     )),
                     context(
                         "optional-condition",
-                        opt(preceded(multispace0, LexExpr::parse_expr)),
+                        opt(preceded(multispace0, PExpr::parse_expr)),
                     ),
                     context(
                         "multispace-follows-multispace",
@@ -221,7 +214,7 @@ impl<'a> WhenMatch<'a> {
                 (
                     preceded(
                         (multispace0, tag(WHEN_STATEMENT_TYPE_START_KW), multispace0),
-                        LexType::parse_type,
+                        TypeParser::parse_type,
                     ),
                     Self::parse_condition_and_stmt,
                 ),
