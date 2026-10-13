@@ -1,8 +1,8 @@
 use crate::symbol_table::SymbolTable;
 use parser::{
     common::{AsB2Type, ToB2},
-    lex_mod::LexModule,
-    lex_stmt::{
+    pmod::LexModule,
+    pstmt::{
         LexStmt,
         decls::{
             Decl,
@@ -13,7 +13,7 @@ use parser::{
         },
         impls::{FunctionImplementation, Impl, TraitImpl},
     },
-    lex_type::LexType,
+    ltype::LexType,
 };
 
 #[derive(Debug, Clone)]

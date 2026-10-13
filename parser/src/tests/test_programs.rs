@@ -1,5 +1,5 @@
 use crate::{
-    lex_mod::LexModule,
+    pmod::LexModule,
     utils::{Span, consts::test_const::EMPTY_PROGRAM_PATH, convert_error},
 };
 use anyhow::{Context, Result};

@@ -1,7 +1,7 @@
 use crate::{
     common::{B2Op, binop::BinOp, postfix::Postfix, primitive::Primitive},
-    lex_expr::LexExpr,
-    lex_stmt::{
+    pexpr::LexExpr,
+    pstmt::{
         LexStmt,
         decls::{
             Decl,
@@ -13,7 +13,7 @@ use crate::{
         impls::Impl,
         when_match::WhenMatch,
     },
-    lex_type::{LexMonoType, LexPolyType, LexType},
+    ltype::{LexMonoType, LexPolyType, LexType},
     utils::{Span, convert_error},
 };
 use p_macros::{

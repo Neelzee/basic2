@@ -1,6 +1,6 @@
 use crate::{
     common::{B2Op, ToB2, binop::BinOp, postfix::Postfix, primitive::Primitive},
-    lex_expr::LexExpr,
+    pexpr::LexExpr,
     utils::{Span, convert_error},
 };
 use nom::Parser;

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
     common::binop::BinOp,
-    lex_expr::LexExpr,
-    lex_stmt::{
+    pexpr::LexExpr,
+    pstmt::{
         decls::{
             Decl,
             variants::{
@@ -14,7 +14,7 @@ use crate::{
         impls::Impl,
         when_match::WhenMatch,
     },
-    lex_type::LexType,
+    ltype::LexType,
 };
 
 pub mod decls;

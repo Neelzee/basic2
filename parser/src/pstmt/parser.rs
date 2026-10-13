@@ -1,11 +1,11 @@
 use crate::{
     common::binop::BinOp,
-    lex_expr::LexExpr,
-    lex_stmt::{
+    pexpr::LexExpr,
+    pstmt::{
         FunDeclComps, FunImplComps, Import, LexStmt,
         decls::variants::VariableDeclarationAssignment, when_match::WhenMatch,
     },
-    lex_type::LexType,
+    ltype::LexType,
     utils::{
         B2LexError, B2LexResult, Span,
         consts::{

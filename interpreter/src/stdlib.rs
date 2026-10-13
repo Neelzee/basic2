@@ -1,7 +1,7 @@
 use crate::interpreter::gst::GlobalSymbolTable;
 use parser::{
-    lex_stmt::decls::variants::FunctionDeclaration,
-    lex_type::{LexMonoType, LexType},
+    pstmt::decls::variants::FunctionDeclaration,
+    ltype::{LexMonoType, LexType},
 };
 
 pub const PRINT_IDENT: &'static str = "PRINT";

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    lex_stmt::{
+    pstmt::{
         FunDeclComps, FunImplComps,
         decls::variants::{
             EnumDeclaration, FunctionDeclaration, ListUnpacking, StructDeclaration,
@@ -9,7 +9,7 @@ use crate::{
             VariableDeclarationAssignment,
         },
     },
-    lex_type::LexType,
+    ltype::LexType,
 };
 
 pub mod variants;

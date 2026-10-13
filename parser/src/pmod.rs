@@ -1,5 +1,5 @@
 use crate::{
-    lex_stmt::LexStmt,
+    pstmt::LexStmt,
     utils::{
         B2LexResult, Span,
         consts::{BEGIN_MODULE_KW, END_MODULE_KW, MODULE_KW, ONE_SPACE},

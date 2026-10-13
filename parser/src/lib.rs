@@ -1,8 +1,8 @@
 pub mod common;
-pub mod lex_expr;
-pub mod lex_mod;
-pub mod lex_stmt;
-pub mod lex_type;
+pub mod pexpr;
+pub mod pmod;
+pub mod pstmt;
+pub mod ltype;
 pub mod utils;
 
 #[cfg(test)]

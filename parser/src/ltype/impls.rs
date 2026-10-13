@@ -1,6 +1,6 @@
 use crate::{
     common::ToB2,
-    lex_type::{LexMonoType, LexPolyType, LexType},
+    ltype::{LexMonoType, LexPolyType, LexType},
     utils::consts::{
         BOOL_TYPE_KW, ENUM_INDEXING, FLOAT_TYPE_KW, FUNCTION_GENERICS_DELIMITER,
         FUNCTION_GENERICS_END, FUNCTION_GENERICS_START, FUNCTION_TYPE_ARROW_KW, FUNCTION_TYPE_END,

@@ -7,8 +7,8 @@ use parser::{
         AsB2Type, B2Op, B2OpInner, binop::BinOp, postfix::Postfix, primitive::Primitive,
         uniop::UniOp,
     },
-    lex_expr::LexExpr,
-    lex_stmt::{
+    pexpr::LexExpr,
+    pstmt::{
         Import, LexStmt,
         decls::{
             Decl::{self, FnDecl},
@@ -21,7 +21,7 @@ use parser::{
         impls::{FunctionImplementation, Impl, TraitImpl},
         when_match::WhenMatch,
     },
-    lex_type::{LexMonoType, LexPolyType, LexType},
+    ltype::{LexMonoType, LexPolyType, LexType},
 };
 use std::collections::HashMap;
 

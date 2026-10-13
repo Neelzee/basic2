@@ -1,7 +1,7 @@
 use crate::{
-    lex_expr::LexExpr,
-    lex_stmt::LexStmt,
-    lex_type::LexType,
+    pexpr::LexExpr,
+    pstmt::LexStmt,
+    ltype::LexType,
     utils::{
         B2LexResult, Span,
         consts::{

@@ -1,6 +1,6 @@
 use crate::{
     common::{AsB2Type, ToB2},
-    lex_type::LexType,
+    ltype::LexType,
     utils::{
         B2LexResult, Span,
         consts::{FLOAT_DOT_KW, FLOAT_KW, STRING_CHAR, STRING_KW},

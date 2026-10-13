@@ -10,10 +10,10 @@ use crate::b2::{
 };
 use parser::{
     common::{B2OpInner, postfix::Postfix, primitive::Primitive},
-    lex_expr::LexExpr,
-    lex_mod::LexModule,
-    lex_stmt::LexStmt,
-    lex_type::LexType,
+    pexpr::LexExpr,
+    pmod::LexModule,
+    pstmt::LexStmt,
+    ltype::LexType,
 };
 use std::collections::HashMap;
 

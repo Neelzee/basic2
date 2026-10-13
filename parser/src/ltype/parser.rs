@@ -1,5 +1,5 @@
 use crate::{
-    lex_type::{LexMonoType, LexPolyType, LexType},
+    ltype::{LexMonoType, LexPolyType, LexType},
     utils::{
         B2LexError, B2LexResult, Span,
         consts::{

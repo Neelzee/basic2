@@ -1,5 +1,5 @@
 use crate::{
-    lex_type::{LexMonoType, LexPolyType, LexType},
+    ltype::{LexMonoType, LexPolyType, LexType},
     utils::{Span, convert_error},
 };
 use p_macros::ltype;

@@ -1,7 +1,7 @@
 use crate::{
     common::{binop::BinOp, postfix::Postfix, uniop::UniOp},
-    lex_expr::LexExpr,
-    lex_type::LexType,
+    pexpr::LexExpr,
+    ltype::LexType,
 };
 use nom_language::precedence::Operation;
 
